@@ -3,6 +3,10 @@
 > Native runner that bridges the skill content into a real engagement loop.
 > Four subcommands compose intake → reconnaissance → triage → submission.
 > Stdlib + optional `subfinder` for richer recon. No build step.
+>
+> **Two operating modes** — pick what fits your setup:
+> 1. **Curl-only (default)** — stdlib HTTP, no Burp dependency. Works on any laptop with Python 3.9+.
+> 2. **Burp Suite integration** — `--burp` flag routes everything through Burp's proxy (default `127.0.0.1:8080`). Requests + responses land in Proxy → HTTP history; you can send any of them to Repeater/Intruder/Scanner/Collaborator. Pairs with the **Burp MCP server** (port 9876) for Claude-Code-conversational hunting.
 
 ## Install
 
@@ -20,6 +24,66 @@ Or run inline from a repo checkout:
 ```bash
 scripts/cbh.py --help
 ```
+
+## Operating modes
+
+### Mode 1 — Curl-only (default)
+
+Works out of the box. All HTTP goes via Python `urllib`. No Burp required.
+
+```bash
+cbh recon hackerone.com
+cbh classify "https://api.target.com/v1/users/42?next=..."
+```
+
+### Mode 2 — Burp Suite Pro integration
+
+Two integration points:
+
+**A. `--burp` flag — proxy routing.** Routes every HTTP request `cbh` makes through Burp's proxy. Every request + response shows up in Burp Proxy → HTTP history with full reqs/resps captured for replay.
+
+```bash
+# Start Burp Suite Pro, ensure Proxy listener is on 127.0.0.1:8080
+cbh recon hackerone.com --burp
+cbh classify "https://target.com/api/users/42" --burp
+
+# Or use a custom proxy URL (Burp on a different port, mitmproxy, ZAP, etc.)
+cbh recon hackerone.com --proxy http://127.0.0.1:8081
+
+# Or set the env var once
+export CBH_BURP_PROXY=http://127.0.0.1:8080
+cbh recon target.com   # auto-detected
+```
+
+What happens after: every host `cbh recon` probes appears in Burp's Target → Site map. Each title-extracted live host is one click from Repeater. You drive the actual attacks from Burp; `cbh` did the bulk discovery + classification.
+
+**B. Burp MCP — conversational hunting via Claude Code.** If you've installed the Burp MCP server BApp extension (typical port `127.0.0.1:9876`) and registered it with Claude Code via `claude mcp add burp -s user -- java -jar ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar`, you can do the hunt loop entirely in a Claude conversation:
+
+```
+You:  cbh classified /api/users/42 as IDOR-prone. Send it to Burp Repeater
+      with X-User-Id: 99 swapped in.
+LLM:  [uses Burp MCP tool calls: get last response, send to Repeater with
+       header swap, returns the new response]
+You:  Looks like cross-tenant read. Apply triage-validation 7-Question Gate.
+LLM:  [reads hunt-idor + triage-validation skills, runs 7Q against the
+       captured req/resp pair, returns PASS/DOWNGRADE/KILL]
+```
+
+This mode is the most ergonomic — the LLM drives Burp via MCP while consulting the skill content. `cbh` and Burp MCP are complementary: `cbh` is fast at bulk classification + structured triage; Burp MCP is fast at deep individual-request analysis.
+
+### When to use which mode
+
+| Phase | Curl-only | Burp proxy | Burp MCP |
+|---|---|---|---|
+| Recon (bulk subdomain + HTTP probe of 50+ hosts) | ✓ fastest | ✓ + audit trail | overkill |
+| Single-URL classification | ✓ | ✓ + traffic captured | ✓ (conversational) |
+| Detailed request manipulation (header swap, body fuzz, Intruder) | painful | ✓ (Repeater/Intruder) | ✓ (LLM-driven) |
+| Triage + report drafting | ✓ | ✓ | ✓ |
+| Discipline-rule enforcement (OOB gate, marker discipline, body-diff) | manual | manual | ✓ (LLM can apply the rules) |
+
+**Operator default:** `--burp` mode if Burp Suite Pro is open; curl-only mode otherwise. Burp MCP mode for engagements where you want maximum LLM-driven workflow inside Claude Code.
+
+---
 
 ## The four subcommands
 
@@ -132,3 +196,5 @@ Every other bug-bounty toolchain is either (a) a payload list with no methodolog
 For senior pentesters: a productivity multiplier that does the boring orchestration so you stay in the interesting parts.
 
 For junior researchers: a guardrail that prevents the top three N/A-submission classes (no real HTTP test, no concrete impact, finding on never-submit list).
+
+**Choice not dogma:** operators with no Burp run curl-only; operators with Burp Pro route via `--burp`; operators with Burp + MCP drive everything from a Claude Code conversation. All three are first-class supported.

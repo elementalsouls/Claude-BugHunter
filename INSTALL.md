@@ -5,10 +5,25 @@ Step-by-step setup for the Claude-BugHunter skill bundle.
 ## Prerequisites
 
 - **Claude Code** — install from https://claude.ai/download
-- **Burp Suite** Professional or Community — https://portswigger.net/burp
 - **macOS or Linux** — most steps are macOS-flavored; Linux users adjust paths
-- **Java** (for Burp MCP) — usually included with Burp Suite Pro
-- **Python 3.10+** (only if you want to regenerate skills via `public-skills-builder`)
+- **Python 3.9+** — for the `cbh` CLI runner
+
+### Optional (recommended but not required)
+
+- **Burp Suite** Professional or Community — https://portswigger.net/burp. `cbh --burp` routes traffic through Burp's proxy. Without Burp, the CLI runs in curl-only mode and everything still works.
+- **Burp MCP Server** (BApp Store extension) — adds conversational hunting via Claude Code. Optional layer on top of Burp Pro. Skip if you don't have Burp.
+- **`subfinder`** (ProjectDiscovery) — improves passive subdomain enum. Without it, `cbh recon` falls back to crt.sh alone.
+- **Java** — required for Burp MCP if you install it.
+
+### Choose your operating mode
+
+| Mode | What you need | Best for |
+|---|---|---|
+| **Curl-only** | Just Python 3.9+ | Quick hunts, scripted automation, no GUI |
+| **Burp proxy** (`cbh --burp`) | Add Burp Suite Pro/Community | All `cbh` traffic logged in Burp; one click to Repeater |
+| **Burp MCP** (conversational) | Burp Pro + MCP extension + Claude Code MCP setup | Maximum LLM-driven workflow inside Claude Code |
+
+All three modes are first-class supported. The skills + CLI work identically across them — you pick based on what you have installed and how you like to work.
 
 ## Step 1 — Clone this repo
 
@@ -33,7 +48,9 @@ This copies:
 
 Existing skills with the same name are backed up (e.g. `bugcrowd-reporting.backup-20260505-153000`) so re-runs are non-destructive.
 
-## Step 3 — Set up Burp MCP
+## Step 3 — (Optional) Set up Burp MCP
+
+**Skip this step if you don't have Burp Suite Pro.** The bundle works fine in curl-only mode (`cbh recon target.com` etc.). Set this up later when/if you adopt Burp.
 
 In Burp Suite:
 1. Go to **Extensions** → **BApp Store** → search for "MCP Server" → Install

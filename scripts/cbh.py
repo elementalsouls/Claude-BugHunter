@@ -81,11 +81,61 @@ def run_cmd(cmd: list[str], timeout: int = 30) -> tuple[int, str, str]:
         return 127, "", "not found"
 
 
-def http_get(url: str, timeout: int = 5, headers: dict | None = None) -> tuple[int, dict, str]:
-    """Stdlib HTTP GET returning (status_code, headers_dict, body_str). Returns
-    (0, {}, error_msg) on failure."""
-    req = urllib.request.Request(url, headers=headers or {})
+_HTTP_OPENER: urllib.request.OpenerDirector | None = None
+
+
+def configure_http_proxy(proxy_url: str | None = None) -> tuple[bool, str]:
+    """Configure urllib to route through a proxy (typically Burp Suite at
+    127.0.0.1:8080). Returns (configured, message) — message describes the mode.
+
+    Resolution order:
+      1. explicit proxy_url argument
+      2. CBH_BURP_PROXY env var
+      3. HTTPS_PROXY / HTTP_PROXY env vars
+      4. fallback: auto-detect default Burp on http://127.0.0.1:8080 (only if --burp flag)
+    """
+    global _HTTP_OPENER
+    if not proxy_url:
+        proxy_url = os.environ.get("CBH_BURP_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+    if not proxy_url:
+        _HTTP_OPENER = None
+        return False, "direct (no proxy)"
+
+    # Disable TLS verification when going through Burp (its CA isn't typically trusted)
+    import ssl
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    proxy_handler = urllib.request.ProxyHandler({"http": proxy_url, "https": proxy_url})
+    https_handler = urllib.request.HTTPSHandler(context=ctx)
+    _HTTP_OPENER = urllib.request.build_opener(proxy_handler, https_handler)
+    return True, f"via proxy {proxy_url}"
+
+
+def detect_burp() -> str | None:
+    """Return Burp proxy URL if responsive on default port, else None."""
     try:
+        with urllib.request.urlopen("http://127.0.0.1:8080/", timeout=1) as r:
+            # Burp's proxy returns a help page; just confirming it's listening
+            if r.status == 200:
+                return "http://127.0.0.1:8080"
+    except Exception:
+        pass
+    return None
+
+
+def http_get(url: str, timeout: int = 5, headers: dict | None = None) -> tuple[int, dict, str]:
+    """Stdlib HTTP GET returning (status_code, headers_dict, body_str). Routes
+    through the configured proxy (e.g. Burp) if `configure_http_proxy()` was
+    called. Returns (0, {}, error_msg) on failure."""
+    req = urllib.request.Request(url, headers=headers or {})
+    opener = _HTTP_OPENER if _HTTP_OPENER is not None else urllib.request
+    try:
+        if _HTTP_OPENER is not None:
+            with _HTTP_OPENER.open(req, timeout=timeout) as r:
+                body = r.read().decode("utf-8", errors="replace")
+                return r.status, dict(r.headers), body
         with urllib.request.urlopen(req, timeout=timeout) as r:
             body = r.read().decode("utf-8", errors="replace")
             return r.status, dict(r.headers), body
@@ -162,12 +212,27 @@ def recon_http_probe(host: str) -> dict | None:
     return None
 
 
+def configure_proxy_from_args(args: argparse.Namespace) -> None:
+    """If --burp or --proxy was passed, set up the urllib opener accordingly.
+    Print the mode banner so the operator knows where traffic is going."""
+    proxy_url = None
+    if getattr(args, "proxy", None):
+        proxy_url = args.proxy
+    elif getattr(args, "burp", False):
+        proxy_url = detect_burp() or "http://127.0.0.1:8080"
+    configured, mode = configure_http_proxy(proxy_url)
+    if configured:
+        say(color(f"  HTTP routing: {mode}", "yellow"))
+        say(color(f"  Tip: requests will appear in Burp Proxy → HTTP history.", "dim"))
+
+
 def cmd_recon(args: argparse.Namespace) -> int:
     target = args.target
     out_dir = REPO_ROOT / "recon" / target
     out_dir.mkdir(parents=True, exist_ok=True)
 
     section(f"recon — {target}")
+    configure_proxy_from_args(args)
 
     # Step 1 — passive subdomain enumeration
     say(color("[1/4] passive subdomain enumeration", "cyan"))
@@ -359,6 +424,10 @@ def classify_url(url: str) -> dict:
 def cmd_classify(args: argparse.Namespace) -> int:
     result = classify_url(args.url)
     section(f"classify — {args.url}")
+    if getattr(args, "burp", False) or getattr(args, "proxy", None):
+        proxy_url = args.proxy if getattr(args, "proxy", None) else (detect_burp() or "http://127.0.0.1:8080")
+        say(color(f"  Burp proxy ready at {proxy_url} — pipe candidate requests through it.", "yellow"))
+        say()
     if not result["matches"]:
         say("  No high-confidence matches. Try:")
         say(f"    {color('cbh recon <target>', 'bold')} to map attack surface first.")
@@ -625,12 +694,19 @@ def main() -> int:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
+    def _add_proxy_args(p):
+        p.add_argument("--burp", action="store_true",
+                       help="Route HTTP through Burp Suite proxy (auto-detects 127.0.0.1:8080)")
+        p.add_argument("--proxy", help="Explicit proxy URL (overrides --burp)")
+
     p_recon = sub.add_parser("recon", help="passive recon + live-host probe + summary")
     p_recon.add_argument("target", help="root domain, e.g. hackerone.com")
+    _add_proxy_args(p_recon)
     p_recon.set_defaults(func=cmd_recon)
 
     p_class = sub.add_parser("classify", help="pattern-match URL to hunt-* skills")
     p_class.add_argument("url", help="single URL to classify")
+    _add_proxy_args(p_class)
     p_class.set_defaults(func=cmd_classify)
 
     p_triage = sub.add_parser("triage", help="run 7-Question Gate on a finding")
