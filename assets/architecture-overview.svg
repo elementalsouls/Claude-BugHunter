@@ -88,7 +88,7 @@
 
   <!-- Hunt-* per-class group container -->
   <rect x="416" y="118" width="186" height="226" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" style="fill:rgb(237, 233, 254);stroke:rgb(124, 58, 237);color:rgb(255, 255, 255);stroke-width:1.5px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, &quot;system-ui&quot;, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto"/>
-  <text x="509" y="138" text-anchor="middle" style="fill:#5b21b6;;fill:rgb(91, 33, 182);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:system-ui, -apple-system, sans-serif;font-size:13px;font-weight:600;text-anchor:middle;dominant-baseline:auto">24 hunt-* skills</text>
+  <text x="509" y="138" text-anchor="middle" style="fill:#5b21b6;;fill:rgb(91, 33, 182);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:system-ui, -apple-system, sans-serif;font-size:13px;font-weight:600;text-anchor:middle;dominant-baseline:auto">27 hunt-* skills</text>
   <text x="509" y="153" text-anchor="middle" style="fill:#5b21b6;;fill:rgb(91, 33, 182);stroke:none;color:rgb(255, 255, 255);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:system-ui, -apple-system, sans-serif;font-size:9.5px;font-weight:400;text-anchor:middle;dominant-baseline:auto">one per vuln class · auto-trigger by topic</text>
 
   <!-- Two-column list of hunt-* names -->

@@ -4,13 +4,11 @@ The Claude-BugHunter bundle maps to a 6-phase workflow that supports both bug hu
 
 ## Primary view — phase-by-phase architecture
 
-51 skills mapped to 6 phases, with a 24-skill `hunt-*` sub-stack, a 7-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
+51 skills mapped to 6 phases, with a 27-skill `hunt-*` sub-stack, a 7-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
 
 ![architecture overview](../assets/architecture-overview.svg)
 
-> The architecture SVG still shows the original 40-skill / 24-hunt-* view from before the red-team-skill expansion. The hunt count happens to match again after dedup, but the SVG is missing the enterprise-platform and red-team-tradecraft layers. Refresh is in the roadmap.
-
-The "Source" column in the per-phase tables below tags each skill: **`original`** = author's work in this repo, `vendored` = from [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) (MIT). 46 of 51 skills are original; 8 are vendored.
+The "Source" column in the per-phase tables below tags each skill: **`original`** = author's work in this repo, `vendored` = from [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) (MIT). 43 of 51 skills are original; 8 are vendored.
 
 ## Alternate view — 3-layer capability stack
 
@@ -56,12 +54,12 @@ The 6-phase workflow expanded into a pipeline showing per-phase active skills, t
 
 | Skill | Source | Purpose |
 |---|---|---|
-| **24 `hunt-*` skills** | original | One per vuln class, curated from disclosed H1 reports — auto-trigger by topic |
+| **27 `hunt-*` skills** | original | One per vuln class, curated from disclosed H1 reports — auto-trigger by topic |
 | `security-arsenal` | vendored | Payload library (XSS / SSRF / SQLi / SSTI / etc.) |
 | `web3-audit` | vendored | Smart-contract audit (10 bug classes, Foundry PoC) |
 | `meme-coin-audit` | vendored | Token rug-pull detection |
 
-### Per-class hunt skills (24)
+### Per-class hunt skills (27)
 
 ```
 hunt-rce          (67 reports)    hunt-business-logic  (7)
@@ -76,8 +74,8 @@ hunt-graphql      (3)             hunt-cloud-misconfig
 hunt-saml                         hunt-subdomain       (11)
 hunt-ato                          hunt-llm-ai
 hunt-mfa-bypass                   hunt-misc            (225)
-hunt-aspnet  ★new                 hunt-sharepoint  ★new
-hunt-ntlm-info  ★new
+hunt-aspnet                       hunt-sharepoint
+hunt-ntlm-info
 ```
 
 Plus alternates: `hunt-cache-poison`, `hunt-race-condition`, `hunt-subdomain`. Plus the meta-router `hunt-dispatch` (used internally by the `/hunt` slash command — not user-invoked).
@@ -86,7 +84,7 @@ Plus alternates: `hunt-cache-poison`, `hunt-race-condition`, `hunt-subdomain`. P
 
 **How auto-triggering works**: just describe what you're testing — e.g., *"I see a `?url=` parameter on this endpoint"* — and Claude loads only `hunt-ssrf`. You don't invoke them by name.
 
-### Enterprise platform attack (Phase 3 expansion — 7 skills, ★ new)
+### Enterprise platform attack (Phase 3 expansion — 7 skills)
 
 External red-team engagements against enterprise estates need attack chains for full platform stacks, not just webapps. These 7 skills extend Phase 3 with current 2024-2026 CVE chains and platform-specific tradecraft.
 
@@ -100,7 +98,7 @@ External red-team engagements against enterprise estates need attack chains for 
 | **`apk-redteam-pipeline`** | original | Android APK red-team pipeline — acquisition → jadx → secret grep → Frida instrumentation |
 | **`supply-chain-attack-recon`** | original | Dep-confusion, GH Actions injection, SBOM mining, container registry exposure (recon only, no publish-step) |
 
-### Red-team tradecraft (cross-phase — 2 skills, ★ new)
+### Red-team tradecraft (cross-phase — 2 skills)
 
 | Skill | Source | Purpose |
 |---|---|---|
@@ -154,7 +152,7 @@ Covered protocols:
 |---|---|---|
 | `report-writing` | vendored | H1 / Bugcrowd / Intigriti / Immunefi templates, CVSS 3.1 + 4.0 |
 | **`bugcrowd-reporting`** | original | Bugcrowd VRT search, severity-request paragraph, OOS rebuttals |
-| **`redteam-report-template`** ★ | original | Client-facing red-team deliverable — Subject / Observations / Description / Impact / Recommendation / PoC. MD + DOCX packaging with embedded screenshots. |
+| **`redteam-report-template`** | original | Client-facing red-team deliverable — Subject / Observations / Description / Impact / Recommendation / PoC. MD + DOCX packaging with embedded screenshots. |
 
 Slash command: `/report`
 

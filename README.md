@@ -77,7 +77,7 @@ graph TB
         R3["osint-methodology<br/>5-stage pipeline"]:::recon
     end
 
-    subgraph HUNT ["Hunt — Web App (24 hunt-* skills)"]
+    subgraph HUNT ["Hunt — Web App (27 hunt-* skills)"]
         direction TB
         H1["Injection<br/>hunt-sqli · hunt-xss · hunt-ssti · hunt-rce"]:::hunt
         H2["Authorization<br/>hunt-idor · hunt-auth-bypass · hunt-csrf"]:::hunt
@@ -172,7 +172,7 @@ flowchart TD
     Recon["<b>2. RECON</b><br/>Subdomain enum · endpoint mapping<br/>JS bundle harvest · identity fabric<br/><i>skills: offensive-osint, web2-recon</i><br/>commands: /recon · cbh recon &lt;target&gt;"]:::phase
     Recon --> Hunt
 
-    Hunt["<b>3. HUNT</b><br/>Test bug-class hypotheses<br/>Apply payloads from Pattern Libraries<br/><i>24 hunt-* skills auto-load by keyword</i><br/>commands: /hunt · /chain"]:::phase
+    Hunt["<b>3. HUNT</b><br/>Test bug-class hypotheses<br/>Apply payloads from Pattern Libraries<br/><i>27 hunt-* skills auto-load by keyword</i><br/>commands: /hunt · /chain"]:::phase
     Hunt --> Found{"Lead<br/>found?"}:::decision
     Found -->|"no"| Hunt
     Found -->|"yes"| Validate
@@ -470,7 +470,7 @@ You type these directly into Claude Code. They route to the right skills automat
 
 ## Architecture
 
-51 skills across 6 phases, with a 24-skill `hunt-*` sub-stack, a 7-skill enterprise-platform attack layer (M365/Okta/cloud-IAM/vCenter/VPN/SharePoint/APK), an integration layer (Burp MCP, the `hunt` shell command, optional Anthropic + HackerOne APIs), and a usage decision tree for picking the right skill per task.
+51 skills across 6 phases, with a 27-skill `hunt-*` sub-stack, a 7-skill enterprise-platform attack layer (M365/Okta/cloud-IAM/vCenter/VPN/SharePoint/APK), an integration layer (Burp MCP, the `hunt` shell command, optional Anthropic + HackerOne APIs), and a usage decision tree for picking the right skill per task.
 
 ![architecture overview](assets/architecture-overview.svg)
 
@@ -632,35 +632,6 @@ Claude runs the **7-Question Gate** (Q1: real HTTP request? Q2: accepted-impact?
 ```
 
 Claude triggers `report-writing` (the report body template) + the platform-specific skill (`bugcrowd-reporting` for Bugcrowd, generic H1 template otherwise). The output is copy-paste-ready.
-
----
-
-### Beginner FAQ
-
-**Q: Do I need to know how to hack?**
-No. The skills explain detection patterns + payloads + validation. If you can read English and run a terminal command, you can use the bundle. You'll learn faster than reading 20 hacking books.
-
-**Q: What if a skill doesn't auto-load?**
-Mention the bug class explicitly: instead of *"this looks weird"* say *"I think this is XSS — let me test"*. The keyword `XSS` triggers `hunt-xss`. Same for SQLi, IDOR, SSRF, RCE, CSRF, etc.
-
-**Q: Can I use this on any website?**
-**NO.** Only on assets you own OR have written authorization to test (bug-bounty in-scope assets, pentest with signed engagement letter, CTF challenges, your own test environments). The bundle has guardrails — `triage-validation` Q3 explicitly checks scope before accepting any finding. Unauthorized testing violates computer-fraud laws.
-
-**Q: Where do I get bug bounty targets?**
-HackerOne (`hackerone.com/opportunities/all/search`), Bugcrowd (`bugcrowd.com/programs`), Intigriti (`intigriti.com/programs`), YesWeHack (`yeswehack.com/programs`). Filter for **VDP** programs first — they don't pay but they're also lower-pressure to learn on.
-
-**Q: What's the difference between bug bounty and red team?**
-- **Bug bounty** = open-scope, pay-per-finding, hundreds of researchers competing. Use `bb-methodology` + the `hunt-*` skills.
-- **Red team** = paid engagement, narrow scope, single tester, deliverable is a client-facing report. Use `redteam-mindset` + `redteam-report-template` + the platform-attack skills (`m365-entra-attack`, `enterprise-vpn-attack`, etc).
-- **Pentest** = paid engagement, broader coverage, methodology-driven. Mix of both skill sets.
-
-The bundle's `bb-methodology` Part 0 will ask you to confirm which mode at the start of every engagement.
-
-**Q: Skills aren't triggering — what's wrong?**
-Check `/mcp` inside Claude — see if everything's connected. Also: skills trigger on *keywords* in your prompt. If you say *"is this exploitable?"* nothing triggers because there's no keyword. Say *"is this an SSRF?"* and `hunt-ssrf` loads.
-
-**Q: Can I use this in Claude.ai (not Claude Code)?**
-Yes — copy any `skills/<name>/SKILL.md` content into a Claude.ai Project's system prompt. Single-file usage works but you lose the multi-skill composition. Claude Code is the intended interface.
 
 ---
 
