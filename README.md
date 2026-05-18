@@ -1,4 +1,4 @@
-![claude-bughunter banner](assets/banner.png)
+![claude-bughunter banner](assets/banner.svg)
 
 # claude-bughunter
 
@@ -291,7 +291,7 @@ Claude-BugHunter/
 │   ├── cbh.py                               # terminal-native CLI runner
 │   └── refresh-cve-index.py                 # CISA KEV refresh against in-scope vendors
 ├── docs/                                    # architecture · credits · CLI reference · CVE coverage · pattern libraries · verification labs
-├── assets/                                  # banner PNG + architecture / capability-map / engagement-flow SVGs
+├── assets/                                  # banner + architecture / capability-map / engagement-flow SVGs
 └── README.md · INSTALL.md · USAGE.md · CONTRIBUTING.md · SECURITY.md · LICENSE
 ```
 
