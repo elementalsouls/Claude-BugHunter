@@ -100,9 +100,9 @@ hunt-xss             hunt-sqli            hunt-ssrf            hunt-idor
 hunt-csrf            hunt-xxe             hunt-rce             hunt-graphql
 hunt-oauth           hunt-saml            hunt-mfa-bypass      hunt-auth-bypass
 hunt-ato             hunt-file-upload     hunt-business-logic  hunt-race-condition
-hunt-race-condition  hunt-llm-ai          hunt-api-misconfig   hunt-ssti
-hunt-cache-poison hunt-cache-poison    hunt-http-smuggling  hunt-subdomain
-hunt-subdomain  hunt-cloud-misconfig  hunt-misc       hunt-aspnet
+hunt-llm-ai          hunt-api-misconfig   hunt-ssti
+hunt-cache-poison    hunt-http-smuggling  hunt-subdomain
+hunt-cloud-misconfig  hunt-misc       hunt-aspnet
 hunt-sharepoint      hunt-ntlm-info
 ```
 
@@ -135,9 +135,9 @@ loaded for wapt ({blackbox|greybox}): {N} skills
   authz:      hunt-idor, hunt-auth-bypass, hunt-ato
   auth:       hunt-oauth, hunt-saml, hunt-mfa-bypass
   api:        hunt-graphql, hunt-api-misconfig
-  logic:      hunt-business-logic, hunt-race-condition, hunt-race-condition
-  infra:      hunt-http-smuggling, hunt-cache-poison, hunt-cache-poison
-  recon:      hunt-subdomain, hunt-subdomain
+  logic:      hunt-business-logic, hunt-race-condition
+  infra:      hunt-http-smuggling, hunt-cache-poison
+  recon:      hunt-subdomain
   cloud:      hunt-cloud-misconfig
   ai:         hunt-llm-ai
   stack:      hunt-aspnet, hunt-sharepoint, hunt-ntlm-info
