@@ -133,7 +133,7 @@ curl -s -H "X-Forwarded-Host: aaaaaaaaaaa.invalid" \
 curl -s -I "https://target.com/js/app.js" | grep "HTTP/"
 ```
 
-**Grep patterns in Burp/ZAP response history:**
+**Grep patterns in Caido/ZAP response history:**
 ```
 # Headers indicating cache hit
 X-Cache: HIT
@@ -156,7 +156,7 @@ curl -s "https://target.com/page?cb=1&param=CANARY_VALUE" | grep CANARY_VALUE
 curl -s "https://target.com/page?cb=1"
 ```
 
-**Burp Suite Intruder wordlist for unkeyed headers:**
+**Caido Automate wordlist for unkeyed headers:**
 ```
 X-Forwarded-Host
 X-Host

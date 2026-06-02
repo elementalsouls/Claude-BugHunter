@@ -29,7 +29,7 @@ You don't "learn" the bundle. You install it once, then describe what you're tes
 ### What you DON'T need
 
 - ❌ You don't need to know how to write exploits. The skills include working payloads.
-- ❌ You don't need to know Burp Suite. It's optional. Skills work with curl + browser.
+- ❌ You don't need to know Caido. It's optional. Skills work with curl + browser.
 - ❌ You don't need a bug bounty account yet. You can practice on OWASP Juice Shop first.
 - ❌ You don't need to read all 51 skills. They auto-load when relevant.
 - ❌ You don't need Python beyond `python3 --version` working.
@@ -244,7 +244,7 @@ Required for external red-team work where targets are full enterprise estates ra
 
 | Skill | Purpose |
 |---|---|
-| `evidence-hygiene` | Cookie redaction, PII black-bar, HAR sanitization, Burp/Console screenshot patterns |
+| `evidence-hygiene` | Cookie redaction, PII black-bar, HAR sanitization, Caido/Console screenshot patterns |
 
 ### Report — submission
 
@@ -260,7 +260,8 @@ Required for external red-team work where targets are full enterprise estates ra
 
 | Tool | Purpose | Setup |
 |---|---|---|
-| **Burp MCP** | Claude reads/replays HTTP traffic directly from Burp's proxy history — eliminates manual paste-curl-into-chat | Burp Suite + MCP Server extension (port 9876) → `claude mcp add burp -s user -- java -jar ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar` |
+| **Caido PAT API** (`cbh caido ...`) | Deterministic GraphQL+PAT surface — search HTTP History, replay, file findings from scripts/skills | `./scripts/caido-setup.sh` → PAT in `~/.config/caido/pat` |
+| **Caido MCP** (optional) | Claude reads/replays HTTP traffic directly from Caido HTTP History — eliminates manual paste-curl-into-chat | Community Go server → `claude mcp add caido -s user -- ~/.local/share/caido-mcp-server/caido-mcp-server serve` |
 | **`hunt <target>` shell command** | Scaffolds `~/Targets/<name>/` with CLAUDE.md, scope.md, findings/, evidence/, submissions.txt | `source ~/.claude/scripts/hunt.sh` in your `.zshrc` |
 | **Anthropic API (separate from Claude Max)** | Powers `public-skills-builder` for periodic skill regeneration | `console.anthropic.com/billing` → API key → `export ANTHROPIC_API_KEY=...` |
 | **HackerOne API** | Pulls disclosed reports for the skill builder | `hackerone.com/settings/api_token` → `H1_API_KEY=username:token` in `.env` |
@@ -317,7 +318,7 @@ Claude triggers `bb-methodology` and walks through the program rules, populating
 
 > *"Run a recon pass on `*.acme.com`. I want subdomains, exposed APIs, S3 buckets, and any leaked secrets in JS bundles."*
 
-Claude triggers `offensive-osint` and `web2-recon`. If Burp MCP is connected, Claude can replay requests from your browser session directly.
+Claude triggers `offensive-osint` and `web2-recon`. If Caido MCP is connected, Claude can replay requests from your browser session directly.
 
 ### Step 4 — Hunt a specific class
 
@@ -351,7 +352,7 @@ Before any screenshot, tell Claude:
 
 > *"I'm about to capture a PoC screenshot of the IDOR. What do I need to redact?"*
 
-Claude triggers `evidence-hygiene`. You get the cookie redaction protocol, PII black-bar rules, and the screenshot capture order. If you're using Burp Repeater, Claude reminds you to drag the divider down to hide the cookie panel.
+Claude triggers `evidence-hygiene`. You get the cookie redaction protocol, PII black-bar rules, and the screenshot capture order. If you're using Caido Replay, Claude reminds you to drag the divider down to hide the cookie panel.
 
 ### Step 7 — Draft and submit
 
@@ -379,11 +380,11 @@ If another pentester wants to replicate this stack, the install steps are in [IN
 
 1. Clone this repo
 2. Run `./scripts/install.sh` (installs all 51 skills, 15 commands, and hunt scaffold in one step)
-3. Set up Burp MCP (BApp Store extension + `claude mcp add burp ...`)
+3. Wire up Caido: `./scripts/caido-setup.sh` (PAT + CA cert); optionally add the community MCP server with `claude mcp add caido ...`
 4. (Optional) Refresh upstream snapshots via `./scripts/install-community-skills.sh`
 5. (Optional) Set up the skill regenerator with Anthropic + H1 API keys
 
-Total setup time: ~10 minutes including Burp MCP.
+Total setup time: ~10 minutes including Caido MCP.
 
 ---
 
@@ -406,7 +407,7 @@ The validation engagement that produced this stack illustrated all three: the or
 - **`offensive-osint` is large**, even after refactor. The 15 reference files load on demand, but the SKILL.md still consumes context on every trigger. Future work: split into smaller sub-skills if context becomes a bottleneck.
 - **Per-class `hunt-*` skills overlap on borderline classes.** A finding that's both IDOR and business-logic may trigger two skills. Manageable, but worth knowing.
 - **`public-skills-builder` is rough.** The script needs Python 3.10+, has hardcoded `master` branch references, and requires `--program` for H1 queries. Patches documented in INSTALL.md.
-- **No HackerOne MCP yet.** Burp MCP works; H1 MCP is in shuvonsec's repo but not configured here. Worth adding when you start hunting H1 programs.
+- **No HackerOne MCP yet.** Caido MCP works; H1 MCP is in shuvonsec's repo but not configured here. Worth adding when you start hunting H1 programs.
 - **No engagement-coordinator skill.** Cross-finding tracking and submission ID management is currently manual via `submissions.txt`. Future skill candidate.
 
 ---

@@ -321,7 +321,7 @@ This test does not attack Juice Shop. It verifies that the **`hunt-ssrf` + `tria
 
 > Claims of blind SSRF require an out-of-band (OOB) confirmation. Always. No exceptions.
 >
-> OOB means: a Burp Collaborator domain, an `interactsh-client` listener, a canarytoken, or any DNS+HTTP receiver you control that confirms the server actually made an outbound network connection on your behalf.
+> OOB means: a interactsh-client (oast.fun) domain, an `interactsh-client` listener, a canarytoken, or any DNS+HTTP receiver you control that confirms the server actually made an outbound network connection on your behalf.
 
 ### Real-world FP this gate would have caught (from `hunt-ssrf` Real Impact Examples)
 

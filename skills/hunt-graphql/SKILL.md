@@ -57,7 +57,7 @@ X-Request-Id + no REST-style path params = likely GraphQL
 - Apollo Server/Client in JS bundles
 - Relay in React apps
 - `graphene` or `strawberry` (Python), `graphql-ruby`, `gqlgen` (Go), `Lighthouse` (Laravel)
-- POST requests with `{"query": "..."}` body shape in Burp history
+- POST requests with `{"query": "..."}` body shape in Caido HTTP History
 - `__schema` or `__type` in any response = confirmed GraphQL
 
 **Recon Sources:**
@@ -69,7 +69,7 @@ X-Request-Id + no REST-style path params = likely GraphQL
 
 ## Step-by-Step Hunting Methodology
 
-1. **Discover the endpoint** — spider JS bundles, check `/graphql`, `/api/graphql`, review Burp passive scan hits for `application/json` POST with query fields
+1. **Discover the endpoint** — spider JS bundles, check `/graphql`, `/api/graphql`, review Caido passive scan hits for `application/json` POST with query fields
 
 2. **Test introspection** — send the full introspection query. Even if blocked, try field-level enumeration:
    ```graphql
@@ -77,7 +77,7 @@ X-Request-Id + no REST-style path params = likely GraphQL
    ```
    If that returns, introspection may be partially blocked but the schema is discoverable
 
-3. **Map the full schema** — use `InQL` (Burp extension) or `graphql-voyager` to visualize relationships. Specifically look for:
+3. **Map the full schema** — use `InQL` (Caido plugin) or `graphql-voyager` to visualize relationships. Specifically look for:
    - Mutations that modify ownership, permissions, or membership
    - Mutations that mirror REST API functionality
 

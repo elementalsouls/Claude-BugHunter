@@ -133,7 +133,7 @@ $(location
 
 11. **Check cache poisoning** — Test if reflected XSS payloads can be cached and served to other users (especially on CDN-fronted pages), transforming reflected XSS into stored-equivalent.
 
-12. **Validate in target browser** — Always confirm in a real browser before reporting. Many payloads work in Burp but not in Chrome due to XSS auditors or browser parsing differences.
+12. **Validate in target browser** — Always confirm in a real browser before reporting. Many payloads work in Caido but not in Chrome due to XSS auditors or browser parsing differences.
 
 ---
 

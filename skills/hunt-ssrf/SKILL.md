@@ -24,7 +24,7 @@ Payouts are highest when SSRF reaches: cloud credentials → account takeover, i
 
 **Claims of blind SSRF require an out-of-band (OOB) confirmation. Always. No exceptions.**
 
-OOB means: a Burp Collaborator domain, an `interactsh-client` listener, a canarytoken, or any DNS+HTTP receiver you control that confirms the server actually made an outbound network connection on your behalf.
+OOB means: a interactsh-client (oast.fun) domain, an `interactsh-client` listener, a canarytoken, or any DNS+HTTP receiver you control that confirms the server actually made an outbound network connection on your behalf.
 
 ### What is NOT confirmation of SSRF
 
@@ -115,7 +115,7 @@ X-Cache headers revealing internal hostnames
 
 1. **Map all URL-input parameters** across the target: spider JS files for fetch calls, check all API docs, look for file-import, link-preview, webhook, image-proxy, and redirect features.
 
-2. **Set up an out-of-band detection server** using Burp Collaborator, interactsh, or `https://canarytokens.org` — you need a unique per-test DNS/HTTP callback domain.
+2. **Set up an out-of-band detection server** using interactsh-client (oast.fun), interactsh, or `https://canarytokens.org` — you need a unique per-test DNS/HTTP callback domain.
 
 3. **Send your callback URL as the parameter value first** (blind SSRF check before anything else):
    ```
@@ -380,4 +380,4 @@ An attacker who could register a Kubernetes API extension server (metrics-server
 - **`hunt-rce`** — Internal Redis/Memcached are unauthenticated by default and reachable via gopher://. Chain primitive: SSRF + Gopher → internal Redis `CONFIG SET dir` + RCE via cron / SSH authorized_keys write.
 - **`hunt-cloud-misconfig`** — Internal-only buckets/APIs become reachable through SSRF egress. Chain primitive: SSRF + DNS rebinding → SSRF-protected-endpoint bypass → internal /admin or private S3 bucket read.
 - **`security-arsenal`** — Load the SSRF IP Bypass Table (11 techniques: decimal IP, IPv6 mapped, octal, suffix dot, DNS rebinding, redirect chain, etc.) before testing filters.
-- **`triage-validation`** — Apply the OOB-Or-It-Didn't-Happen gate: every blind SSRF claim requires a Burp Collaborator hit with a unique marker before report submission.
+- **`triage-validation`** — Apply the OOB-Or-It-Didn't-Happen gate: every blind SSRF claim requires a interactsh-client (oast.fun) hit with a unique marker before report submission.

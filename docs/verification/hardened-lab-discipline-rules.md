@@ -134,7 +134,7 @@ curl "/fetch?url=http://${MARKER}/x"
 # → {"error":"Could not fetch http://oob-test-1778876252-uniq.invalid/x — destination unreachable"}
 ```
 
-If a real OOB listener (Burp Collaborator, interactsh) were watching, **zero callbacks would arrive**. The lab source code confirms: no `requests.get()`, no `httpx.get()` — pure string echo in the error message.
+If a real OOB listener (interactsh-client (oast.fun), interactsh) were watching, **zero callbacks would arrive**. The lab source code confirms: no `requests.get()`, no `httpx.get()` — pure string echo in the error message.
 
 **Verdict: KILL the SSRF claim.** Best case this is information disclosure (`Could not fetch <user-input>` discloses the URL parser's parsing logic). Definitely not SSRF.
 

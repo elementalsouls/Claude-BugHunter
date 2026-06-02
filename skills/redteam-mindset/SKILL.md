@@ -61,7 +61,7 @@ These all came out of a real engagement (authorized-engagement revalidation, 202
 5. **Treating soft-404 as "noted."** A 37 KB body inside a 404 status is leaking the home page or worse. Read it. Grep it. Diff it against the home page.
 6. **"OpenAPI exposed → finding logged"** with only 4 of N endpoints probed. Every endpoint × every relevant test class. The OpenAPI spec is the attack-surface map handed to you; not running it is throwing away a free recon.
 7. **"APK retest deferred — needs tooling."** `brew install jadx`, apkpure direct download, `apk-redteam-pipeline` already documents the flow. Five minutes of setup, not "another session."
-8. **Volume framed as a problem.** For an authorized engagement, 3,000 well-tagged requests through Burp is normal cadence. Bug-bounty hunters at full pace exceed that per *hour*. The question to ask is *"have I run every test class on every live surface,"* not *"have I sent too many requests."*
+8. **Volume framed as a problem.** For an authorized engagement, 3,000 well-tagged requests through Caido is normal cadence. Bug-bounty hunters at full pace exceed that per *hour*. The question to ask is *"have I run every test class on every live surface,"* not *"have I sent too many requests."*
 9. **Inserting `AskUserQuestion` at any decision point inside an active engagement loop.** If the user picked a mode at start, that mode is in effect until revoked. Choosing operationally between e.g. SAML acs raw POST vs SAML acs replay is a *technical* decision the operator can make and document — it does not require user pre-approval.
 10. **Skill-gap-as-stop-condition.** "No `hunt-zoho` skill exists, so I logged a v1.1 gap and moved on." NO. If a hunt-* skill doesn't exist for a discovered tech stack, do the same work *manually* using the vendor's public check matrix. Log the gap in v1.1 roadmap *and* run the checks now.
 
@@ -292,7 +292,7 @@ Before starting a red team engagement, confirm:
 - [ ] Kill-switch thresholds set (max LOCKED in run, max errors in window)
 - [ ] Crown-jewel target identified (what does winning look like?)
 - [ ] Critical-finding-discuss protocol agreed (when to pause and notify)
-- [ ] Burp proxy as default for evidence capture
+- [ ] Caido proxy as default for evidence capture
 - [ ] Engagement journal initialized
 
 ---

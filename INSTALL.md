@@ -1,29 +1,33 @@
 # Installation Guide
 
-Step-by-step setup for the Claude-BugHunter skill bundle.
+Step-by-step setup for the Claude-BugHunter skill bundle, **Caido-first edition**.
 
 ## Prerequisites
 
 - **Claude Code** — install from https://claude.ai/download
-- **macOS or Linux** — most steps are macOS-flavored; Linux users adjust paths
+- **macOS or Linux** — most steps are Linux/macOS-flavored; on Windows use WSL2
 - **Python 3.9+** — for the `cbh` CLI runner
+- **Caido Pro** — https://caido.io/ — primary HTTP intercept + replay surface
+- **A Caido Personal Access Token (PAT)** — create one at your Caido dashboard → Developer → Personal Access Tokens. Format starts with `caido_`.
 
-### Optional (recommended but not required)
+### Optional but strongly recommended
 
-- **Burp Suite** Professional or Community — https://portswigger.net/burp. `cbh --burp` routes traffic through Burp's proxy. Without Burp, the CLI runs in curl-only mode and everything still works.
-- **Burp MCP Server** (BApp Store extension) — adds conversational hunting via Claude Code. Optional layer on top of Burp Pro. Skip if you don't have Burp.
+- **Playwright MCP** — adds browser automation that chains through Caido. Install with `claude mcp add playwright -- npx -y @playwright/mcp@latest`. Auto-detected by `caido-autohunt`.
 - **`subfinder`** (ProjectDiscovery) — improves passive subdomain enum. Without it, `cbh recon` falls back to crt.sh alone.
-- **Java** — required for Burp MCP if you install it.
+- **`interactsh-client`** (ProjectDiscovery) — out-of-band callback receiver. Replaces Burp Collaborator. `go install github.com/projectdiscovery/interactsh/cmd/interactsh-client@latest`
+- **Go ≥ 1.22** — only if you want to build the community Caido MCP server. Skip if you're happy driving Caido via the PAT-based `cbh caido` CLI + `caido_client.py`.
 
 ### Choose your operating mode
 
 | Mode | What you need | Best for |
 |---|---|---|
-| **Curl-only** | Just Python 3.9+ | Quick hunts, scripted automation, no GUI |
-| **Burp proxy** (`cbh --burp`) | Add Burp Suite Pro/Community | All `cbh` traffic logged in Burp; one click to Repeater |
-| **Burp MCP** (conversational) | Burp Pro + MCP extension + Claude Code MCP setup | Maximum LLM-driven workflow inside Claude Code |
+| **Curl-only** | Python 3.9+ | Quick hunts, scripted automation, CI/CD |
+| **Caido proxy** (`cbh --caido`) | Caido Pro running locally | All `cbh` traffic flows through Caido HTTP History; one click to Replay |
+| **Caido PAT API** (`cbh caido ...`) | Caido + PAT in `~/.config/caido/pat` | Headless query/replay/findings via GraphQL — foundation of autohunt |
+| **Caido MCP** (conversational) | Caido + PAT + community MCP server | Maximum LLM-driven workflow inside Claude Code |
+| **Autohunt loop** | All of the above + Playwright MCP | Hands-off archetype sweep + skill dispatch |
 
-All three modes are first-class supported. The skills + CLI work identically across them — you pick based on what you have installed and how you like to work.
+All five modes are first-class. The skills + CLI work identically across them — pick based on what you have running.
 
 ## Step 1 — Clone this repo
 
@@ -34,169 +38,141 @@ git clone https://github.com/elementalsouls/Claude-BugHunter.git
 cd Claude-BugHunter
 ```
 
-## Step 2 — Run the installer
+## Step 2 — Run the bundle installer
 
 ```bash
 chmod +x scripts/install.sh
 ./scripts/install.sh
 ```
 
-This copies:
-- All 51 skills → `~/.claude/skills/`
-- All 15 slash commands → `~/.claude/commands/`
-- The `hunt` shell command → `~/.claude/scripts/hunt.sh` (sourced from your `.zshrc` or `.bashrc` automatically)
+Copies:
+- All skills → `~/.claude/skills/` (including the new `caido-toolkit` and `caido-autohunt`)
+- All slash commands → `~/.claude/commands/` (including the new `/autohunt`)
+- The `hunt` shell command → `~/.claude/scripts/hunt.sh` (sourced from your shell rc)
 
-Existing skills with the same name are backed up (e.g. `bugcrowd-reporting.backup-20260505-153000`) so re-runs are non-destructive.
+Existing skills are backed up before overwrite — re-runs are non-destructive.
 
-## Step 3 — (Optional) Set up Burp MCP
+## Step 3 — Wire up Caido
 
-**Skip this step if you don't have Burp Suite Pro.** The bundle works fine in curl-only mode (`cbh recon target.com` etc.). Set this up later when/if you adopt Burp.
-
-In Burp Suite:
-1. Go to **Extensions** → **BApp Store** → search for "MCP Server" → Install
-2. Confirm the **Output** tab shows: `Started MCP server on 127.0.0.1:9876`
-3. Note the path it extracted the proxy JAR to (typically `~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar`)
-
-In your terminal:
+Start Caido. Then run the setup helper:
 
 ```bash
-claude mcp add burp -s user -- java -jar ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar
+chmod +x scripts/caido-setup.sh
+./scripts/caido-setup.sh
 ```
 
-Verify in a fresh `claude` session:
+What it does:
 
+1. Asks for your Caido **instance URL** (defaults to `http://127.0.0.1:8080`).
+2. Asks for your **PAT** (stored at `~/.config/caido/pat`, chmod 600).
+3. Downloads Caido's **CA certificate** to `~/.config/caido/ca.crt` and (optionally) installs it system-wide via `update-ca-certificates`.
+4. Verifies the PAT works against `<instance>/graphql`.
+5. Optionally installs the community **Caido MCP server** (Go required).
+
+After it completes:
+
+```bash
+cbh caido ping
+# → http://127.0.0.1:8080 — reachable
 ```
-/mcp
+
+## Step 4 — Add Playwright MCP (for autohunt)
+
+```bash
+claude mcp add playwright -- npx -y @playwright/mcp@latest
 ```
 
-You should see `burp · ✓ connected`.
+In a fresh `claude` session: `/mcp` should show `playwright · ✓ connected`. The `caido-autohunt` skill launches Playwright with `proxy=http://127.0.0.1:8080` + `ignoreHTTPSErrors=true` automatically.
 
-## Step 4 — (Optional) Refresh vendored skills from upstream
+## Step 5 — (Optional) Community Caido MCP server
 
-The bundle ships a frozen snapshot of shuvonsec's skills. To pull the latest from upstream and re-bundle:
+Only if you want conversational Caido access (intercept toggles, manual replay through chat). The PAT-based `cbh caido` CLI already covers most automation needs.
+
+```bash
+# Requires Go ≥ 1.22
+git clone --branch v1.1.0 https://github.com/c0tton-fluff/caido-mcp-server.git \
+  ~/.local/share/caido-mcp-server
+cd ~/.local/share/caido-mcp-server
+go build -o caido-mcp-server .
+./caido-mcp-server login -u http://127.0.0.1:8080   # OAuth — accept in Caido UI
+claude mcp add caido -s user -- ~/.local/share/caido-mcp-server/caido-mcp-server serve
+```
+
+Confirm: `/mcp` → `caido · ✓ connected`.
+
+## Step 6 — (Optional) Refresh vendored upstream skills
 
 ```bash
 chmod +x scripts/install-community-skills.sh
 ./scripts/install-community-skills.sh
 ```
 
-This clones `shuvonsec/claude-bug-bounty` into `~/security-research/community-skills/` and runs its installer. Useful when you want fresher hunt patterns; not needed for first-time setup.
+Pulls the latest patterns from `shuvonsec/claude-bug-bounty` upstream and re-bundles. Not needed for first-time setup.
 
-## Step 5 — (Optional) Set up the skill regenerator
+## Step 7 — Smoke test
 
-If you want to regenerate `hunt-*` per-class skills from fresh disclosed HackerOne reports periodically:
-
-```bash
-cd ~/security-research
-git clone https://github.com/shuvonsec/public-skills-builder.git
-cd public-skills-builder
-
-# Need Python 3.10+ — use Homebrew on macOS
-brew install python@3.12
-/opt/homebrew/bin/python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt 2>/dev/null || pip install anthropic httpx pydantic requests
-
-# Configure API keys
-cp .env.example .env
-# Edit .env:
-#   ANTHROPIC_API_KEY=sk-ant-...
-#   H1_API_KEY=your_h1_username:your_h1_token
-```
-
-> **Important**: Anthropic API and Claude Max are separate billing systems. Max gives you Claude Code access; the API is pay-per-token. You need both keys (`console.anthropic.com/billing` for the API key) to run the generator.
-
-Run the generator:
-
-```bash
-python3 public_skills_builder.py --source h1-public --program shopify --limit 200
-```
-
-Other H1 programs with high disclosed-report counts: `gitlab`, `hackerone`, `mail-ru`, `valve`, `uber`, `twitter`. The generator outputs flat `.md` files in `skills/` — you'll need to wrap each in its own folder structure (`hunt-name/SKILL.md`) before installing to `~/.claude/skills/`.
-
-### Known issues with public-skills-builder
-
-| Issue | Fix |
-|---|---|
-| `unsupported operand type: str \| None` | Python <3.10 — install 3.12 via Homebrew |
-| `Filter parameters must contain at least one program handle` | Add `--program <handle>` |
-| `Could not fetch ngalongc/bug-bounty-reference` | Hardcoded `master` branch URLs — patch script to try `main` first |
-
-## Step 6 — Smoke-test
-
-Open a fresh `claude` session in any folder:
+In a fresh `claude` session:
 
 ```bash
 claude
 ```
 
-Try a hunt-class trigger test:
-
+Try the auto-trigger:
 ```
 I have a reflected user input that's rendered into the page HTML — testing for XSS. What payloads should I try?
 ```
+Expected: Claude triggers `hunt-xss`.
 
-Expected: Claude triggers `hunt-xss` and walks you through detection patterns + payloads.
-
-Try the validation flow:
-
+Try the autohunt loop:
 ```
-/triage
+/autohunt example.com
 ```
-
-Then describe a hypothetical finding. Expected: Claude runs the 7-Question Gate.
+Expected: preflight runs `cbh caido ping` + checks Playwright MCP, then enters the loop. If Caido isn't running or your PAT isn't set, the preflight stops and tells you why.
 
 Try the engagement scaffold:
-
 ```bash
 hunt acme-test
 ls ~/Targets/acme-test/
 ```
+Expected: `CLAUDE.md`, `scope.md`, `findings/`, `evidence/`, `submissions.txt`, `notes.md`, `.gitignore`.
 
-Expected: a complete folder with `CLAUDE.md`, `scope.md`, `findings/`, `evidence/`, `submissions.txt`, `notes.md`, `.gitignore`.
-
-If all three smoke tests pass, you're set up.
-
-## Step 7 — Cleanup
-
-Delete the test target:
+## Step 8 — Cleanup
 
 ```bash
 rm -rf ~/Targets/acme-test
 ```
 
-Then go find a real program and put it to work. See [USAGE.md](USAGE.md) for the full workflow walkthrough.
+Then find a real program. See [USAGE.md](USAGE.md) for the workflow walkthrough and [CAIDO.md](CAIDO.md) for the deep Caido reference.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `/mcp` doesn't show burp | Burp Suite not running, or extension not loaded | Re-open Burp, confirm Extensions tab shows MCP Server with "Loaded" checked |
+| `cbh caido ping` → auth: No Caido PAT found | PAT not configured | Re-run `scripts/caido-setup.sh` |
+| `cbh caido ping` → 401 | PAT scoped to a different workspace | Generate a PAT scoped to the instance you're hitting |
+| Playwright requests don't appear in Caido | Proxy not set on browser context | Confirm `mcp__playwright__browser_navigate` is launched with `proxy=http://127.0.0.1:8080` |
+| `update-ca-certificates: command not found` | macOS | Use `security add-trusted-cert -d -r trustRoot -k ~/Library/Keychains/login.keychain ~/.config/caido/ca.crt` |
+| `/mcp` doesn't show caido | Community MCP not loaded | Step 5: complete the OAuth login flow inside Caido UI before `claude mcp add` |
 | `hunt: command not found` | Shell didn't pick up the `source` line | Restart your terminal, or `source ~/.zshrc` |
-| Skills don't trigger as expected | Description-field keyword mismatch | Mention the bug class explicitly in your prompt (e.g., "I'm testing IDOR on this endpoint") |
-| `burp - get_proxy_history_regex` returns empty | Burp's proxy history is empty for that target | Browse the target through Burp first to populate history |
-| Python build errors during step 5 | Using system Python 3.9 | Use Homebrew Python 3.12 explicitly: `/opt/homebrew/bin/python3.12 -m venv .venv` |
+| Skills don't trigger as expected | Description-field keyword mismatch | Mention the bug class explicitly ("testing IDOR", "checking for SSRF") |
+| Caido shows zero history during a Playwright run | CA cert not trusted, HTTPS fails | Install the CA system-wide (step 3) or use `ignoreHTTPSErrors=true` |
 
 ## Uninstall
 
-To remove everything this repo installed:
-
 ```bash
-# Remove all bundled skills (this removes EVERY skill in ~/.claude/skills,
-# including any you added manually — be selective if needed)
-# rm -rf ~/.claude/skills
+# Per-component:
+rm -rf ~/.claude/skills/caido-toolkit ~/.claude/skills/caido-autohunt
+rm -rf ~/.claude/skills/bugcrowd-reporting ~/.claude/skills/evidence-hygiene
+# (plus all hunt-* skills you want gone)
 
-# Or remove only the originals contributed by this repo:
-rm -rf ~/.claude/skills/bugcrowd-reporting
-rm -rf ~/.claude/skills/evidence-hygiene
-
-# Remove all bundled commands
-# rm -rf ~/.claude/commands
-
-# Remove the hunt shell command
+# Hunt shell command
 rm -f ~/.claude/scripts/hunt.sh
 sed -i.bak '/claude\/scripts\/hunt.sh/d' ~/.zshrc
 
-# Remove Burp MCP entry
-claude mcp remove burp
+# Caido config (leaves Caido itself alone)
+rm -rf ~/.config/caido
+
+# MCP servers
+claude mcp remove caido
+claude mcp remove playwright
 ```

@@ -27,7 +27,7 @@ PC=0x1891771a8 m=0 sigcode=2 addr=0x0
 signal arrived during cgo execution
 ```
 
-Likely causes (not diagnosed in this run): a Darwin system-library mismatch hitting Go's network resolver, or proxy/intercept interference with DNS calls (Burp Suite is running on this machine).
+Likely causes (not diagnosed in this run): a Darwin system-library mismatch hitting Go's network resolver, or proxy/intercept interference with DNS calls (Caido is running on this machine).
 
 ### Verification finding for the skill stack
 

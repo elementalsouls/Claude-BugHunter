@@ -63,7 +63,7 @@ Files in this folder:
    and \`osint-methodology\` skills. Note Focus Areas and Bounty bands.
 
 2. **Recon** — \`offensive-osint\`, \`web2-recon\`, and \`bb-local-toolkit\` for
-   discovery. Pipe Burp through every browser session for proxy history.
+   discovery. Pipe Caido through every browser session for proxy history.
 
 3. **Hunt** — \`web2-vuln-classes\` (or per-class \`hunt-*\` skills if installed)
    plus \`security-arsenal\` for payloads.
@@ -86,7 +86,7 @@ Files in this folder:
 - Stop immediately on encountering other-user PII; document and report.
 - No public disclosure until program explicitly approves.
 - Test-account email: \`<your-bugcrowdninja-alias>@bugcrowdninja.com\`
-- Burp proxy capturing through all browser sessions for this target.
+- Caido proxy capturing through all browser sessions for this target.
 
 ## Useful commands during the engagement
 

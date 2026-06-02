@@ -68,10 +68,10 @@ await useVoucher(); await deductBalance();
 
 2. **Understand the state machine** — For each target action, identify: (a) what state is read, (b) what state is written, (c) what validation sits between read and write. The gap between read and write is your window.
 
-3. **Capture a clean baseline request** — Perform the action once legitimately with Burp Suite intercepting. Confirm you get the expected single-use behavior (e.g., coupon marked used, vote counted once).
+3. **Capture a clean baseline request** — Perform the action once legitimately with Caido intercepting. Confirm you get the expected single-use behavior (e.g., coupon marked used, vote counted once).
 
 4. **Set up parallel request tooling** — Use one of:
-   - Burp Suite Repeater → "Send group in parallel" (Turbo Intruder for HTTP/2 single-packet attacks)
+   - Caido Replay → "Send group in parallel" (Turbo Intruder for HTTP/2 single-packet attacks)
    - Turbo Intruder with `engine=Engine.BURP2` for last-byte sync
    - `curl` with `&` backgrounding
    - Python `threading` or `asyncio` with pre-built connections

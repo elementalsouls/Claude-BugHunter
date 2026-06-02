@@ -70,7 +70,7 @@ axios.get('/report?from=' + startDate + '&to=' + endDate)
 
 ## Step-by-Step Hunting Methodology
 
-1. **Enumerate all input vectors** — Use Burp Suite passive scan during normal app usage. Capture every parameter: GET, POST, JSON body, HTTP headers (User-Agent, Referer, X-Forwarded-For), cookies, path segments.
+1. **Enumerate all input vectors** — Use Caido passive scan during normal app usage. Capture every parameter: GET, POST, JSON body, HTTP headers (User-Agent, Referer, X-Forwarded-For), cookies, path segments.
 
 2. **Identify the tech stack** — Check response headers, error messages, job postings, Wappalyzer, BuiltWith. Determines which payloads to prioritize (MySQL vs PostgreSQL vs MongoDB).
 
@@ -103,7 +103,7 @@ axios.get('/report?from=' + startDate + '&to=' + endDate)
    - File read/write (`LOAD_FILE`, `INTO OUTFILE`) if permissions allow
    - Stacked queries for RCE (MSSQL `xp_cmdshell`)
 
-10. **Document the full chain** — Capture Burp repeater request/response, sqlmap output, and proof of data extraction (non-sensitive fields only for report).
+10. **Document the full chain** — Capture Caido Replay request/response, sqlmap output, and proof of data extraction (non-sensitive fields only for report).
 
 ---
 
@@ -208,7 +208,7 @@ sqlmap -u "https://target.com/api/filter" --data="category=electronics&sort=pric
 sqlmap -u "https://target.com/admin/report" --cookie="session=TOKEN" --dbs --batch --level=5
 ```
 
-**Burp Intruder payload list for column enumeration:**
+**Caido Automate payload list for column enumeration:**
 ```
 §1§
 §1§,§1§
@@ -337,7 +337,7 @@ A generic "database could be read" without identifying what database/table conta
 
 **3. Can it be reproduced in 10 minutes from scratch?**
 Must have:
-- Single curl command or Burp repeater request that demonstrates the vulnerability
+- Single curl command or Caido Replay request that demonstrates the vulnerability
 - No dependency on specific session state that expires immediately
 - SQLMap tamper script or manual payload that consistently triggers the behavior
 - Screen recording or step-by-step that a triage engineer can follow without your help

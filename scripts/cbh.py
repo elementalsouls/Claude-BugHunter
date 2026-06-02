@@ -83,25 +83,41 @@ def run_cmd(cmd: list[str], timeout: int = 30) -> tuple[int, str, str]:
 
 _HTTP_OPENER: urllib.request.OpenerDirector | None = None
 
+# Caido defaults — UI/GraphQL on 8080, proxy listener on a separate port
+# (typically 8081 in headless mode, configurable via --proxy-listen).
+CAIDO_UI_DEFAULT = "http://127.0.0.1:8080"
+CAIDO_PROXY_DEFAULT = "http://127.0.0.1:8080"  # desktop mode default
+CAIDO_PROXY_CANDIDATES = [
+    "http://127.0.0.1:8080",
+    "http://127.0.0.1:7070",  # caido-cli default in some setups
+    "http://127.0.0.1:8081",
+    "http://127.0.0.1:8082",
+]
+
 
 def configure_http_proxy(proxy_url: str | None = None) -> tuple[bool, str]:
-    """Configure urllib to route through a proxy (typically Burp Suite at
-    127.0.0.1:8080). Returns (configured, message) — message describes the mode.
+    """Configure urllib to route through a proxy (typically Caido). Returns
+    (configured, message) — message describes the mode.
 
     Resolution order:
       1. explicit proxy_url argument
-      2. CBH_BURP_PROXY env var
+      2. CBH_CAIDO_PROXY env var (or legacy CBH_BURP_PROXY)
       3. HTTPS_PROXY / HTTP_PROXY env vars
-      4. fallback: auto-detect default Burp on http://127.0.0.1:8080 (only if --burp flag)
+      4. fallback: detect Caido on 127.0.0.1:8080/8081/8082 (only if --caido flag)
     """
     global _HTTP_OPENER
     if not proxy_url:
-        proxy_url = os.environ.get("CBH_BURP_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+        proxy_url = (
+            os.environ.get("CBH_CAIDO_PROXY")
+            or os.environ.get("CBH_BURP_PROXY")  # legacy
+            or os.environ.get("HTTPS_PROXY")
+            or os.environ.get("HTTP_PROXY")
+        )
     if not proxy_url:
         _HTTP_OPENER = None
         return False, "direct (no proxy)"
 
-    # Disable TLS verification when going through Burp (its CA isn't typically trusted)
+    # Disable TLS verification — the intercepting CA isn't system-trusted
     import ssl
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -113,21 +129,33 @@ def configure_http_proxy(proxy_url: str | None = None) -> tuple[bool, str]:
     return True, f"via proxy {proxy_url}"
 
 
-def detect_burp() -> str | None:
-    """Return Burp proxy URL if responsive on default port, else None."""
-    try:
-        with urllib.request.urlopen("http://127.0.0.1:8080/", timeout=1) as r:
-            # Burp's proxy returns a help page; just confirming it's listening
-            if r.status == 200:
-                return "http://127.0.0.1:8080"
-    except Exception:
-        pass
+def detect_caido() -> str | None:
+    """Return Caido proxy URL if any default port responds, else None.
+
+    Probes the GraphQL UI port first (which confirms a Caido instance is up),
+    then walks the proxy candidates. A Caido instance running with PAT auth
+    will 401 on /graphql without the header — that 401 is a positive ID."""
+    for url in CAIDO_PROXY_CANDIDATES:
+        try:
+            req = urllib.request.Request(url + "/graphql", method="GET")
+            with urllib.request.urlopen(req, timeout=1) as r:
+                if r.status in (200, 400, 401, 405):
+                    return url
+        except urllib.error.HTTPError as e:
+            if e.code in (400, 401, 405):
+                return url
+        except Exception:
+            continue
     return None
+
+
+# Legacy alias kept for any external scripts importing it
+detect_burp = detect_caido
 
 
 def http_get(url: str, timeout: int = 5, headers: dict | None = None) -> tuple[int, dict, str]:
     """Stdlib HTTP GET returning (status_code, headers_dict, body_str). Routes
-    through the configured proxy (e.g. Burp) if `configure_http_proxy()` was
+    through the configured proxy (e.g. Caido) if `configure_http_proxy()` was
     called. Returns (0, {}, error_msg) on failure."""
     req = urllib.request.Request(url, headers=headers or {})
     opener = _HTTP_OPENER if _HTTP_OPENER is not None else urllib.request
@@ -213,17 +241,18 @@ def recon_http_probe(host: str) -> dict | None:
 
 
 def configure_proxy_from_args(args: argparse.Namespace) -> None:
-    """If --burp or --proxy was passed, set up the urllib opener accordingly.
-    Print the mode banner so the operator knows where traffic is going."""
+    """If --caido / --burp / --proxy was passed, set up the urllib opener
+    accordingly. Print the mode banner so the operator knows where traffic
+    is going."""
     proxy_url = None
     if getattr(args, "proxy", None):
         proxy_url = args.proxy
-    elif getattr(args, "burp", False):
-        proxy_url = detect_burp() or "http://127.0.0.1:8080"
+    elif getattr(args, "caido", False) or getattr(args, "burp", False):
+        proxy_url = detect_caido() or CAIDO_PROXY_DEFAULT
     configured, mode = configure_http_proxy(proxy_url)
     if configured:
         say(color(f"  HTTP routing: {mode}", "yellow"))
-        say(color(f"  Tip: requests will appear in Burp Proxy → HTTP history.", "dim"))
+        say(color(f"  Tip: requests will appear in Caido → HTTP History (query via HTTPQL).", "dim"))
 
 
 def cmd_recon(args: argparse.Namespace) -> int:
@@ -424,9 +453,10 @@ def classify_url(url: str) -> dict:
 def cmd_classify(args: argparse.Namespace) -> int:
     result = classify_url(args.url)
     section(f"classify — {args.url}")
-    if getattr(args, "burp", False) or getattr(args, "proxy", None):
-        proxy_url = args.proxy if getattr(args, "proxy", None) else (detect_burp() or "http://127.0.0.1:8080")
-        say(color(f"  Burp proxy ready at {proxy_url} — pipe candidate requests through it.", "yellow"))
+    if getattr(args, "caido", False) or getattr(args, "burp", False) or getattr(args, "proxy", None):
+        proxy_url = args.proxy if getattr(args, "proxy", None) else (detect_caido() or CAIDO_PROXY_DEFAULT)
+        say(color(f"  Caido proxy ready at {proxy_url} — pipe candidate requests through it.", "yellow"))
+        say(color(f"  Query history live: cbh caido search '<httpql>'", "dim"))
         say()
     if not result["matches"]:
         say("  No high-confidence matches. Try:")
@@ -681,6 +711,175 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 # ============================================================
+# caido — PAT-driven control of a running Caido instance
+# ============================================================
+def _load_caido_client():
+    """Import caido_client lazily so cbh works even without a PAT configured."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        from caido_client import CaidoClient, CaidoAuthError  # type: ignore
+        return CaidoClient, CaidoAuthError
+    except ImportError as e:
+        say(color(f"  caido_client import failed: {e}", "red"))
+        sys.exit(2)
+
+
+def cmd_caido(args: argparse.Namespace) -> int:
+    CaidoClient, CaidoAuthError = _load_caido_client()
+    try:
+        c = CaidoClient.from_env()
+    except CaidoAuthError as e:
+        say(color(f"  auth: {e}", "red"))
+        say(color("  Run: scripts/caido-setup.sh to configure your PAT.", "dim"))
+        return 2
+
+    op = args.caido_op
+    if op == "ping":
+        section("caido ping")
+        ok = c.ping()
+        say(color(f"  {c.base_url} — {'reachable' if ok else 'unreachable'}", "green" if ok else "red"))
+        return 0 if ok else 1
+    if op == "search":
+        section(f"caido search — {args.query!r}")
+        rows = c.list_requests(args.query, args.limit)
+        if not rows:
+            say(color("  (no matches)", "dim"))
+            return 0
+        for r in rows:
+            resp = r.get("response") or {}
+            say(f"  {color(str(r['id']), 'bold'):>10}  {r['method']:6} "
+                f"{resp.get('statusCode', '---'):>4}  {r['host']}{r['path']}"
+                f"{('?'+r['query']) if r.get('query') else ''}")
+        return 0
+    if op == "get":
+        section(f"caido get — id={args.id}")
+        rec = c.get_request(args.id)
+        if not rec:
+            say(color("  not found", "red"))
+            return 1
+        say(json.dumps(rec, indent=2))
+        return 0
+    if op == "replay":
+        section(f"caido replay — id={args.id}")
+        out = c.replay_from_request(args.id, args.session)
+        say(json.dumps(out, indent=2))
+        return 0 if out.get("ok") else 1
+    if op == "findings":
+        section("caido findings")
+        for f in c.list_findings(args.limit):
+            say(f"  {color(f['severity'], 'yellow'):8}  {f['title']}  [id={f['id']}]")
+        return 0
+    if op == "finding-new":
+        section("caido finding-new")
+        body = Path(args.file).read_text() if args.file else args.description
+        out = c.create_finding(
+            title=args.title,
+            description=body,
+            request_id=args.request_id,
+            severity=args.severity,
+        )
+        say(json.dumps(out, indent=2))
+        return 0
+    if op == "scopes":
+        section("caido scopes")
+        for s in c.list_scopes():
+            say(f"  [{s['id']}] {color(s['name'], 'bold')}  allow={s.get('allowlist')}  deny={s.get('denylist')}")
+        return 0
+    say(color(f"unknown caido op: {op}", "red"))
+    return 2
+
+
+# ============================================================
+# autohunt — Playwright-driven crawl + HTTPQL polling + skill dispatch
+# ============================================================
+HTTPQL_RECIPES = {
+    # Note: integer fields (resp.code, resp.len) are UNQUOTED in HTTPQL.
+    # Note: case-insensitive regex use `(?i)` inline flag (Rust regex syntax).
+    "reflected-input": 'req.query.cont:"<" AND resp.raw.cont:"<"',
+    "redirect-params": 'req.query.regex:"(redirect|next|return|callback|target|url)="',
+    "id-params":       'req.query.regex:"(id|uid|user|order|invoice|account)=[0-9]+"',
+    "json-api":        'req.path.cont:"/api" AND resp.raw.cont:"json"',
+    "graphql":         'req.path.regex:"/(graphql|api/graphql)"',
+    "5xx-errors":      'resp.code.gt:499',
+    "jwt-in-body":     'resp.raw.regex:"eyJ[A-Za-z0-9_-]+"',
+    "sql-errors":      'resp.raw.regex:"(SQL syntax|ORA-[0-9]+|SQLite|psycopg|mysql_fetch)" AND req.path.ncont:".js"',
+    "open-redirect-hint": 'resp.code.eq:302 AND resp.raw.regex:"(?i)location:.*(//|https?:)"',
+    "secrets-leak":    'resp.raw.regex:"(api[_-]?key|password|secret|token)" AND req.path.ncont:".js"',
+}
+
+
+def cmd_autohunt(args: argparse.Namespace) -> int:
+    """Headless orchestration loop. Designed to be driven by Claude Code's
+    Playwright MCP for browser steps; this CLI just queries Caido HTTPQL
+    against the proxy history that Playwright filled, then prints the
+    skills that should be loaded for each archetype hit."""
+    CaidoClient, CaidoAuthError = _load_caido_client()
+    try:
+        c = CaidoClient.from_env()
+    except CaidoAuthError as e:
+        say(color(f"  auth: {e}", "red"))
+        return 2
+
+    section(f"autohunt — {args.target}")
+    say(color("Polling Caido HTTP History with archetype HTTPQL recipes.", "cyan"))
+    say(color(f"Instance: {c.base_url}", "dim"))
+    say()
+
+    suggested: dict[str, list[dict]] = {}
+    for archetype, httpql in HTTPQL_RECIPES.items():
+        scoped = f'({httpql}) AND req.host.cont:"{args.target}"'
+        try:
+            hits = c.list_requests(scoped, limit=args.limit_per_recipe)
+        except Exception as e:
+            say(color(f"  [{archetype}] query failed: {e}", "red"))
+            continue
+        if not hits:
+            continue
+        suggested[archetype] = hits
+        say(color(f"[{archetype}]  {len(hits)} hits", "yellow"))
+        for h in hits[:5]:
+            resp = h.get("response") or {}
+            say(f"    {h['method']:6} {resp.get('statusCode','---'):>3}  "
+                f"{h['host']}{h['path']}{('?'+h['query']) if h.get('query') else ''}  "
+                f"[id={h['id']}]")
+        say()
+
+    if not suggested:
+        say(color("  No archetype hits yet. Have you browsed the target through Caido?", "dim"))
+        say(color("  Tip from Claude Code:  use Playwright MCP to crawl with "
+                  "HTTPS_PROXY=http://127.0.0.1:8080 set.", "dim"))
+        return 1
+
+    section("Suggested skills to load")
+    archetype_to_skills = {
+        "reflected-input": ["hunt-xss"],
+        "redirect-params": ["hunt-ssrf", "hunt-oauth"],
+        "id-params":       ["hunt-idor"],
+        "json-api":        ["hunt-api-misconfig", "hunt-idor"],
+        "graphql":         ["hunt-graphql"],
+        "5xx-errors":      ["hunt-rce", "hunt-sqli"],
+        "jwt-in-body":     ["hunt-auth-bypass", "hunt-ato"],
+        "sql-errors":      ["hunt-sqli"],
+        "open-redirect-hint": ["hunt-oauth", "hunt-ssrf"],
+        "secrets-leak":    ["hunt-cloud-misconfig", "hunt-api-misconfig"],
+    }
+    seen = set()
+    for archetype in suggested:
+        for s in archetype_to_skills.get(archetype, []):
+            if s in seen:
+                continue
+            seen.add(s)
+            say(f"  → {color(s, 'green')}    (from archetype: {archetype})")
+
+    say()
+    say(color("Next:", "bold"))
+    say("  • In a Claude Code session: describe one of the hits and the matched skill auto-loads.")
+    say(f"  • Or run: cbh caido replay <id> --session <name>  to push it into Caido Replay.")
+    say(f"  • Or run: cbh classify <url>  for a per-URL pattern explanation.")
+    return 0
+
+
+# ============================================================
 # Main dispatcher
 # ============================================================
 def main() -> int:
@@ -694,22 +893,31 @@ def main() -> int:
         epilog=textwrap.dedent("""\
             Examples:
               cbh recon hackerone.com
-              cbh recon target.com --burp                  # route via Burp proxy
+              cbh recon target.com --caido                 # route via Caido proxy
               cbh classify "https://api.target.com/v1/users/42?next=https://evil.com"
               cbh triage findings/idor-2026-05-15.md
               cbh report findings/idor-2026-05-15.md --platform bugcrowd --out draft.md
 
+              # PAT-driven Caido control (set CAIDO_PAT or ~/.config/caido/pat first)
+              cbh caido ping
+              cbh caido search 'req.host.cont:"target.com" AND resp.code.eq:"500"'
+              cbh caido replay 42 --session "idor-test-1"
+              cbh caido findings
+              cbh autohunt target.com         # archetype HTTPQL sweep + skill dispatch
+
             For LLM-driven hunting with full skill context, use the slash commands
-            inside Claude Code: /hunt /recon /triage /report /validate /chain /autopilot
+            inside Claude Code: /hunt /recon /triage /report /validate /chain /autopilot /autohunt
             See docs/cbh-cli.md for the "when to use which" matrix.
             """),
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
     def _add_proxy_args(p):
+        p.add_argument("--caido", action="store_true",
+                       help="Route HTTP through Caido proxy (auto-detects on 127.0.0.1:8080-8082)")
         p.add_argument("--burp", action="store_true",
-                       help="Route HTTP through Burp Suite proxy (auto-detects 127.0.0.1:8080)")
-        p.add_argument("--proxy", help="Explicit proxy URL (overrides --burp)")
+                       help="Legacy alias for --caido (kept for backward compat)")
+        p.add_argument("--proxy", help="Explicit proxy URL (overrides --caido)")
 
     p_recon = sub.add_parser("recon", help="passive recon + live-host probe + summary")
     p_recon.add_argument("target", help="root domain, e.g. hackerone.com")
@@ -731,6 +939,35 @@ def main() -> int:
                           choices=["h1", "bugcrowd", "intigriti", "immunefi"])
     p_report.add_argument("--out", help="write draft to this path (else print to stdout)")
     p_report.set_defaults(func=cmd_report)
+
+    p_caido = sub.add_parser("caido", help="PAT-driven control of a running Caido instance")
+    csub = p_caido.add_subparsers(dest="caido_op", required=True)
+    csub.add_parser("ping", help="verify PAT + instance URL")
+    cs = csub.add_parser("search", help="query HTTP history with HTTPQL")
+    cs.add_argument("query", help="HTTPQL filter, e.g. 'req.host.cont:\"target.com\"'")
+    cs.add_argument("--limit", type=int, default=25)
+    cg = csub.add_parser("get", help="fetch a request by ID")
+    cg.add_argument("id")
+    cr = csub.add_parser("replay", help="send a request to Caido Replay and run it")
+    cr.add_argument("id")
+    cr.add_argument("--session", default="cbh-auto")
+    cf = csub.add_parser("findings", help="list findings")
+    cf.add_argument("--limit", type=int, default=25)
+    cn = csub.add_parser("finding-new", help="create a finding tied to a request")
+    cn.add_argument("--title", required=True)
+    cn.add_argument("--severity", default="MEDIUM",
+                    choices=["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"])
+    cn.add_argument("--request-id")
+    grp = cn.add_mutually_exclusive_group(required=True)
+    grp.add_argument("--description")
+    grp.add_argument("--file")
+    csub.add_parser("scopes", help="list scope presets")
+    p_caido.set_defaults(func=cmd_caido)
+
+    p_auto = sub.add_parser("autohunt", help="Archetype HTTPQL sweep of Caido history + skill dispatch")
+    p_auto.add_argument("target", help="host substring to scope the sweep")
+    p_auto.add_argument("--limit-per-recipe", type=int, default=20)
+    p_auto.set_defaults(func=cmd_autohunt)
 
     args = parser.parse_args()
     return args.func(args)

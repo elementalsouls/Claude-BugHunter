@@ -68,8 +68,8 @@ WWW-Authenticate: Negotiate, NTLM
    This is the standard test Type-1 with negotiate flags `NTLMSSP_NEGOTIATE_UNICODE | NTLMSSP_NEGOTIATE_OEM | NTLMSSP_NEGOTIATE_NTLM | NTLMSSP_NEGOTIATE_ALWAYS_SIGN | NTLMSSP_NEGOTIATE_KEY_EXCH | NTLMSSP_NEGOTIATE_56 | NTLMSSP_NEGOTIATE_128 | NTLMSSP_NEGOTIATE_TARGET_INFO`. The `OS Version` field (`06 01 B1 1D 00 00 00 0F`) is Windows 7 build 7601 — accepted by virtually every NTLM responder.
 
 3. **Use a keep-alive raw socket, not Python requests / curl one-shot.** Most HTTP libraries close the connection between the Type-1 send and Type-2 reception. Use one of:
-   - Burp Repeater with `Connection: keep-alive` set explicitly
-   - Burp `mcp__burp__send_http1_request` (handles keep-alive natively)
+   - Caido Replay with `Connection: keep-alive` set explicitly
+   - Caido `mcp__burp__send_http1_request` (handles keep-alive natively)
    - Python raw `socket` + `ssl.wrap_socket` (see Payload section)
 
 4. **Parse the Type-2 challenge from the `WWW-Authenticate: NTLM <base64>` response header.** Base64-decode the value. The structure is NTLMSSP per MS-NLMP:
@@ -112,7 +112,7 @@ curl -sk -I -H "Authorization: NTLM TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAG
   "https://target.example/_api/web/CurrentUser" 2>&1 | grep -i "WWW-Authenticate"
 ```
 
-**Burp `send_http1_request` (recommended for full Type-2 capture):**
+**Caido `send_http1_request` (recommended for full Type-2 capture):**
 ```
 GET /_api/web/CurrentUser HTTP/1.1
 Host: target.example
@@ -172,7 +172,7 @@ if m:
         i += 4 + av_len
 ```
 
-**Burp Collaborator NOT needed** for this finding class — the data leak is in the synchronous response, not via OOB.
+**interactsh-client (oast.fun) NOT needed** for this finding class — the data leak is in the synchronous response, not via OOB.
 
 ---
 

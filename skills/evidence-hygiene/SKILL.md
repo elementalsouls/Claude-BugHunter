@@ -1,6 +1,6 @@
 ---
 name: evidence-hygiene
-description: "Evidence-capture and PoC-redaction discipline for bug-bounty submissions: cookie redaction protocol (which fields to mask, Preview annotation / Burp panel hiding / DevTools workflow), PII black-bar discipline (what to mask in other-user data — names, emails, phones, faces — vs what is safe to leave — usernames, trace IDs, request bodies), HAR file sanitization (jq filters for Cookie/Set-Cookie/Authorization headers), Burp Repeater/Intruder screenshot hygiene (hide request body, show only Results table for rate-limit attacks), Chrome DevTools Console PoC patterns (credentials include so cookies are not echoed, labeled console.log), screenshot capture order, filename conventions, post-submission rotation hygiene. Use BEFORE any PoC screenshot, BEFORE attaching a HAR, or whenever preparing evidence with session cookies or other-user PII. Pairs with bugcrowd-reporting and report-writing."
+description: "Evidence-capture and PoC-redaction discipline for bug-bounty submissions: cookie redaction protocol (which fields to mask, Preview annotation / Caido panel hiding / DevTools workflow), PII black-bar discipline (what to mask in other-user data — names, emails, phones, faces — vs what is safe to leave — usernames, trace IDs, request bodies), HAR file sanitization (jq filters for Cookie/Set-Cookie/Authorization headers), Caido Replay/Intruder screenshot hygiene (hide request body, show only Results table for rate-limit attacks), Chrome DevTools Console PoC patterns (credentials include so cookies are not echoed, labeled console.log), screenshot capture order, filename conventions, post-submission rotation hygiene. Use BEFORE any PoC screenshot, BEFORE attaching a HAR, or whenever preparing evidence with session cookies or other-user PII. Pairs with bugcrowd-reporting and report-writing."
 ---
 
 # EVIDENCE HYGIENE — PoC Capture & Redaction Discipline
@@ -48,12 +48,12 @@ The session cookie value is the highest-value secret in any PoC. Mask:
 
 **Method A — Don't capture the cookies in the first place** (preferred when possible)
 - For DevTools Console PoCs: use `credentials: 'include'` so the browser sends cookies automatically. Console output won't echo the cookie. Screenshot the Console output, never the Network tab Headers panel.
-- For Burp Repeater PoCs: drag the bottom request/response panel divider DOWN to hide the request body before screenshotting. Capture only the Results table for Intruder runs.
+- For Caido Replay PoCs: drag the bottom request/response panel divider DOWN to hide the request body before screenshotting. Capture only the Results table for Intruder runs.
 
 **Method B — Black-bar in image editor** (when capture inevitably includes cookies)
 - macOS: Open screenshot in Preview → Tools → Annotate → Rectangle → set fill color to black → drag rectangle over the cookie value → save
 - Windows: Use Snip & Sketch's annotation tools or any image editor (Paint.NET, etc.)
-- Burp itself: in Burp's Proxy → Match and Replace, you can pre-emptively redact cookie values to placeholder strings before screenshotting
+- Caido itself: in Caido's Proxy → Match and Replace, you can pre-emptively redact cookie values to placeholder strings before screenshotting
 
 **Method C — Find/replace in raw text** (for HAR files, terminal transcripts)
 - See §4 for the jq commands
@@ -64,7 +64,7 @@ Before clicking Capture:
 
 ```
 [ ] Network tab Headers panel is collapsed or out of frame
-[ ] Burp's Request panel is hidden behind the divider drag
+[ ] Caido's Request panel is hidden behind the divider drag
 [ ] No "Copy as cURL" output is visible on screen
 [ ] DevTools Application → Storage → Cookies tab is closed
 [ ] Browser URL bar doesn't show a session token in query string (rare but possible)
@@ -198,7 +198,7 @@ Customize the gsub patterns to your specific captured data.
 
 ---
 
-## 5. Burp Suite Screenshot Hygiene
+## 5. Caido Screenshot Hygiene
 
 ### 5.1 Repeater (single request demo)
 

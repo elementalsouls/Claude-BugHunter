@@ -67,7 +67,7 @@ state.currentUser.organizationId
 - REST APIs with sequential integer IDs (most vulnerable)
 - UUIDs that are predictable or leaked in other responses
 - Multi-tenant SaaS apps with `org_id`, `account_id`, `business_id` params
-- Mobile apps (Burp the APK — mobile APIs often skip authorization checks)
+- Mobile apps (Caido the APK — mobile APIs often skip authorization checks)
 
 ---
 
@@ -75,7 +75,7 @@ state.currentUser.organizationId
 
 1. **Map all object references in the application**
    - Browse every feature authenticated as User A
-   - Capture all requests in Burp Suite
+   - Capture all requests in Caido
    - Filter for requests containing: `id=`, `_id=`, `uuid=`, `/v1/{noun}/{id}`, query params with numeric/UUID values
 
 2. **Enumerate ID types**
@@ -164,7 +164,7 @@ with open("ids.txt", "w") as f:
         f.write(str(i) + "\n")
 ```
 
-**Burp Intruder payload for IDOR scanning:**
+**Caido Automate payload for IDOR scanning:**
 ```
 GET /api/messages/§12345§ HTTP/1.1
 Host: target.com

@@ -189,9 +189,9 @@ The skill is correct in principle but should note: "alias batching is most effec
 ## Test 12 — Race condition: parallel HTTP redemption (`hunt-race-condition`)
 
 **Initial prompt:**
-> "The coupon code redeems but I think the check is non-atomic. Burp Turbo Intruder single-packet attack?"
+> "The coupon code redeems but I think the check is non-atomic. Turbo Intruder single-packet attack?"
 
-**Skill that auto-triggers:** `hunt-race-condition` — description includes "Burp Turbo Intruder single-packet attack, h2.cl smuggling for atomic submit, parallel curl with --next".
+**Skill that auto-triggers:** `hunt-race-condition` — description includes "Turbo Intruder single-packet attack, h2.cl smuggling for atomic submit, parallel curl with --next".
 
 **Technique from `hunt-race-condition` §Payload & Detection Patterns:**
 > Python asyncio with aiohttp — 20+ concurrent POSTs.

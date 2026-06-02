@@ -139,7 +139,7 @@ Covered protocols:
 - Cookie redaction (which fields, what tools, screenshot timing)
 - PII black-bar (other-user data, faces, addresses, SSNs)
 - HAR file sanitization (jq filters)
-- Burp screenshot hygiene (Repeater, Intruder, Proxy)
+- Caido screenshot hygiene (Repeater, Intruder, Proxy)
 - DevTools Console PoC patterns
 - Filename conventions for multi-step PoCs
 - Post-submission rotation hygiene
@@ -164,7 +164,7 @@ Tools the skills call into during the workflow.
 
 | Tool | Purpose |
 |---|---|
-| **Burp MCP** | Claude reads/replays HTTP traffic directly from Burp's proxy history. Eliminates manual paste-curl-into-chat. |
+| **Caido MCP** | Claude reads/replays HTTP traffic directly from Caido HTTP History. Eliminates manual paste-curl-into-chat. |
 | **`hunt` shell command** | Engagement-folder scaffold (`~/Targets/<name>/CLAUDE.md` + scope.md + findings/ + evidence/ + submissions.txt + notes.md + .gitignore). |
 | **HackerOne API** | Used externally with `public-skills-builder` to refresh `hunt-*` skill content from newly disclosed reports. |
 
@@ -221,10 +221,10 @@ Tools the skills call into during the workflow.
 
 ## What's NOT in the bundle (intentional gaps)
 
-- **No automated exploitation tooling** — this bundle guides hunting and reporting; it doesn't fire payloads automatically. Use Burp's Active Scanner, sqlmap, etc. for automated work.
+- **No automated exploitation tooling** — this bundle guides hunting and reporting; it doesn't fire payloads automatically. Use Caido's Active Scanner, sqlmap, etc. for automated work.
 - **No CI/CD integration** — this is a workflow stack for individual researchers, not a continuous scanning pipeline.
 - **No secret leak deletion** — if the stack helps you find leaked credentials, you (and the program) handle remediation.
-- **iOS testing not covered** — `apk-redteam-pipeline` covers Android only. For iOS, use `Mobile-Security-Framework-MobSF` or Burp Mobile Assistant.
+- **iOS testing not covered** — `apk-redteam-pipeline` covers Android only. For iOS, use `Mobile-Security-Framework-MobSF` or manual Android proxy setup (Caido CA + system proxy).
 
 ---
 

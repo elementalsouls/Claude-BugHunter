@@ -51,7 +51,7 @@ Plus 12 additional `hunt-*` skills curated by topic without an explicit report-c
 - **`offensive-osint` (v3.0)** — Refactored from a 4,168-line monolith into a lean SKILL.md (~400 lines) plus 15 modular reference files in `references/` (subdomain enum, identity fabric, secret patterns, dorks, sector-specific recon, etc.). Detail content loads on demand — Claude reads only the relevant references for the current task.
 - **`osint-methodology` (v2.1)** — 5-stage recon pipeline, 29-type asset graph, severity rubric, identity-fabric mapping, vulnerability prioritization (CVE/EPSS/KEV), bug bounty submission templates, threat-actor investigation, cryptocurrency tracing, image/video forensics.
 - **`bugcrowd-reporting`** — Bugcrowd-specific reporting tactics: VRT category fallback hierarchy, severity-request paragraphs, OOS-clause rebuttal templates (rate limiting on auth-flow endpoints, debug-info framing, user-enumeration with sensitive PII, theoretical-issue counter), chained-finding cross-reference patterns, target selection for QA-vs-prod programs, researcher-side hygiene.
-- **`evidence-hygiene`** — Cookie redaction protocols, PII black-bar discipline, HAR sanitization recipes, Burp/DevTools screenshot patterns, post-submission rotation hygiene. The redaction protocol distinguishes "your-account secrets" (always redact) from "other-user PII" (redact-by-default with explicit cross-account-impact exception) from "triager-useful metadata" (leave visible).
+- **`evidence-hygiene`** — Cookie redaction protocols, PII black-bar discipline, HAR sanitization recipes, Caido/DevTools screenshot patterns, post-submission rotation hygiene. The redaction protocol distinguishes "your-account secrets" (always redact) from "other-user PII" (redact-by-default with explicit cross-account-impact exception) from "triager-useful metadata" (leave visible).
 - **`bb-local-toolkit`** — Personal customization of the master bug-bounty workflow with author's pipeline preferences.
 
 ### Enterprise-platform attack skills
@@ -155,12 +155,12 @@ This principle informed the `offensive-osint` v3 refactor (lean SKILL.md + `refe
 
 ## Tooling
 
-### PortSwigger — Burp Suite + MCP Server extension
+### PortSwigger — Caido + MCP Server extension
 
-Burp Suite Pro/Community is the foundation HTTP intercept tool. Their BApp Store includes an "MCP Server" extension that exposes Burp's proxy history to Claude Code via the Model Context Protocol.
+Caido Pro/Community is the foundation HTTP intercept tool. Their Caido plugin store includes an "MCP Server" extension that exposes Caido HTTP History to Claude Code via the Model Context Protocol.
 
-**Burp Suite**: https://portswigger.net/burp
-**MCP Server extension**: install via Burp's BApp Store
+**Caido**: https://caido.io/
+**MCP Server extension**: install via Caido's Caido plugin store
 
 ### Anthropic — Claude Code, Skills, MCP
 

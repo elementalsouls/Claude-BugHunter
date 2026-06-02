@@ -2,7 +2,7 @@
 
 # claude-bughunter
 
-> A self-contained Claude skill bundle for bug hunting and external red-team work · **51 skills** · 15 slash commands · **574+ disclosed-report patterns** across 24 vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Burp MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
+> A self-contained Claude skill bundle for bug hunting and external red-team work · **51 skills** · 15 slash commands · **574+ disclosed-report patterns** across 24 vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Caido MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
 
 Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — Bug Hunting & GenAI Security Research.
 
@@ -470,7 +470,7 @@ You type these directly into Claude Code. They route to the right skills automat
 
 ## Architecture
 
-51 skills across 6 phases, with a 27-skill `hunt-*` sub-stack, a 7-skill enterprise-platform attack layer (M365/Okta/cloud-IAM/vCenter/VPN/SharePoint/APK), an integration layer (Burp MCP, the `hunt` shell command, optional Anthropic + HackerOne APIs), and a usage decision tree for picking the right skill per task.
+51 skills across 6 phases, with a 27-skill `hunt-*` sub-stack, a 7-skill enterprise-platform attack layer (M365/Okta/cloud-IAM/vCenter/VPN/SharePoint/APK), an integration layer (Caido MCP, the `hunt` shell command, optional Anthropic + HackerOne APIs), and a usage decision tree for picking the right skill per task.
 
 ![architecture overview](assets/architecture-overview.svg)
 
@@ -511,7 +511,7 @@ You need these BEFORE the install will work. Check each one:
 | **`git`** | To clone this repo | `git --version` | usually pre-installed |
 
 **Optional but recommended:**
-- **Burp Suite Pro or Community** — `https://portswigger.net/burp` — needed only if you want HTTP-history capture. Skills work fine without it.
+- **Caido Pro or Community** — `https://caido.io/` — needed only if you want HTTP-history capture. Skills work fine without it.
 
 ### Step 2 — Install the bundle (2 minutes)
 
@@ -635,7 +635,7 @@ Claude triggers `report-writing` (the report body template) + the platform-speci
 
 ---
 
-For Burp Suite Pro MCP integration (optional layer), see [INSTALL.md](INSTALL.md). For the full engagement walkthrough with a worked example, see [USAGE.md](USAGE.md).
+For Caido Pro MCP integration (optional layer), see [INSTALL.md](INSTALL.md). For the full engagement walkthrough with a worked example, see [USAGE.md](USAGE.md).
 
 ---
 
@@ -654,7 +654,7 @@ The bundle explicitly **excludes**: weaponizing 0-days against unauthorized targ
 | Doc | Contents |
 |---|---|
 | [`README.md`](README.md) | This file — capability map, structure, quick start |
-| [`INSTALL.md`](INSTALL.md) | Full setup with Burp MCP integration and optional skill regenerator |
+| [`INSTALL.md`](INSTALL.md) | Full setup with Caido MCP integration and optional skill regenerator |
 | [`USAGE.md`](USAGE.md) | Workflow walkthrough · decision tree · worked engagement example |
 | [`docs/architecture.md`](docs/architecture.md) | 6-phase architecture · skill-to-phase mapping · engagement composition |
 | [`docs/cbh-cli.md`](docs/cbh-cli.md) | `cbh` CLI — native runner orchestrating recon + classify + triage + report |
@@ -693,7 +693,7 @@ The 24 per-class `hunt-*` skills address gap-zero (*"what should I look for in w
 
 ## Roadmap
 
-- [ ] HackerOne MCP integration (currently only Burp MCP wired in)
+- [ ] HackerOne MCP integration (currently only Caido MCP wired in)
 - [ ] Per-engagement memory layer — pattern recall across targets
 - [ ] Industry-specific hunt skills — `hunt-fintech-graphql`, `hunt-healthcare-fhir`, `hunt-gov-compliance`
 - [ ] Program-rules-parser skill — auto-generate structured `scope.md` from program text
@@ -723,7 +723,7 @@ Operational tradecraft accumulated across bug-bounty engagements and authorized 
 - [SecSkills — `trilwu/secskills`](https://github.com/trilwu/secskills) — subagent pattern
 
 **Tool inventory:**
-- [PortSwigger Burp Suite + MCP Server extension](https://portswigger.net/burp)
+- [Caido — modern Rust intercepting proxy](https://caido.io/) · [community Caido MCP server](https://github.com/c0tton-fluff/caido-mcp-server)
 - [ProjectDiscovery](https://github.com/projectdiscovery) — subfinder · dnsx · httpx · katana · nuclei
 - [SecLists](https://github.com/danielmiessler/SecLists) · [Assetnote Wordlists](https://wordlists.assetnote.io/)
 

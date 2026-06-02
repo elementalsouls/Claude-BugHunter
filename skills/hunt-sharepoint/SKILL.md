@@ -196,7 +196,7 @@ HelpWindowKey('WSSEndUser_troubleshooting                  (anonymous error.aspx
 5. **NTLM Type-2 AD topology disclosure.** Cross-reference `hunt-ntlm-info` for full methodology. Quick check:
 
    ```bash
-   # Use Burp send_http1_request with keep-alive, or Python raw socket
+   # Use Caido send_http1_request with keep-alive, or Python raw socket
    # Anonymous Type-1 with NetBIOS-info request flag:
    #   Authorization: NTLM TlRMTVNTUAABAAAAB4IIogAAAAAAAAAAAAAAAAAAAAAGAbEdAAAADw==
    # Decode the Type-2 challenge → leaks NetBIOS domain, DNS forest, computer name
@@ -227,7 +227,7 @@ HelpWindowKey('WSSEndUser_troubleshooting                  (anonymous error.aspx
    - Files matching the extension blocklist (`.ashx`, `.asmx`, `.svc`, `.config`) → 500 with `"file blocked from this Web site by the server administrators"` regardless of whether the file exists.
    - `file://`, UNC paths, `gopher://`, etc. → 500 with `"Value does not fall within the expected range"` — URL-scheme validator rejects.
 
-   **The error-message URL echo is NOT confirmation of SSRF.** Confirm via Burp Collaborator OOB before claiming. (Cross-reference `hunt-ssrf` OOB-Or-It-Didn't-Happen Gate.) Verified negative in authorized engagement: 38 Collaborator-tagged payloads across 12+ URL-accepting SP parameters → zero callbacks.
+   **The error-message URL echo is NOT confirmation of SSRF.** Confirm via interactsh OOB callback before claiming. (Cross-reference `hunt-ssrf` OOB-Or-It-Didn't-Happen Gate.) Verified negative in authorized engagement: 38 Collaborator-tagged payloads across 12+ URL-accepting SP parameters → zero callbacks.
 
    The extension blocklist also looks like a "file-existence oracle" (existing vs not-found returns different responses) but it's actually just the SP file-extension policy. Don't infer file presence from the blocklist response.
 

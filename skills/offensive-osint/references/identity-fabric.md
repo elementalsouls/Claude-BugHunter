@@ -260,7 +260,7 @@ Iterate over a candidate-field wordlist (use SecLists `Discovery/Web-Content/gra
 **Tooling:**
 - **Clairvoyance** (`pip install clairvoyance`) — automated field-suggestion enumerator. `clairvoyance -w wordlist.txt -o schema.json https://target.example/graphql`.
 - **GraphQL-Cop** — auditor that probes for introspection, batching, depth-limit, suggestion config. `pip install graphql-cop`.
-- **InQL** (Burp extension) — Burp Suite extension for GraphQL endpoint analysis.
+- **InQL** (Caido plugin) — Caido extension for GraphQL endpoint analysis.
 - **GraphQL Voyager** — visualize once schema is reconstructed.
 
 **Other GraphQL-when-introspection-disabled techniques:**

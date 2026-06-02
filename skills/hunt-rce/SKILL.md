@@ -92,7 +92,7 @@ window.location = userControlled  // URL scheme bypass → JS execution
 
 8. **Test OAuth redirect URI and URL scheme handlers.** Mobile apps processing `javascript:` or `intent://` URIs via OAuth redirect may execute JavaScript. Try `javascript:alert(document.cookie)` and custom scheme URIs.
 
-9. **Verify with out-of-band callbacks.** Never rely solely on visible output. Use Burp Collaborator, interactsh, or `canarytokens.org` DNS tokens. Blind RCE is common in backend processors.
+9. **Verify with out-of-band callbacks.** Never rely solely on visible output. Use interactsh-client (oast.fun), interactsh, or `canarytokens.org` DNS tokens. Blind RCE is common in backend processors.
 
 10. **Chain privileges.** A low-severity misconfiguration (editor role, CSRF, path traversal) combined with an RCE primitive equals critical. Always ask: "what can I reach from here?"
 
@@ -380,7 +380,7 @@ You must be able to demonstrate one of: execute `id`/`whoami` and capture the ou
 Articulate the concrete impact: source code exfiltration, credential theft (database, API keys, cloud IAM), lateral movement to internal network, supply chain compromise of downstream users, data destruction. Generic "attacker gains RCE" fails — name the crown jewels at risk.
 
 **3. Can it be reproduced in 10 minutes from scratch?**
-Write the reproduction steps before submitting. If you need more than: (a) a Burp request, (b) a payload file, and (c) a listener — simplify it. If reproduction requires a specific race condition, timing, or ephemeral state, document the exact conditions. Triagers who can't reproduce in one attempt will downgrade or close the report.
+Write the reproduction steps before submitting. If you need more than: (a) a Caido request, (b) a payload file, and (c) a listener — simplify it. If reproduction requires a specific race condition, timing, or ephemeral state, document the exact conditions. Triagers who can't reproduce in one attempt will downgrade or close the report.
 
 ---
 

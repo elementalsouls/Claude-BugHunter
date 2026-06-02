@@ -65,7 +65,7 @@ passport.js authenticate
 - Separate subdomains for admin/partner that share session cookies with main domain
 - Applications using `SimpleSAMLphp`, `ruby-saml`, `python-saml`
 
-**Burp passive scan triggers:**
+**Caido passive scan triggers:**
 - `SAMLResponse` in any POST body
 - `openid_connect` or `id_token` in responses
 - Cookie domains set to `.company.com` (wildcard)
@@ -87,7 +87,7 @@ passport.js authenticate
    - XMLRPC uses WordPress-native credentials, not SSO — test with `system.listMethods` first, then `wp.getUsersBlogs`
 
 4. **Enumerate SAML implementation**
-   - Capture a valid SAMLResponse via Burp
+   - Capture a valid SAMLResponse via Caido
    - Decode the Base64 payload, inspect the XML
    - Test signature stripping, comment injection, and XML wrapping attacks
    - Test if SP validates the signature at all (send unsigned assertion)

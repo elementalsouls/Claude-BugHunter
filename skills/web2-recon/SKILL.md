@@ -408,10 +408,10 @@ Run gf patterns and the interesting-params grep above.
 
 ### Minutes 25-30: Manual Exploration
 
-Open Burp Suite. Browse the app with proxy on:
+Open Caido. Browse the app with proxy on:
 1. Register an account
 2. Perform main user actions (create/read/update/delete resources)
-3. Note all API calls in Burp history
+3. Note all API calls in Caido HTTP History
 4. Look for endpoints not in your URL list
 
 ### After 30 min: Prioritize

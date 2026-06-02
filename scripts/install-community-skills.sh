@@ -51,8 +51,8 @@ echo "Running shuvonsec installer..."
 cd "$COMMUNITY_DIR/claude-bug-bounty"
 chmod +x install.sh
 
-# Pipe "n" to skip the optional interactive Burp MCP setup prompt
-# (we'll handle Burp MCP setup separately in INSTALL.md)
+# Pipe "n" to skip the optional interactive Caido MCP setup prompt
+# (we'll handle Caido MCP setup separately in INSTALL.md)
 echo "n" | ./install.sh || {
   echo "⚠ shuvonsec installer reported errors — check output above"
   echo "If everything still installed correctly, you can ignore."
@@ -82,7 +82,7 @@ ls "$HOME/.claude/commands/" 2>/dev/null | sort
 echo ""
 echo "Next steps:"
 echo "  1. Run ./scripts/install.sh to add original skills + hunt command"
-echo "  2. Set up Burp MCP integration (see INSTALL.md §4)"
+echo "  2. Set up Caido MCP integration (see INSTALL.md §4)"
 echo "  3. (Optional) Install per-class hunt-* skills via shuvonsec/public-skills-builder"
 echo ""
 echo "See INSTALL.md for the full setup walkthrough."

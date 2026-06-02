@@ -191,7 +191,7 @@ Google Dorks -> JS file download -> Hidden param discovery -> API mapping
 **Goal**: Understand the app like its developer does.
 
 **Checklist:**
-- [ ] Map all endpoints (Burp/Caido sitemap + JS analysis)
+- [ ] Map all endpoints (Caido sitemap + JS analysis)
 - [ ] Identify auth model (cookie, JWT, OAuth, SAML?)
 - [ ] Find business-critical flows (payment, registration, password reset, data export)
 - [ ] Download and analyze JS files for hidden routes, secrets, logic
@@ -304,13 +304,13 @@ Run /validate (7-Question Gate)
 Before labeling a finding **Critical** or **High**, reproduce it via at least **two independent tools** (different stacks, different HTTP libraries). Cross-tool consistency rules out tool-artefact findings (e.g., a curl-only timing differential that disappears under Python `requests` was an artefact, not a bug).
 
 Examples of independent reproductions:
-- `curl` + Burp `send_http1_request` (different TLS stacks, different header normalisation)
+- `curl` + Caido `send_http1_request` (different TLS stacks, different header normalisation)
 - Python `requests` + raw socket via `ssl.wrap_socket` (one library normalises, one doesn't)
-- Burp Repeater + Python `urllib` (same wire result expected from both)
+- Caido Replay + Python `urllib` (same wire result expected from both)
 
 The reproduction commands MUST be paste-into-shell ready in the report — a triager copies them verbatim. If the curl version requires special flags or breaks on certain systems, include a Python alternative.
 
-**Lesson from an authorized engagement:** All three Critical findings (Authentication.asmx brute-force, TE.CL smuggling, NTLM Type-2 disclosure) were each independently reproduced via curl + Python raw sockets + Burp tooling. The cross-tool consistency was what convinced the triage write-up that the findings were not artefacts.
+**Lesson from an authorized engagement:** All three Critical findings (Authentication.asmx brute-force, TE.CL smuggling, NTLM Type-2 disclosure) were each independently reproduced via curl + Python raw sockets + Caido tooling. The cross-tool consistency was what convinced the triage write-up that the findings were not artefacts.
 
 **Report:**
 ```
@@ -390,7 +390,7 @@ Before pushing back with "I think we're done because X," do this:
 
 ### Session End Checklist
 
-- [ ] Save all Burp/Caido project files
+- [ ] Save all Caido project files
 - [ ] Record any "weird but not yet exploitable" behaviors (future gadgets)
 - [ ] Update notes with failed attempts (don't re-test with same techniques)
 - [ ] Log findings with `/remember`

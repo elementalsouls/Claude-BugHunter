@@ -204,7 +204,7 @@ curl -X POST https://target.com/oauth/token \
 grep -r "redirect_uri\|client_secret\|oauth_token\|access_token\|push_notification" .
 grep -r "intent://\|deeplink\|scheme://" .
 
-# In Burp history
+# In Caido HTTP History
 # Filter: URL contains "oauth" OR "token" OR "callback"
 # Filter: Response contains "access_token" OR "code=" in Location header
 
