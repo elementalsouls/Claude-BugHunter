@@ -34,6 +34,26 @@ vsphere | vcenter | :9443                   →  vmware-vcenter-attack
 amazonaws | azure | googleapis | gcp        →  cloud-iam-deep
 github.com/<org>/                           →  supply-chain-attack-recon
 .apk | play.google.com                      →  apk-redteam-pipeline
+MongoDB | mongoose | CouchDB | Redis        →  hunt-nosqli
+?page= | ?file= | ?path= | php wrapper      →  hunt-lfi
+rO0A | VIEWSTATE | rememberMe cookie        →  hunt-deserialization
+Access-Control-Allow-Origin header          →  hunt-cors
+/forgot-password | /reset | X-Forwarded    →  hunt-host-header
+?redirect= | ?next= | ?return= | ?url=     →  hunt-open-redirect
+OTP | /verify | /2fa | no-rate-limit        →  hunt-brute-force
+Set-Cookie session | PHPSESSID              →  hunt-session
+Active Directory | LDAP | OpenLDAP | ADFS  →  hunt-ldap
+__NEXT_DATA__ | /_next/ | buildId           →  hunt-nextjs
+X-Powered-By: Express | Node.js | .js stack →  hunt-nodejs
+postMessage | dangerouslySetInnerHTML        →  hunt-dom
+WebSocket | ws:// | socket.io               →  hunt-websocket
+gRPC | :50051 | application/grpc            →  hunt-grpc
+laravel_session | Ignition | Telescope       →  hunt-laravel
+X-Application-Context | Whitelabel | /actuator → hunt-springboot
+:6443 | :10250 | :2379 | kubectl            →  hunt-k8s
+.github/workflows | Jenkins | GitLab CI     →  hunt-cicd
+.js.map | swagger.json | /.env              →  hunt-source-leak
+HSTS missing | SPF | DMARC | AXFR           →  hunt-tls-network
 ```
 
 multiple matches → load all matching platform skills.
@@ -103,6 +123,13 @@ hunt-ato             hunt-file-upload     hunt-business-logic  hunt-race-conditi
 hunt-llm-ai          hunt-api-misconfig   hunt-ssti            hunt-cache-poison
 hunt-http-smuggling  hunt-subdomain       hunt-cloud-misconfig hunt-misc
 hunt-aspnet          hunt-sharepoint      hunt-ntlm-info
+hunt-lfi             hunt-nosqli          hunt-deserialization
+hunt-cors            hunt-host-header     hunt-open-redirect
+hunt-brute-force     hunt-session         hunt-ldap
+hunt-nextjs          hunt-nodejs          hunt-dom
+hunt-websocket       hunt-grpc            hunt-laravel
+hunt-springboot      hunt-k8s             hunt-cicd
+hunt-source-leak     hunt-tls-network
 ```
 
 report format: `report-writing` (`bugcrowd-reporting` if the target is on bugcrowd).
