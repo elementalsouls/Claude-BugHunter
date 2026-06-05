@@ -41,6 +41,7 @@ Subdomain takeover is high-value because it allows an attacker to serve content 
 - `"Do you want to register"` (any domain parking page)
 - HTTP 404 with provider-specific error templates
 - Fastly: `"Fastly error: unknown domain"`
+- `"404 Web Site not found"` (Azure App Service)
 
 **Tech stack signals:**
 - Response headers: `X-Served-By: cache-*` (Fastly), `X-GitHub-Request-Id`, `Server: Netlify`
