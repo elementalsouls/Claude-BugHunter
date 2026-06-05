@@ -22,7 +22,7 @@ _Nothing yet._
   `CONTRIBUTING.md`) and scans for leaked secrets + client/engagement identifiers via a
   SHA-256 denylist (plaintext names never enter the repo).
 - **Community infrastructure** — issue templates (bug / new-skill proposal / false-positive),
-  PR template, `CODEOWNERS`, `FUNDING.yml`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`.
+  PR template, `CODEOWNERS`, `FUNDING.yml`, `CHANGELOG.md`.
 - **Docs site** — GitHub Pages site under `docs/` (just-the-docs + search), an
   auto-generated searchable [skill catalog](docs/skills.md) (`scripts/gen_skill_catalog.py`),
   and a README Quickstart.

@@ -733,7 +733,6 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
 - [ ] Additional enterprise-platform skills — `citrix-netscaler-deep`, `f5-bigip-attack`, `ad-cs-attack` (AD Certificate Services)
 - [ ] Refresh enterprise-VPN CVE matrix quarterly to track 2026 advisories
 - [ ] Update architecture SVG to include the 7-skill enterprise-platform layer
-- [ ] CHANGELOG.md and CODE_OF_CONDUCT.md (matching Claude-OSINT layout)
 
 ---
 
