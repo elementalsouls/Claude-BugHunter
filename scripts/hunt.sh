@@ -38,11 +38,12 @@ hunt() {
   mkdir -p "$dir/findings" "$dir/evidence"
 
   # ============== CLAUDE.md ==============
-  cat > "$dir/CLAUDE.md" <<CLAUDEMD
-# Engagement: $target
-
-**Target:** $target
-**Started:** $(date -u +"%Y-%m-%d")
+  # Write heading lines that require $target interpolation explicitly,
+  # then append the static body via a quoted heredoc (no shell injection risk).
+  printf '# Engagement: %s\n\n' "$target" > "$dir/CLAUDE.md"
+  printf '**Target:** %s\n' "$target" >> "$dir/CLAUDE.md"
+  printf '**Started:** %s\n' "$(date -u +"%Y-%m-%d")" >> "$dir/CLAUDE.md"
+  cat >> "$dir/CLAUDE.md" <<'CLAUDEMD'
 **Platform:** [TBD — Bugcrowd / HackerOne / Intigriti / Immunefi / private]
 **Program URL:** [paste the program page URL here]
 
@@ -98,8 +99,8 @@ Files in this folder:
 CLAUDEMD
 
   # ============== scope.md ==============
-  cat > "$dir/scope.md" <<SCOPEMD
-# Scope — $target
+  printf '# Scope — %s\n' "$target" > "$dir/scope.md"
+  cat >> "$dir/scope.md" <<'SCOPEMD'
 
 > Parse this from the program page (Bugcrowd / HackerOne / etc.) before
 > doing any active testing. \`/scope <asset>\` can verify individual assets.
@@ -151,8 +152,8 @@ CLAUDEMD
 SCOPEMD
 
   # ============== submissions.txt ==============
-  cat > "$dir/submissions.txt" <<SUBSEOF
-# Submissions tracker — $target
+  printf '# Submissions tracker — %s\n' "$target" > "$dir/submissions.txt"
+  cat >> "$dir/submissions.txt" <<'SUBSEOF'
 #
 # Format (tab-separated):
 # <UUID>  <severity>  <VRT-or-class>  <one-line title>
@@ -163,8 +164,8 @@ SCOPEMD
 SUBSEOF
 
   # ============== findings/README.md ==============
-  cat > "$dir/findings/README.md" <<FINDREADME
-# Findings — $target
+  printf '# Findings — %s\n' "$target" > "$dir/findings/README.md"
+  cat >> "$dir/findings/README.md" <<'FINDREADME'
 
 One markdown file per lead.
 
@@ -190,8 +191,8 @@ Each finding file should have:
 FINDREADME
 
   # ============== notes.md ==============
-  cat > "$dir/notes.md" <<NOTESMD
-# Notes — $target
+  printf '# Notes — %s\n' "$target" > "$dir/notes.md"
+  cat >> "$dir/notes.md" <<'NOTESMD'
 
 > Running scratchpad. Leads, hypotheses, dead ends.
 
@@ -209,7 +210,7 @@ FINDREADME
 NOTESMD
 
   # ============== .gitignore ==============
-  cat > "$dir/.gitignore" <<GITIGNORE
+  cat > "$dir/.gitignore" <<'GITIGNORE'
 # Never commit raw evidence — contains live cookies, PII, HARs
 evidence/
 

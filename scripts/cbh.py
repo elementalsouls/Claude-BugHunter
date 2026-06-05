@@ -105,7 +105,11 @@ def configure_http_proxy(proxy_url: str | None = None) -> tuple[bool, str]:
     import ssl
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
+    # WARNING: TLS verification is disabled for Burp proxy traffic.
+    # Use --proxy only in isolated lab environments — not on production targets.
     ctx.verify_mode = ssl.CERT_NONE
+    print("[warning] TLS certificate verification is DISABLED — proxy mode active. "
+          "Use only in isolated lab environments, not on production targets.", flush=True)
 
     proxy_handler = urllib.request.ProxyHandler({"http": proxy_url, "https": proxy_url})
     https_handler = urllib.request.HTTPSHandler(context=ctx)
@@ -229,6 +233,11 @@ def configure_proxy_from_args(args: argparse.Namespace) -> None:
 def cmd_recon(args: argparse.Namespace) -> int:
     target = args.target
     out_dir = REPO_ROOT / "recon" / target
+    resolved = out_dir.resolve()
+    safe = (REPO_ROOT / "recon").resolve()
+    if not str(resolved).startswith(str(safe)):
+        print(f"[error] invalid target: {target}", file=sys.stderr); return 1
+    out_dir = resolved
     out_dir.mkdir(parents=True, exist_ok=True)
 
     section(f"recon — {target}")
@@ -469,7 +478,7 @@ TRIAGE_QUESTIONS = [
     ("Q4", "Does it work without privileged access an attacker can't get?",
      ["attacker", "unauthenticated", "user-role", "low-priv", "any user", "session"]),
     ("Q5", "Is this not already known or documented behavior?",
-     ["disclosed-reports", "h1 hacktivity", "duplicate", "not duplicate", "novel", "previously"]),
+     ["disclosed-reports", "h1 hacktivity", "not duplicate", "novel", "first reported", "previously unknown", "previously"]),
     ("Q6", "Can impact be proved beyond 'technically possible'?",
      ["leaked", "exfiltrated", "rce", "data:", "credential", "session-id", "cookie:",
       "admin email", "production", "oob callback", "interactsh"]),
@@ -667,6 +676,9 @@ def cmd_report(args: argparse.Namespace) -> int:
     draft = render_report(md, args.platform)
     if args.out:
         out_path = Path(args.out)
+        out_path = out_path.resolve()
+        if not str(out_path).startswith(str(Path.cwd().resolve())):
+            print("[error] --out path must be within cwd", file=sys.stderr); return 1
         out_path.write_text(draft)
         section(f"report — {args.platform}")
         say(f"  Draft written: {color(str(out_path), 'bold')}")
