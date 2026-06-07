@@ -1,115 +1,169 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Claude/BugHunter — bug-bounty + red-team skill bundle for Claude Code" font-family="ui-monospace, 'JetBrains Mono', 'IBM Plex Mono', 'SF Mono', Menlo, monospace">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 800" width="1920" height="800" role="img" aria-label="Claude-BugHunter - cross-harness Agent Skills for bug hunting and external red-team work">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#0A0A0E"/>
-      <stop offset="100%" stop-color="#13131A"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#08080d"/>
+      <stop offset="58%" stop-color="#101018"/>
+      <stop offset="100%" stop-color="#0c1117"/>
     </linearGradient>
-    <pattern id="grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
-      <path d="M 60 0 H 0 V 60" fill="none" stroke="#1A1A22" stroke-width="0.6" opacity="0.45"/>
-    </pattern>
-    <radialGradient id="iconGlow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FF2D4F" stop-opacity="0.55"/>
-      <stop offset="55%" stop-color="#FF2D4F" stop-opacity="0.12"/>
-      <stop offset="100%" stop-color="#FF2D4F" stop-opacity="0"/>
+    <radialGradient id="hot" cx="20%" cy="28%" r="46%">
+      <stop offset="0%" stop-color="#ff2d4f" stop-opacity="0.26"/>
+      <stop offset="58%" stop-color="#ff2d4f" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#ff2d4f" stop-opacity="0"/>
     </radialGradient>
-    <filter id="softGlow" x="-20%" y="-60%" width="140%" height="220%">
-      <feGaussianBlur stdDeviation="2.5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <radialGradient id="cool" cx="82%" cy="18%" r="42%">
+      <stop offset="0%" stop-color="#4cc9f0" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#4cc9f0" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M60 0H0V60" fill="none" stroke="#202230" stroke-width="0.7" opacity="0.5"/>
+    </pattern>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="iconBlur" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="1.5"/>
-    </filter>
+    <style>
+      .sans{font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif}
+      .mono{font-family:ui-monospace,"JetBrains Mono","IBM Plex Mono","SF Mono",Menlo,monospace}
+      .muted{fill:#9a9aa8}
+      .dim{fill:#5f6070}
+      .white{fill:#f7f7fb}
+      .red{fill:#ff2d4f}
+      .cyan{fill:#4cc9f0}
+      .amber{fill:#f6b44b}
+    </style>
   </defs>
+
   <rect width="1920" height="800" fill="url(#bg)"/>
   <rect width="1920" height="800" fill="url(#grid)"/>
-  <g font-size="12" letter-spacing="2.5" fill="#5A5A6A">
-    <text x="60" y="62"><tspan fill="#FF2D4F">▸</tspan>  N 00°00'00"  ·  SECTOR-A  ·  BUILD:STABLE  ·  NO TELEMETRY</text>
-    <text x="1860" y="62" text-anchor="end" fill="#9A9AA8">github.com/elementalsouls/Claude-BugHunter</text>
+  <rect width="1920" height="800" fill="url(#hot)"/>
+  <rect width="1920" height="800" fill="url(#cool)"/>
+
+  <!-- meta row -->
+  <g class="mono" font-size="12" letter-spacing="2.2">
+    <text x="80" y="52" class="dim">CLAUDE-BUGHUNTER / MAIN / CROSS-HARNESS AGENT SKILLS</text>
+    <text x="1840" y="52" text-anchor="end" class="muted">github.com/elementalsouls/Claude-BugHunter</text>
   </g>
-  <circle cx="150" cy="230" r="105" fill="url(#iconGlow)"/>
-  <g stroke="#FF2D4F" stroke-width="3.8" stroke-linecap="round" filter="url(#softGlow)">
-    <line x1="150.0" y1="212.0" x2="150.0" y2="172.0"/>
-    <line x1="162.7" y1="217.3" x2="191.0" y2="189.0"/>
-    <line x1="168.0" y1="230.0" x2="208.0" y2="230.0"/>
-    <line x1="162.7" y1="242.7" x2="191.0" y2="271.0"/>
-    <line x1="150.0" y1="248.0" x2="150.0" y2="288.0"/>
-    <line x1="137.3" y1="242.7" x2="109.0" y2="271.0"/>
-    <line x1="132.0" y1="230.0" x2="92.0" y2="230.0"/>
-    <line x1="137.3" y1="217.3" x2="109.0" y2="189.0"/>
+  <line x1="80" y1="72" x2="1840" y2="72" stroke="#1d1f2b"/>
+
+  <!-- logo mark : reticle + bug, 150px -->
+  <g transform="translate(80 172) scale(1.5)" filter="url(#glow)">
+    <g>
+  <circle cx="50" cy="50" r="42" fill="none" stroke="#ff2d4f" stroke-width="2.5"/>
+  <circle cx="50" cy="50" r="31" fill="none" stroke="#ff2d4f" stroke-width="1" opacity="0.35" stroke-dasharray="3 5"/>
+  <g stroke="#ff2d4f" stroke-width="3" stroke-linecap="round">
+    <line x1="50" y1="1" x2="50" y2="15"/>
+    <line x1="50" y1="85" x2="50" y2="99"/>
+    <line x1="1" y1="50" x2="15" y2="50"/>
+    <line x1="85" y1="50" x2="99" y2="50"/>
   </g>
-  <circle cx="150" cy="230" r="3.5" fill="#FFFFFF"/>
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif">
-    <text x="280" y="260" font-size="128" font-weight="800" letter-spacing="-3" fill="#FFFFFF">claude<tspan dx="20" font-weight="200" fill="#5A5A6A">/</tspan><tspan dx="20" fill="#FF2D4F" filter="url(#softGlow)">bughunter</tspan></text>
-    <line x1="720" y1="278" x2="1300" y2="278" stroke="#FF2D4F" stroke-width="2.5" opacity="0.85"/>
+  <g fill="#ff2d4f" stroke="#ff2d4f" stroke-linecap="round">
+    <circle cx="50" cy="36" r="6.5" stroke="none"/>
+    <ellipse cx="50" cy="55" rx="11" ry="15" stroke="none"/>
+    <g fill="none" stroke-width="2.5">
+      <path d="M45 31 L39.5 24"/><path d="M55 31 L60.5 24"/>
+      <path d="M39.5 47 L28 42"/><path d="M60.5 47 L72 42"/>
+      <path d="M39 55 L26.5 55"/><path d="M61 55 L73.5 55"/>
+      <path d="M40.5 63 L30 69.5"/><path d="M59.5 63 L70 69.5"/>
+    </g>
   </g>
-  <text x="284" y="318" font-size="14" letter-spacing="3" font-weight="700">
-    <tspan fill="#FF2D4F" dx="0">●</tspan><tspan fill="#E8E8EC" dx="8">BUG HUNTING ARSENAL</tspan>
-    <tspan fill="#5A5A6A" dx="14"> · </tspan><tspan fill="#FF2D4F" dx="14">●</tspan><tspan fill="#E8E8EC" dx="8">RED TEAM PIPELINE</tspan>
-    <tspan fill="#5A5A6A" dx="14"> · </tspan><tspan fill="#FF2D4F" dx="14">●</tspan><tspan fill="#E8E8EC" dx="8">DISCLOSED REPORT TRADECRAFT</tspan>
-  </text>
-  <text x="284" y="372" font-size="17" fill="#9A9AA8" letter-spacing="0.3">A self-contained Claude Code skill bundle for bug hunting — 6-phase workflow, 48 hunt modules, 91 CISA-KEV CVEs indexed.</text>
-  <g>
-    <rect x="1480" y="100" width="380" height="120" rx="2" fill="none" stroke="#FF2D4F" stroke-width="1.2"/>
-    <circle cx="1502" cy="122" r="4" fill="#FF2D4F"/>
-    <text x="1518" y="127" font-size="13" font-weight="700" letter-spacing="2.5" fill="#FF2D4F">OPERATIONAL</text>
-    <line x1="1498" y1="144" x2="1842" y2="144" stroke="#2D2D3A" stroke-width="0.8"/>
-    <text x="1502" y="168" font-size="11" letter-spacing="2" fill="#5A5A6A">VERSION</text>
-    <text x="1838" y="168" text-anchor="end" font-size="12" fill="#E8E8EC">v2.1  ·  MIT</text>
-    <text x="1502" y="188" font-size="11" letter-spacing="2" fill="#5A5A6A">AUTHOR</text>
-    <text x="1838" y="188" text-anchor="end" font-size="12" fill="#E8E8EC">Sachin Sharma</text>
-    <text x="1502" y="208" font-size="11" letter-spacing="2" fill="#5A5A6A">UPDATED</text>
-    <text x="1838" y="208" text-anchor="end" font-size="12" fill="#E8E8EC">2026-06</text>
+  <line x1="50" y1="42" x2="50" y2="68" stroke="#0a0a10" stroke-width="1.6"/>
+</g>
   </g>
-  <text x="60" y="408" font-size="11" letter-spacing="3" fill="#5A5A6A" font-weight="700">▸ WHAT MAKES IT WORK</text>
-    <text x="60.0" y="443" font-size="13" fill="#FF2D4F" font-weight="700">▸</text>
-    <text x="82.0" y="443" font-size="13" letter-spacing="1.8" font-weight="700" fill="#E8E8EC">AUTO-TRIGGERS BY KEYWORD</text>
-    <text x="82.0" y="459" font-size="11" fill="#9A9AA8">skills load from prompt content</text>
-    <text x="660.0" y="443" font-size="13" fill="#FF2D4F" font-weight="700">▸</text>
-    <text x="682.0" y="443" font-size="13" letter-spacing="1.8" font-weight="700" fill="#E8E8EC">7-QUESTION VALIDATION GATE</text>
-    <text x="682.0" y="459" font-size="11" fill="#9A9AA8">kills false positives pre-report</text>
-    <text x="1260.0" y="443" font-size="13" fill="#FF2D4F" font-weight="700">▸</text>
-    <text x="1282.0" y="443" font-size="13" letter-spacing="1.8" font-weight="700" fill="#E8E8EC">BURP MCP NATIVE</text>
-    <text x="1282.0" y="459" font-size="11" fill="#9A9AA8">claude reads burp proxy directly</text>
-    <text x="60.0" y="481" font-size="13" fill="#FF2D4F" font-weight="700">▸</text>
-    <text x="82.0" y="481" font-size="13" letter-spacing="1.8" font-weight="700" fill="#E8E8EC">6-PHASE WORKFLOW</text>
-    <text x="82.0" y="497" font-size="11" fill="#9A9AA8">scope → recon → hunt → ship</text>
-    <text x="660.0" y="481" font-size="13" fill="#FF2D4F" font-weight="700">▸</text>
-    <text x="682.0" y="481" font-size="13" letter-spacing="1.8" font-weight="700" fill="#E8E8EC">CLAUDE CODE  +  CLAUDE.AI</text>
-    <text x="682.0" y="497" font-size="11" fill="#9A9AA8">two interfaces, one bundle</text>
-    <text x="1260.0" y="481" font-size="13" fill="#FF2D4F" font-weight="700">▸</text>
-    <text x="1282.0" y="481" font-size="13" letter-spacing="1.8" font-weight="700" fill="#E8E8EC">OOB / COLLABORATOR READY</text>
-    <text x="1282.0" y="497" font-size="11" fill="#9A9AA8">unique markers, not substring guessing</text>
-  <line x1="60" y1="540" x2="1860" y2="540" stroke="#2D2D3A" stroke-width="1"/>
-  <line x1="930" y1="540" x2="990" y2="540" stroke="#FF2D4F" stroke-width="2"/>
-    <text x="210" y="600" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="46" font-weight="800" fill="#FF2D4F" letter-spacing="-1">71</text>
-    <text x="210" y="632" text-anchor="middle" font-size="11" letter-spacing="3" fill="#9A9AA8" font-weight="600">SKILLS</text>
-    <text x="510" y="600" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="46" font-weight="800" fill="#FF2D4F" letter-spacing="-1">15</text>
-    <text x="510" y="632" text-anchor="middle" font-size="11" letter-spacing="3" fill="#9A9AA8" font-weight="600">COMMANDS</text>
-    <text x="810" y="600" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="46" font-weight="800" fill="#FF2D4F" letter-spacing="-1">48</text>
-    <text x="810" y="632" text-anchor="middle" font-size="11" letter-spacing="3" fill="#9A9AA8" font-weight="600">HUNT MODULES</text>
-    <text x="1110" y="600" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="46" font-weight="800" fill="#FF2D4F" letter-spacing="-1">681</text>
-    <text x="1110" y="632" text-anchor="middle" font-size="11" letter-spacing="3" fill="#9A9AA8" font-weight="600">H1 REPORTS</text>
-    <text x="1410" y="600" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="46" font-weight="800" fill="#FF2D4F" letter-spacing="-1">91</text>
-    <text x="1410" y="632" text-anchor="middle" font-size="11" letter-spacing="3" fill="#9A9AA8" font-weight="600">CVEs INDEXED</text>
-    <text x="1710" y="600" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="46" font-weight="800" fill="#FF2D4F" letter-spacing="-1">MIT</text>
-    <text x="1710" y="632" text-anchor="middle" font-size="11" letter-spacing="3" fill="#9A9AA8" font-weight="600">LICENSE</text>
-  <rect x="60" y="660" width="1800" height="90" rx="3" fill="#0E0E14" stroke="#2D2D3A" stroke-width="1"/>
-    <circle cx="78" cy="676" r="4" fill="#B81E37" opacity="0.65"/>
-    <circle cx="92" cy="676" r="4" fill="#5A5A6A" opacity="0.65"/>
-    <circle cx="106" cy="676" r="4" fill="#5A5A6A" opacity="0.65"/>
-    <text x="130" y="680" font-size="11" letter-spacing="1.8" fill="#5A5A6A">claude code session  ·  ~/security-research/Targets/example.com</text>
-    <line x1="60" y1="690" x2="1860" y2="690" stroke="#1F1F28" stroke-width="0.8"/>
-    <text x="84" y="710" font-size="13" fill="#FF2D4F" font-weight="700">&gt;</text>
-    <text x="108" y="710" font-size="13" fill="#E8E8EC">/hunt example.com</text>
-    <text x="540" y="710" font-size="12" fill="#7A7A88" font-style="italic"># loads recon + arsenal for target</text>
-    <text x="84" y="730" font-size="13" fill="#FF2D4F" font-weight="700">&gt;</text>
-    <text x="108" y="730" font-size="13" fill="#E8E8EC">check OAuth for token leakage</text>
-    <text x="540" y="730" font-size="12" fill="#7A7A88" font-style="italic"># auto-triggers hunt-oauth + hunt-ato</text>
-    <text x="84" y="750" font-size="13" fill="#FF2D4F" font-weight="700">&gt;</text>
-    <text x="108" y="750" font-size="13" fill="#E8E8EC">/triage</text>
-    <text x="540" y="750" font-size="12" fill="#7A7A88" font-style="italic"># 7-Question Gate before any report draft</text>
-  <g font-size="11" letter-spacing="2.5" fill="#9A9AA8">
-    <text x="60" y="778"><tspan fill="#FF2D4F">▸</tspan>  METHODOLOGY  +  ARSENAL  ·  BUNDLED  ·  OFFENSIVE  ·  DOCUMENTED</text>
-    <text x="1860" y="778" text-anchor="end" fill="#FF2D4F" font-weight="700">SHIP IT</text>
+
+  <!-- title lockup -->
+  <g class="sans" font-weight="800">
+    <text x="290" y="262" font-size="116" letter-spacing="-2" class="white" textLength="380" lengthAdjust="spacingAndGlyphs">claude</text>
+    <text x="716" y="262" font-size="116" font-weight="300" class="dim">/</text>
+    <text x="782" y="262" font-size="116" letter-spacing="-2" class="red" filter="url(#glow)" textLength="580" lengthAdjust="spacingAndGlyphs">bughunter</text>
+  </g>
+  <line x1="784" y1="296" x2="1362" y2="296" stroke="#ff2d4f" stroke-width="3"/>
+
+  <!-- feature chips -->
+  <g class="mono" font-size="14" font-weight="700" letter-spacing="2.4">
+    <text x="290" y="336" class="white"><tspan class="red">+ </tspan>BUG HUNTING ARSENAL</text>
+    <text x="660" y="336" class="white"><tspan class="red">+ </tspan>RED TEAM PIPELINE</text>
+    <text x="1000" y="336" class="white"><tspan class="red">+ </tspan>CROSS-HARNESS AGENT SKILLS</text>
+  </g>
+  <text x="290" y="384" class="mono muted" font-size="19" letter-spacing="0.2">71 Agent Skills for bug hunting and external red-team work - Claude Code, OpenCode, Codex CLI, and Hermes Agent.</text>
+
+  <!-- spec card -->
+  <g class="mono">
+    <rect x="1480" y="140" width="360" height="140" rx="6" fill="#0b0c12" stroke="#ff2d4f" stroke-width="1.4"/>
+    <circle cx="1506" cy="168" r="5" fill="#ff2d4f"/>
+    <text x="1522" y="173" font-size="13" font-weight="800" letter-spacing="2.5" class="red">MULTI-HARNESS</text>
+    <line x1="1504" y1="190" x2="1816" y2="190" stroke="#2a2c3a"/>
+    <text x="1504" y="215" font-size="11" letter-spacing="2" class="dim">CHANNEL</text>
+    <text x="1816" y="215" text-anchor="end" font-size="12" class="white">main - MIT</text>
+    <text x="1504" y="239" font-size="11" letter-spacing="2" class="dim">AUTHOR</text>
+    <text x="1816" y="239" text-anchor="end" font-size="12" class="white">Sachin Sharma</text>
+    <text x="1504" y="263" font-size="11" letter-spacing="2" class="dim">UPDATED</text>
+    <text x="1816" y="263" text-anchor="end" font-size="12" class="white">2026-06</text>
+  </g>
+
+  <!-- what changed -->
+  <g class="mono" transform="translate(80 446)">
+    <text x="0" y="0" font-size="11" letter-spacing="3" font-weight="800" class="dim">WHAT CHANGED</text>
+    <line x1="170" y1="-4" x2="1760" y2="-4" stroke="#1d1f2b"/>
+    <g font-size="13">
+      <text x="0" y="40" class="red" font-weight="800">&gt;</text>
+      <text x="24" y="40" class="white" font-weight="800" letter-spacing="1.5">CROSS-HARNESS INSTALL</text>
+      <text x="24" y="60" class="muted">Claude Code + OpenCode + Codex + Hermes</text>
+
+      <text x="600" y="40" class="red" font-weight="800">&gt;</text>
+      <text x="624" y="40" class="white" font-weight="800" letter-spacing="1.5">CODEX-SAFE FRONTMATTER</text>
+      <text x="624" y="60" class="muted">strict YAML, 1024-char descriptions</text>
+
+      <text x="1200" y="40" class="red" font-weight="800">&gt;</text>
+      <text x="1224" y="40" class="white" font-weight="800" letter-spacing="1.5">BURP MCP PORTS</text>
+      <text x="1224" y="60" class="muted">OpenCode JSON, Codex TOML, Hermes YAML</text>
+
+      <text x="0" y="96" class="red" font-weight="800">&gt;</text>
+      <text x="24" y="96" class="white" font-weight="800" letter-spacing="1.5">AUTO-TRIGGERS BY TOPIC</text>
+      <text x="24" y="116" class="muted">skills load from prompt content</text>
+
+      <text x="600" y="96" class="red" font-weight="800">&gt;</text>
+      <text x="624" y="96" class="white" font-weight="800" letter-spacing="1.5">7-QUESTION VALIDATION GATE</text>
+      <text x="624" y="116" class="muted">kills false positives before reports</text>
+
+      <text x="1200" y="96" class="red" font-weight="800">&gt;</text>
+      <text x="1224" y="96" class="white" font-weight="800" letter-spacing="1.5">6-PHASE WORKFLOW</text>
+      <text x="1224" y="116" class="muted">scope - recon - hunt - validate - ship</text>
+    </g>
+  </g>
+
+  <!-- stats band -->
+  <g transform="translate(80 592)">
+    <line x1="0" y1="0" x2="1760" y2="0" stroke="#2a2c3a"/>
+    <line x1="842" y1="0" x2="918" y2="0" stroke="#ff2d4f" stroke-width="3"/>
+    <g class="sans" font-weight="800" text-anchor="middle">
+      <text x="147" y="66" font-size="52" class="red">71</text>
+      <text x="440" y="66" font-size="52" class="red">15</text>
+      <text x="733" y="66" font-size="52" class="red">48</text>
+      <text x="1027" y="66" font-size="52" class="red">681</text>
+      <text x="1320" y="66" font-size="52" class="cyan">4</text>
+      <text x="1613" y="66" font-size="52" class="amber">MIT</text>
+    </g>
+    <g class="mono" font-size="11" font-weight="800" letter-spacing="3" text-anchor="middle">
+      <text x="147" y="100" class="muted">SKILLS</text>
+      <text x="440" y="100" class="muted">COMMANDS</text>
+      <text x="733" y="100" class="muted">HUNT MODULES</text>
+      <text x="1027" y="100" class="muted">H1 REPORTS</text>
+      <text x="1320" y="100" class="muted">HARNESSES</text>
+      <text x="1613" y="100" class="muted">LICENSE</text>
+    </g>
+  </g>
+
+  <!-- terminal -->
+  <g class="mono" transform="translate(80 700)">
+    <rect x="0" y="0" width="1760" height="76" rx="6" fill="#0b0c12" stroke="#2a2c3a"/>
+    <circle cx="24" cy="19" r="4" fill="#b81e37"/>
+    <circle cx="40" cy="19" r="4" fill="#5f6070"/>
+    <circle cx="56" cy="19" r="4" fill="#5f6070"/>
+    <text x="84" y="23" font-size="11" letter-spacing="1.6" class="dim">agent skills session - ~/.claude/skills + ~/.agents/skills + ~/.hermes/skills</text>
+    <line x1="0" y1="34" x2="1760" y2="34" stroke="#202230"/>
+    <text x="24" y="58" font-size="13" font-weight="800" class="red">&gt;</text>
+    <text x="48" y="58" font-size="13" class="white">bash scripts/install.sh --all --burp-mcp</text>
+    <text x="462" y="58" font-size="12" class="dim"># 71 skills across Claude Code, OpenCode, Codex CLI, Hermes Agent</text>
+    <text x="1736" y="58" font-size="12" text-anchor="end" class="red" font-weight="800">SHIP WITH DISCIPLINE</text>
   </g>
 </svg>
