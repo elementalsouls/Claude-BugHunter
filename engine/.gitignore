@@ -1,0 +1,2 @@
+# machine-specific MCP config (copy burp-mcp.json.example -> burp-mcp.json)
+burp-mcp.json

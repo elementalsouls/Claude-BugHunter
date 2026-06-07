@@ -1,0 +1,6 @@
+{
+  "name": "demo-local",
+  "in_scope": ["localhost", "127.0.0.1"],
+  "out_of_scope": ["admin.localhost"],
+  "seeds": ["http://localhost:3002"]
+}
