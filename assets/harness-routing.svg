@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 280" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <defs>
+    <style>
+      .mono{font-family:'SF Mono','SFMono-Regular',Menlo,Consolas,'Liberation Mono',monospace;}
+    </style>
+  </defs>
+
+  <!-- container -->
+  <rect x="8" y="8" width="1064" height="264" rx="16" fill="#0b0e15" stroke="#1b2030" stroke-width="1"/>
+
+  <!-- header -->
+  <text x="40" y="48" fill="#6b7280" font-size="13" font-weight="600" letter-spacing="4">HARNESS ROUTING</text>
+  <line x1="40" y1="64" x2="1040" y2="64" stroke="#1b2030" stroke-width="1"/>
+
+  <!-- card 0 — Claude Code -->
+  <rect x="40" y="84" width="238" height="116" rx="11" fill="#10141e" stroke="#d97757" stroke-opacity="0.55" stroke-width="1"/>
+  <rect x="64" y="116" width="13" height="13" rx="3.5" fill="#d97757"/>
+  <text x="88" y="127" fill="#e8eaed" font-size="16" font-weight="600">Claude Code</text>
+  <line x1="64" y1="150" x2="254" y2="150" stroke="#222838" stroke-width="1"/>
+  <text x="64" y="180" class="mono" fill="#7e879b" font-size="13">~/.claude/skills</text>
+
+  <!-- card 1 — OpenCode -->
+  <rect x="294" y="84" width="238" height="116" rx="11" fill="#10141e" stroke="#9aa0ab" stroke-opacity="0.45" stroke-width="1"/>
+  <rect x="318" y="116" width="13" height="13" rx="3.5" fill="#9aa0ab"/>
+  <text x="342" y="127" fill="#e8eaed" font-size="16" font-weight="600">OpenCode</text>
+  <line x1="318" y1="150" x2="508" y2="150" stroke="#222838" stroke-width="1"/>
+  <text x="318" y="180" class="mono" fill="#7e879b" font-size="13">~/.agents/skills</text>
+
+  <!-- card 2 — Codex CLI -->
+  <rect x="548" y="84" width="238" height="116" rx="11" fill="#10141e" stroke="#5b9bd5" stroke-opacity="0.55" stroke-width="1"/>
+  <rect x="572" y="116" width="13" height="13" rx="3.5" fill="#5b9bd5"/>
+  <text x="596" y="127" fill="#e8eaed" font-size="16" font-weight="600">Codex CLI</text>
+  <line x1="572" y1="150" x2="762" y2="150" stroke="#222838" stroke-width="1"/>
+  <text x="572" y="180" class="mono" fill="#7e879b" font-size="13">~/.agents/skills</text>
+
+  <!-- card 3 — Hermes Agent -->
+  <rect x="802" y="84" width="238" height="116" rx="11" fill="#10141e" stroke="#d4a857" stroke-opacity="0.55" stroke-width="1"/>
+  <rect x="826" y="116" width="13" height="13" rx="3.5" fill="#d4a857"/>
+  <text x="850" y="127" fill="#e8eaed" font-size="16" font-weight="600">Hermes Agent</text>
+  <line x1="826" y1="150" x2="1016" y2="150" stroke="#222838" stroke-width="1"/>
+  <text x="826" y="180" class="mono" fill="#7e879b" font-size="13">~/.hermes/skills</text>
+
+  <!-- footer -->
+  <text x="40" y="244" class="mono" font-size="14"><tspan fill="#e0556a">$ </tspan><tspan fill="#c2c8d2">bash scripts/install.sh --all --burp-mcp</tspan></text>
+  <text x="1040" y="244" text-anchor="end" fill="#565c6b" font-size="12" font-weight="600" letter-spacing="2">ONE COMMAND · FOUR HARNESSES</text>
+</svg>
