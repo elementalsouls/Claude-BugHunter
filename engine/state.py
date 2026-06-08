@@ -33,7 +33,7 @@ class Engagement:
         if os.path.isfile(self.state_path):
             return json.load(open(self.state_path))
         return {"name": self.name, "created": _now(), "phase": "init",
-                "surface": [], "tested": [], "candidates": [], "confirmed": []}
+                "targets": [], "surface": [], "tested": [], "candidates": [], "confirmed": []}
 
     def save(self):
         tmp = self.state_path + ".tmp"
@@ -53,10 +53,10 @@ class Engagement:
 
     # ---- surface (discovered, scope-checked endpoints/params) ----
     def add_surface(self, items):
-        seen = {(s["url"], s.get("param", "")) for s in self.state["surface"]}
+        seen = {(s["url"], s.get("param", ""), s.get("vuln_class", "")) for s in self.state["surface"]}
         added = 0
         for it in items:
-            key = (it["url"], it.get("param", ""))
+            key = (it["url"], it.get("param", ""), it.get("vuln_class", ""))
             if key not in seen:
                 self.state["surface"].append(it)
                 seen.add(key)

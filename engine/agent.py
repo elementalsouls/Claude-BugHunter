@@ -21,7 +21,8 @@ ALLOWED_TOOLS = " ".join([
 ])
 
 
-def run_agent(task, skills_on=True, model="claude-sonnet-4-6", max_turns=40, timeout=600):
+def run_agent(task, skills_on=False, model="claude-sonnet-4-6", max_turns=40, timeout=600):
+    # skills OFF by default: the eval showed they add ~0 capability but cost ~12-15k tokens/agent.
     cmd = ["claude", "-p", task,
            "--mcp-config", MCP_CONFIG, "--strict-mcp-config",
            "--permission-mode", "bypassPermissions",
