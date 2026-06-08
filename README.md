@@ -55,8 +55,6 @@ cd Claude-BugHunter
 bash scripts/install.sh        # copies skills + commands into ~/.claude/
 ```
 
-**Also runs on OpenCode · Codex · Hermes Agent.** The skills are plain Agent Skills, so the *knowledge* ports beyond Claude Code: `bash scripts/install.sh --all` installs them to every harness's path (`--burp-mcp` also wires Burp). Slash commands + the `/hunt` engine stay Claude-Code-only. See the [multi-harness guide](docs/multi-harness.md).
-
 That's it. Open Claude Code and describe what you're testing in plain English — the right skill loads automatically, no invocation by name:
 
 ```text
@@ -73,6 +71,22 @@ That's it. Open Claude Code and describe what you're testing in plain English �
 → Full [Installation guide](INSTALL.md) · [Usage guide](USAGE.md) · [searchable skill catalog](docs/skills.md).
 
 > The block above is an illustrative transcript. To record a real demo of your own session: `asciinema rec demo.cast` → upload to [asciinema.org](https://asciinema.org) and drop the badge here.
+
+---
+
+## Runs on four harnesses
+
+![One install, four agent harnesses — Claude Code, OpenCode, Codex CLI, Hermes Agent](assets/harness-routing.png)
+
+The skills are plain [Agent Skills](https://docs.claude.com/en/docs/claude-code/skills) — the same `SKILL.md` format that **Claude Code · OpenCode · OpenAI Codex CLI · Hermes Agent** all load. One command installs them everywhere:
+
+```bash
+bash scripts/install.sh --all --burp-mcp
+```
+
+`--all` copies the skills to every harness's path (`~/.claude/skills`, `~/.agents/skills`, `~/.hermes/skills`); `--burp-mcp` wires the Burp MCP server into each. The full *knowledge* layer ports to all four — the slash commands and `/hunt` engine stay Claude-Code-only by design.
+
+→ [Multi-harness guide](docs/multi-harness.md)
 
 ---
 
