@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/elementalsouls-claude-bughunter-badge.png)](https://mseep.ai/app/elementalsouls-claude-bughunter)
+
 ![claude-bughunter banner](assets/banner-v2.svg)
 
 # claude-bughunter
