@@ -30,27 +30,12 @@
 # =====================================================================
 set -e
 
-# --- CRLF self-heal -------------------------------------------------------
-# A Windows/WSL checkout without .gitattributes can land CRLF line endings in
-# this file. When invoked as `bash scripts/install.sh` the shebang is ignored,
-# so we can detect our own CRLF, strip it to a temp copy, and re-exec — passing
-# the real repo dir through the environment so REPO_DIR stays correct.
-# (The `./scripts/install.sh` form can't be rescued here: the kernel fails on
-# the CRLF shebang before any line runs. `.gitattributes` is the real fix; this
-# is belt-and-suspenders for already-checked-out copies. Prefer `bash ...`.)
-if [ -z "${_CBH_CRLF_REEXEC:-}" ] && grep -q $'\r' "$0" 2>/dev/null; then
-  _cbh_src_dir="$( cd "$( dirname "$0" )" && pwd )"
-  _cbh_tmp="$(mktemp)"
-  sed 's/\r$//' "$0" > "$_cbh_tmp"
-  echo "  ℹ install.sh had CRLF line endings — auto-stripping and continuing."
-  echo "    (Fix permanently: this repo now ships .gitattributes; re-clone or run"
-  echo "     'git add --renormalize . && git checkout .' to normalize.)"
-  _CBH_CRLF_REEXEC=1 _CBH_REPO_DIR="$( cd "$_cbh_src_dir/.." && pwd )" \
-    exec bash "$_cbh_tmp" "$@"
-fi
-# --------------------------------------------------------------------------
-
-REPO_DIR="${_CBH_REPO_DIR:-$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )}"
+# Line endings: this repo ships a .gitattributes (eol=lf) so fresh clones are
+# LF-clean on every platform, including Windows/WSL. An OLD checkout that already
+# picked up CRLF cannot be rescued from inside this script (bash aborts on a
+# CRLF compound statement before any guard could run) — normalize it once with
+#   git add --renormalize . && git checkout .   (or re-clone).
+REPO_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 BACKUP_DEST="$HOME/.claude/install-backups/$(date +%Y%m%d-%H%M%S)"
 
 usage() { sed -n '2,30p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'; }

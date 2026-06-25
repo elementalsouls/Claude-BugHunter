@@ -40,9 +40,11 @@ cd Claude-BugHunter
 bash scripts/install.sh
 ```
 
-> On Windows/WSL, prefer `bash scripts/install.sh` over `./scripts/install.sh`. The
-> repo ships a `.gitattributes` that forces LF line endings, so a fresh clone is clean;
-> the `bash …` form also auto-heals an already-checked-out copy that picked up CRLF.
+> On Windows/WSL, the repo ships a `.gitattributes` that forces LF line endings, so a
+> **fresh clone installs cleanly**. If you have an **existing** checkout that already
+> picked up CRLF (cloned before this `.gitattributes`), normalize it once with
+> `git add --renormalize . && git checkout .` (or just re-clone) — a CRLF-corrupted
+> shell script aborts with a `syntax error` and cannot fix itself.
 
 This copies:
 - All 71 skills → `~/.claude/skills/`

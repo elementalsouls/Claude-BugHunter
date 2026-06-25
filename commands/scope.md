@@ -35,9 +35,9 @@ Under the hood, run the deterministic checker directly:
 # Against the engagement scope.md (preferred — fill scope.md from the program page first)
 python3 engine/scope.py api.acme.com --md ~/Targets/acme/scope.md
 
-# Or with inline patterns
+# Or with inline patterns (repeat --in-scope / --out-of-scope per pattern)
 python3 engine/scope.py api.acme.com evil.com \
-  --in-scope acme.com '*.acme.io' --out-of-scope admin.acme.com
+  --in-scope acme.com --in-scope '*.acme.io' --out-of-scope admin.acme.com
 ```
 
 ## Rules

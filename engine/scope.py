@@ -120,12 +120,14 @@ def _scope_from_md(path):
         for line in fh:
             low = line.strip().lower()
             if low.startswith("#"):
+                hashes = len(low) - len(low.lstrip("#"))
                 if "out of scope" in low or "out-of-scope" in low:
                     section = "out"
                 elif "in scope" in low or "in-scope" in low:
                     section = "in"
-                else:
-                    section = None
+                elif hashes <= 2:
+                    section = None     # a peer-level section (## Focus areas, etc.)
+                # deeper sub-headings (### Web, #### APIs) keep the current section
                 continue
             s = line.strip()
             if section and (s.startswith("- ") or s.startswith("* ")):
@@ -147,8 +149,10 @@ def _main(argv=None):
     ap.add_argument("targets", nargs="*", help="hosts/URLs to check")
     ap.add_argument("--md", help="path to a scaffolded scope.md")
     ap.add_argument("--scope-file", help="path to an engagement scope.json")
-    ap.add_argument("--in-scope", nargs="*", default=[], help="in-scope patterns")
-    ap.add_argument("--out-of-scope", nargs="*", default=[], help="out-of-scope patterns")
+    ap.add_argument("--in-scope", action="append", default=[], metavar="PATTERN",
+                    help="in-scope pattern (repeatable)")
+    ap.add_argument("--out-of-scope", action="append", default=[], metavar="PATTERN",
+                    help="out-of-scope pattern (repeatable)")
     ap.add_argument("--selftest", action="store_true", help="run the built-in self-test")
     args = ap.parse_args(argv)
 
