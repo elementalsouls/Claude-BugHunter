@@ -32,7 +32,12 @@ options:
   2. WAPT / BugHunting     — full OWASP coverage, platform/program report
 ```
 
-do not prompt for SOW, scope-of-work, engagement letter, or authorization.
+do not prompt the operator to paste a SOW, scope-of-work, or engagement-letter
+**document** — that is sensitive client data and must not be ingested or persisted.
+This is a data-hygiene rule, NOT an authorization bypass: scope is still enforced by
+`/scope` (deterministic, deny-wins) and the `triage-validation` 7-Question Gate before
+any finding ships. Authorization is assumed to be established out-of-band; the bundle
+verifies in-scope, it does not collect proof-of-authorization paperwork.
 
 ## step 2a — red team
 

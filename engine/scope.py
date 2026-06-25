@@ -108,5 +108,77 @@ def _selftest():
     print("scope.py self-test: PASS")
 
 
+def _scope_from_md(path):
+    """Build a Scope from a scaffolded scope.md (the `hunt` template).
+
+    Collects bullet items under an '## In scope' / '## Out of scope' heading.
+    Takes the first whitespace token of each bullet (so '- api.example.com — note'
+    yields 'api.example.com'). Skips placeholder bullets like '(paste ... here)'.
+    """
+    in_scope, out_scope, section = [], [], None
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            low = line.strip().lower()
+            if low.startswith("#"):
+                if "out of scope" in low or "out-of-scope" in low:
+                    section = "out"
+                elif "in scope" in low or "in-scope" in low:
+                    section = "in"
+                else:
+                    section = None
+                continue
+            s = line.strip()
+            if section and (s.startswith("- ") or s.startswith("* ")):
+                tok = s[2:].strip().split()[0:1]
+                if not tok:
+                    continue
+                pat = tok[0]
+                if pat.startswith("(") or pat.startswith("["):
+                    continue          # placeholder text, not a real pattern
+                (in_scope if section == "in" else out_scope).append(pat)
+    return Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
+
+
+def _main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(
+        prog="scope.py",
+        description="Deterministic in-scope check (deny wins, default deny).")
+    ap.add_argument("targets", nargs="*", help="hosts/URLs to check")
+    ap.add_argument("--md", help="path to a scaffolded scope.md")
+    ap.add_argument("--scope-file", help="path to an engagement scope.json")
+    ap.add_argument("--in-scope", nargs="*", default=[], help="in-scope patterns")
+    ap.add_argument("--out-of-scope", nargs="*", default=[], help="out-of-scope patterns")
+    ap.add_argument("--selftest", action="store_true", help="run the built-in self-test")
+    args = ap.parse_args(argv)
+
+    if args.selftest:
+        _selftest()
+        return 0
+
+    if args.md:
+        scope = _scope_from_md(args.md)
+    elif args.scope_file:
+        scope = Scope.load(args.scope_file)
+    elif args.in_scope or args.out_of_scope:
+        scope = Scope(in_scope=args.in_scope, out_of_scope=args.out_of_scope)
+    else:
+        ap.error("provide --md, --scope-file, or --in-scope/--out-of-scope patterns")
+
+    if not args.targets:
+        ap.error("no targets given")
+
+    worst = 0
+    for t in args.targets:
+        reason = scope.reject_reason(t)
+        if reason is None:
+            print(f"IN-SCOPE   {t}")
+        else:
+            print(f"OUT-OF-SCOPE  {t}  ({reason})")
+            worst = 1
+    return worst
+
+
 if __name__ == "__main__":
-    _selftest()
+    import sys
+    sys.exit(_main())

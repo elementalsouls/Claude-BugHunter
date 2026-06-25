@@ -3,6 +3,13 @@
 > **Secondary interface — slash commands are primary.** Inside a Claude Code conversation, use the slash commands (`/recon`, `/hunt`, `/triage`, `/report`, `/validate`, `/chain`, `/autopilot`, `/scope`, etc.) — they leverage the full skill content and the LLM's judgment.
 >
 > `cbh` is the **terminal-native deterministic runner** — use it when you're outside Claude Code, automating in CI/CD, running scheduled recon, or verifying labs reproducibly. Same skills, different execution model.
+>
+> **Availability — three ways to run `cbh`:**
+> 1. **From a git clone** (no install): `python3 scripts/cbh.py <cmd>` — uses the live `skills/` + `docs/disclosed-reports/`.
+> 2. **Installed standalone** (works without the repo): `pipx install git+https://github.com/elementalsouls/Claude-BugHunter` (or `pip install .` from a clone). Gives you a global `cbh` backed by a bundled skill index; recon output goes to `./recon/` (override with `--out`), and skill/report pointers link to GitHub.
+> 3. It does **not** ship with the plugin — the plugin provides skills + slash commands only.
+>
+> Regenerate the bundled index after editing skills: `python3 scripts/gen_skill_index.py`.
 
 ## When to use `cbh` vs slash commands
 

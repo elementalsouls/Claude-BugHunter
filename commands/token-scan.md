@@ -1,6 +1,6 @@
 ---
 name: token-scan
-description: Meme coin and token security scan — checks for rug pull vectors (hidden mint, honeypot, fee manipulation, LP lock bypass, authority retention, bonding curve exploits, fake renounce, sandwich amplification). Runs automated token_scanner.py + manual 8-class audit. Usage: /token-scan <contract_path_or_dir> [--chain solana]
+description: Meme coin and token security scan — checks for rug pull vectors (hidden mint, honeypot, fee manipulation, LP lock bypass, authority retention, bonding curve exploits, fake renounce, sandwich amplification). Manual 8-class grep audit (with an optional automated scanner if present). Usage: /token-scan <contract_path_or_dir> [--chain solana]
 ---
 
 # /token-scan
@@ -30,20 +30,21 @@ Before scanning code, check:
 
 If ANY answer is NO → flag and proceed with extreme caution.
 
-## Step 1: Run Automated Scanner
+## Step 1: Optional Automated Scanner
+
+> **Optional accelerator — not bundled by default.** If you have a local
+> `token_scanner.py` (or any rug-vector scanner) on PATH, run it first for a quick
+> risk score. If you don't, **skip straight to Step 2** — the manual 8-class grep
+> audit below is the real, self-contained check and needs no extra tooling.
 
 ```bash
-# EVM
-python3 tools/token_scanner.py <contract_path>
-
-# Solana
-python3 tools/token_scanner.py <program_dir> --chain solana --recursive
-
-# JSON output for piping
-python3 tools/token_scanner.py <path> --json
+# If present:
+python3 tools/token_scanner.py <contract_path>            # EVM
+python3 tools/token_scanner.py <program_dir> --chain solana --recursive  # Solana
 ```
 
-The scanner checks all 8 bug classes via regex and returns a risk score + verdict.
+The manual audit (Steps 2-9) covers all 8 bug classes via grep and is sufficient
+on its own.
 
 ## Step 2: Hidden Mint Check
 
@@ -122,11 +123,10 @@ Look for: auto-swap with amountOutMin=0, rebase on every transfer.
 
 ## Output
 
-The scanner produces:
+Summarize the audit (whether driven by the manual steps or the optional scanner) as:
 - **Risk score** (0-100) based on finding severity
 - **Verdict** (CLEAN / LOW RISK / MEDIUM RISK / HIGH RISK / CRITICAL RISK)
 - **Individual findings** with file:line, code snippet, and recommendation
-- **Exit code** 1 if CRITICAL/HIGH findings (for CI integration)
 
 ## What to Do Next
 

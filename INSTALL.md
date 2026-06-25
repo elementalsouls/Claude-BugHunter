@@ -37,9 +37,12 @@ cd Claude-BugHunter
 ## Step 2 — Run the installer
 
 ```bash
-chmod +x scripts/install.sh
-./scripts/install.sh
+bash scripts/install.sh
 ```
+
+> On Windows/WSL, prefer `bash scripts/install.sh` over `./scripts/install.sh`. The
+> repo ships a `.gitattributes` that forces LF line endings, so a fresh clone is clean;
+> the `bash …` form also auto-heals an already-checked-out copy that picked up CRLF.
 
 This copies:
 - All 71 skills → `~/.claude/skills/`

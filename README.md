@@ -53,6 +53,18 @@ cd Claude-BugHunter
 bash scripts/install.sh        # copies skills + commands into ~/.claude/
 ```
 
+**What each install path gives you:**
+
+| Path | 71 skills + 15 slash commands | `cbh` CLI | `hunt` scaffolder |
+|---|---|---|---|
+| **A — plugin** | ✅ namespaced under `claude-bughunter:` | ➕ separate `pipx install` | ❌ clone-only |
+| **B — copy install** | ✅ copied into `~/.claude/` | ✅ from the clone | ✅ from the clone |
+
+The plugin is the fastest path to the skills + slash commands. The terminal-native
+`cbh` runner installs standalone — `pipx install git+https://github.com/elementalsouls/Claude-BugHunter`
+— so plugin users can add it without a full clone (see [`cbh` CLI](docs/cbh-cli.md)).
+The `hunt` engagement scaffolder ships with the clone (Option B).
+
 That's it. Open Claude Code and describe what you're testing in plain English — the right skill loads automatically, no invocation by name:
 
 ```text

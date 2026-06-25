@@ -1,0 +1,18 @@
+# Normalize line endings so shell/Python entrypoints stay LF on every platform.
+# Without this, a Windows checkout (incl. WSL on a Windows-mounted drive) can
+# land CRLF in the scripts and break the installer with `env: 'bash\r': ...`.
+* text=auto eol=lf
+
+# Executable text MUST be LF regardless of platform.
+*.sh   text eol=lf
+*.py   text eol=lf
+*.bash text eol=lf
+
+# Treat known binary assets as binary (no eol munging).
+*.svg  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.cast binary

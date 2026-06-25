@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-bughunter"
+version = "2.1.0"
+description = "cbh — terminal-native recon/classify/triage/report runner for the Claude-BugHunter skill bundle"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Sachin Sharma" }]
+keywords = ["security", "bug-bounty", "recon", "claude", "pentest"]
+dependencies = []
+
+[project.optional-dependencies]
+# `requests` is optional — cbh falls back to urllib when it's absent.
+http = ["requests"]
+
+[project.urls]
+Homepage = "https://github.com/elementalsouls/Claude-BugHunter"
+Documentation = "https://github.com/elementalsouls/Claude-BugHunter/blob/main/docs/cbh-cli.md"
+
+[project.scripts]
+cbh = "cbh.cli:main"
+
+[tool.setuptools]
+packages = ["cbh"]
+
+[tool.setuptools.package-data]
+cbh = ["data/*.json"]
