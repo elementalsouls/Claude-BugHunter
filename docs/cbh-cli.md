@@ -110,7 +110,7 @@ This mode is the most ergonomic — the LLM drives Burp via MCP while consulting
 
 ---
 
-## The four subcommands
+## The five subcommands
 
 ### `cbh recon <target>` — passive recon + live-host probe
 
@@ -130,6 +130,19 @@ Outputs:
 - `recon/<target>/resolved.txt`
 - `recon/<target>/live-hosts.json`
 - `recon/<target>/RECON_SUMMARY.md`
+- `recon/<target>/manifest.json` — the **recon→hunt handoff contract** ([`docs/recon-manifest.md`](recon-manifest.md))
+
+### `cbh surface <target>` — ranked attack surface from the recon manifest
+
+```bash
+cbh surface hackerone.com
+```
+
+Reads `recon/<target>/manifest.json` and prints the ranked **P1 / P2 / Kill** surface
+(api/auth/admin hosts → P1; static/CDN → Kill). The same manifest is what `hunt <target>`
+ingests to seed `scope.md` + `notes.md`, and what the `offensive-osint` skill appends
+secrets / identity-fabric data to. This is the deterministic backing for the `/surface`
+slash command. See [`docs/recon-manifest.md`](recon-manifest.md) for the full contract.
 
 ### `cbh classify <url>` — pattern-match URL → hunt-* skills
 

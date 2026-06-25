@@ -232,6 +232,38 @@ Thumbs.db
 *.key
 GITIGNORE
 
+  # ============== recon manifest ingestion (optional) ==============
+  # If `cbh recon <target>` produced a manifest, seed scope + notes from it.
+  # Resolve from: 2nd arg → $HUNT_MANIFEST → ./recon/<target>/manifest.json.
+  local manifest="${2:-${HUNT_MANIFEST:-}}"
+  if [ -z "$manifest" ]; then
+    for c in "./recon/$target/manifest.json" "recon/$target/manifest.json" "$HOME/recon/$target/manifest.json"; do
+      [ -f "$c" ] && manifest="$c" && break
+    done
+  fi
+  if [ -n "$manifest" ] && [ -f "$manifest" ] && command -v python3 >/dev/null 2>&1; then
+    python3 - "$manifest" "$dir" <<'PYIN'
+import json, sys
+try:
+    m = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception as e:
+    print(f"  (recon manifest present but unreadable: {e})"); sys.exit(0)
+d = sys.argv[2]
+hosts = [a["host"] for a in m.get("assets", []) if a.get("url")]
+ranked = m.get("ranked_surface", [])
+with open(d + "/scope.md", "a", encoding="utf-8") as f:
+    f.write("\n## Recon-seeded live hosts (from cbh manifest — VERIFY in-scope before testing)\n\n")
+    for h in hosts:
+        f.write(f"- {h}\n")
+with open(d + "/notes.md", "a", encoding="utf-8") as f:
+    f.write("\n## Ranked surface (from recon manifest)\n\n")
+    for r in ranked:
+        cls = ", ".join(r.get("bug_classes", [])) or "no class match"
+        f.write(f"- [{r.get('priority','?')}] {r.get('url') or r.get('host')} - {cls}\n")
+print(f"  ✓ Ingested recon manifest: {len(hosts)} live hosts -> scope.md, {len(ranked)} ranked -> notes.md")
+PYIN
+  fi
+
   # ============== confirmation ==============
   echo "Initialized $dir with CLAUDE.md and engagement template."
   echo "cd $dir to start hacking."

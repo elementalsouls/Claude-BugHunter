@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/elementalsouls/Claude-BugHunter/blob/main/docs/recon-manifest.schema.json",
+  "title": "Recon → Hunt Manifest",
+  "description": "Data contract between the recon phase (cbh recon / offensive-osint) and the hunt phase (hunt / cbh surface / /hunt).",
+  "type": "object",
+  "required": ["schema_version", "target", "generated_at", "assets", "ranked_surface"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "target": { "type": "string" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "producers": { "type": "array", "items": { "type": "string" } },
+    "counts": {
+      "type": "object",
+      "properties": {
+        "subdomains": { "type": "integer" },
+        "resolved": { "type": "integer" },
+        "live": { "type": "integer" }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["host"],
+        "properties": {
+          "host": { "type": "string" },
+          "ips": { "type": "array", "items": { "type": "string" } },
+          "url": { "type": ["string", "null"] },
+          "status": { "type": ["integer", "null"] },
+          "server": { "type": "string" },
+          "title": { "type": "string" },
+          "tech": { "type": "array", "items": { "type": "string" } },
+          "source": { "type": "string" }
+        }
+      }
+    },
+    "ranked_surface": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["priority"],
+        "properties": {
+          "url": { "type": ["string", "null"] },
+          "host": { "type": "string" },
+          "bug_classes": { "type": "array", "items": { "type": "string" } },
+          "priority": { "type": "string", "enum": ["P1", "P2", "KILL"] },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "secrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "pattern": { "type": "string" },
+          "severity": { "type": "string" },
+          "category": { "type": "string" },
+          "source": { "type": "string" }
+        }
+      }
+    },
+    "identity_fabric": { "type": "object" }
+  }
+}

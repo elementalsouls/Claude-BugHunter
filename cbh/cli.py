@@ -2,11 +2,15 @@
 """
 cbh — claude-bughunter CLI.
 
-Bridges the repo's skill content into a real runner. Four subcommands compose
+Bridges the repo's skill content into a real runner. Five subcommands compose
 the engagement loop:
 
   cbh recon <target>           passive subdomain enum + live-host probe + URL
-                               classification. Writes recon/<target>/.
+                               classification. Writes recon/<target>/ including
+                               manifest.json (the recon→hunt handoff contract).
+  cbh surface <target>         read recon/<target>/manifest.json and print the
+                               ranked P1/P2/Kill attack surface. See
+                               docs/recon-manifest.md.
   cbh classify <url>           pattern-match a single URL against hunt-* skill
                                descriptions; print the matched skills + ranked
                                attack candidates from docs/disclosed-reports/.
@@ -325,6 +329,12 @@ def cmd_recon(args: argparse.Namespace) -> int:
     write_recon_summary(target, subs, resolved, live, summary_path)
     say(f"  {summary_path}")
 
+    # recon→hunt handoff contract — see docs/recon-manifest.md
+    manifest = build_manifest(target, subs, resolved, live)
+    manifest_path = out_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    say(f"  {manifest_path}  {color('(recon→hunt manifest)', 'dim')}")
+
     section("SUMMARY")
     say(f"  Target:            {target}")
     say(f"  Subdomains:        {len(subs)}")
@@ -365,6 +375,71 @@ def write_recon_summary(target: str, subs: set[str], resolved: dict, live: list,
         "",
     ]
     out.write_text("\n".join(lines))
+
+
+# ============================================================
+# recon→hunt manifest (the integration handoff contract)
+# ============================================================
+PRODUCER = "cbh-recon/2.1.0"
+
+# subdomain keywords → triage priority + rationale for ranked_surface
+_P1_HINTS = ("api.", "api-", "graphql", "auth.", "sso.", "login.", "account.",
+             "admin.", "internal.", "intranet.", "staging.", "stage.", "dev.",
+             "test.", "uat.", "qa.", "gateway.", "gw.", "vpn.", "portal.")
+_KILL_HINTS = ("cdn.", "static.", "assets.", "img.", "images.", "media.", "fonts.")
+
+
+def _rank_host(host: str) -> tuple[str, str]:
+    h = host.lower()
+    if any(k in h for k in _P1_HINTS):
+        return "P1", "high-value surface (api/auth/admin/non-prod)"
+    if any(h.startswith(k) for k in _KILL_HINTS):
+        return "KILL", "static/CDN host — low yield"
+    return "P2", "standard web surface"
+
+
+def build_manifest(target: str, subs: set, resolved: dict, live: list) -> dict:
+    """Assemble the recon→hunt manifest. cbh fills assets + ranked_surface; the
+    offensive-osint skill's deeper probes append secrets[] and identity_fabric{}."""
+    live_by_host = {r["host"]: r for r in live}
+    assets = []
+    for host in sorted(live_by_host):
+        r = live_by_host[host]
+        assets.append({
+            "host": host, "ips": resolved.get(host, []), "url": r.get("url"),
+            "status": r.get("code"), "server": r.get("server", ""),
+            "title": r.get("title", ""), "tech": r.get("tech", []),
+            "source": "crtsh+httpx",
+        })
+    for host in sorted(resolved):                      # DNS-only (resolved, not HTTP-live)
+        if host not in live_by_host:
+            assets.append({
+                "host": host, "ips": resolved[host], "url": None, "status": None,
+                "server": "", "title": "", "tech": [], "source": "crtsh+dns",
+            })
+
+    ranked = []
+    for host in sorted(live_by_host):
+        r = live_by_host[host]
+        prio, why = _rank_host(host)
+        bug_classes = sorted(classify_url(r["url"])["matches"].keys()) if r.get("url") else []
+        ranked.append({"url": r.get("url"), "host": host, "bug_classes": bug_classes,
+                       "priority": prio, "rationale": why})
+    _order = {"P1": 0, "P2": 1, "KILL": 2}
+    ranked.sort(key=lambda x: (_order.get(x["priority"], 9), x["host"]))
+
+    return {
+        "schema_version": "1.0",
+        "target": target,
+        "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+        "producers": [PRODUCER],
+        "counts": {"subdomains": len(subs), "resolved": len(resolved), "live": len(live)},
+        "assets": assets,
+        "ranked_surface": ranked,
+        # Filled in by the offensive-osint skill's deeper probes (see docs/recon-manifest.md):
+        "secrets": [],            # {pattern, severity, category, source}  ← secret_scan.py
+        "identity_fabric": {},    # {idp, tenant, domains, ...}            ← identity-fabric probes
+    }
 
 
 # ============================================================
@@ -732,6 +807,58 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 # ============================================================
+# surface — consume a recon manifest, print the ranked surface
+# ============================================================
+def cmd_surface(args: argparse.Namespace) -> int:
+    target = args.target
+    mpath = Path(args.manifest) if getattr(args, "manifest", None) else None
+    if not mpath:
+        for base in (REPO_ROOT / "recon", Path.cwd() / "recon"):
+            cand = base / target / "manifest.json"
+            if cand.exists():
+                mpath = cand
+                break
+    if not mpath or not mpath.exists():
+        print(f"[error] no recon manifest for {target}. Run:  cbh recon {target}", file=sys.stderr)
+        return 1
+    try:
+        m = json.loads(mpath.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"[error] could not parse {mpath}: {e}", file=sys.stderr)
+        return 1
+
+    section(f"surface — {m.get('target', target)}")
+    c = m.get("counts", {})
+    say(f"  {c.get('live', '?')} live / {c.get('resolved', '?')} resolved / "
+        f"{c.get('subdomains', '?')} subdomains   ·   {mpath}")
+    ranked = m.get("ranked_surface", [])
+    colors = {"P1": "green", "P2": "yellow", "KILL": "dim"}
+    for prio, label in (("P1", "Priority 1 — start here"),
+                        ("P2", "Priority 2 — after P1"),
+                        ("KILL", "Kill list — skip")):
+        items = [r for r in ranked if r.get("priority") == prio]
+        if not items:
+            continue
+        say()
+        say(color(label, "bold"))
+        for r in items:
+            classes = ", ".join(r.get("bug_classes", [])) or color("no class match", "dim")
+            say(f"  {color(r.get('url') or r.get('host'), colors.get(prio, 'cyan'))}")
+            say(f"      {classes}   ·   {r.get('rationale', '')}")
+    secrets = m.get("secrets", [])
+    idf = m.get("identity_fabric", {})
+    if secrets:
+        say()
+        say(color(f"  ⚠ {len(secrets)} secret(s) flagged in manifest", "red"))
+    if idf:
+        say(color(f"  identity fabric: {', '.join(idf.keys())}", "cyan"))
+    say()
+    say(f"  Next: {color('/hunt ' + target, 'bold')} in Claude Code, "
+        f"or {color('cbh classify <url>', 'bold')} for a single URL")
+    return 0
+
+
+# ============================================================
 # Main dispatcher
 # ============================================================
 def main() -> int:
@@ -768,6 +895,11 @@ def main() -> int:
                          "(default: repo recon/ in a clone, ./recon/ when installed)")
     _add_proxy_args(p_recon)
     p_recon.set_defaults(func=cmd_recon)
+
+    p_surface = sub.add_parser("surface", help="rank a target's attack surface from its recon manifest")
+    p_surface.add_argument("target", help="target whose recon/<target>/manifest.json to read")
+    p_surface.add_argument("--manifest", help="explicit path to a manifest.json")
+    p_surface.set_defaults(func=cmd_surface)
 
     p_class = sub.add_parser("classify", help="pattern-match URL to hunt-* skills")
     p_class.add_argument("url", help="single URL to classify")

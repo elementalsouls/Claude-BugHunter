@@ -1,6 +1,6 @@
 ---
 name: surface
-description: Show ranked attack surface for a target based on recon output + hunt memory. Ranks via engine/skill_map (recon-ranker agent used if defined). Usage: /surface target.com
+description: Show ranked attack surface for a target from its recon manifest + hunt memory. Deterministic backing is `cbh surface <target>` (reads recon/<target>/manifest.json); LLM layer adds hunt-memory signal. Usage: /surface target.com
 ---
 
 # /surface
@@ -9,11 +9,15 @@ View the prioritized attack surface for a target.
 
 ## What This Does
 
-1. Reads cached recon output from `recon/<target>/`
+1. Reads the recon manifest at `recon/<target>/manifest.json` (produced by `cbh recon`)
+   — the deterministic ranking comes from `cbh surface <target>`
 2. Reads hunt memory for patterns and previously tested endpoints
-3. Ranks the surface using `engine/skill_map.py` (surface → bug-class → skill) plus
-   hunt-memory signal — the dedicated `recon-ranker` agent is used only if defined
+3. Layers `engine/skill_map.py` (surface → bug-class → skill) + hunt-memory signal on
+   top of the manifest's `ranked_surface` (P1/P2/Kill)
 4. Outputs P1 (start here), P2 (after P1), and Kill List (skip)
+
+> The manifest is the recon→hunt contract — see [`docs/recon-manifest.md`](../docs/recon-manifest.md).
+> Run `cbh surface <target>` for the raw deterministic ranking.
 
 ## Usage
 
