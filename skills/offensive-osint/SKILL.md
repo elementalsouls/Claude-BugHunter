@@ -2,6 +2,134 @@
 name: offensive-osint
 description: "Operational arsenal for authorized external red-team and bug-bounty recon. Concrete probes, wordlists, regexes, dorks, curl one-liners for: subdomain enum, GraphQL/Swagger/REST discovery, identity fabric (Entra/Okta/ADFS/Google/SAML/M365 deep — Teams/SharePoint/OneDrive), cloud bucket enum (S3/GCS/Azure), CDN/WAF bypass, origin discovery, vendor fingerprinting (Citrix/F5/Pulse/Fortinet/PaloAlto/Cisco/VMware), CI/CD exposure, 48-pattern secret-scan catalog (AWS/GCP/GitHub/Stripe/Slack/Anthropic/OpenAI/Atlassian/DataDog/npm/PyPI), Postman workspaces, breach correlation (HudsonRock/HIBP/DeHashed/IntelX), TLS/JA3 audit, certificate transparency, JS endpoint extraction, package registry leaks, mobile/APK recon, sat imagery, sector-specific recon (healthcare DICOM, finance SWIFT, ICS/SCADA Modbus/BACnet). Detail content in 15 modular reference files, loaded on demand. Use for any authorized recon: scoping, asset discovery, attack-path mapping, secret triage, severity scoring."
 version: 3.0.0
+triggers:
+  - external recon
+  - external red team
+  - red team external
+  - attack surface management
+  - ASM
+  - bug bounty recon
+  - bug bounty
+  - reconnaissance
+  - footprinting
+  - asset discovery
+  - swagger discovery
+  - openapi discovery
+  - graphql introspection
+  - graphql discovery
+  - subdomain enumeration
+  - subdomain takeover
+  - cloud bucket enumeration
+  - bucket enum
+  - S3 enum
+  - GCS enum
+  - Azure blob enum
+  - identity fabric
+  - SSO discovery
+  - IdP fingerprinting
+  - tenant fingerprinting
+  - okta enum
+  - entra enum
+  - azure AD enum
+  - ADFS enum
+  - SAML metadata
+  - mobile recon
+  - APK analysis
+  - mobile attack surface
+  - secret scanning
+  - secret leak
+  - leaked credential
+  - github dorking
+  - google dorking
+  - bing dorking
+  - DDG dorking
+  - postman workspace
+  - stack exchange OSINT
+  - breach lookup
+  - have I been pwned
+  - HudsonRock cavalier
+  - infostealer
+  - dehashed
+  - intelx
+  - shodan recon
+  - censys recon
+  - certificate transparency
+  - crt.sh
+  - JARM
+  - favicon mmh3
+  - JS endpoint extraction
+  - sourcemap leak
+  - copy paste probes
+  - curl one-liner
+  - email security analysis
+  - SPF DMARC DKIM
+  - origin discovery
+  - CDN bypass
+  - WAF bypass
+  - vendor product fingerprints
+  - Citrix Netscaler
+  - F5 BIG-IP
+  - Pulse Secure
+  - FortiGate
+  - PaloAlto GlobalProtect
+  - Cisco AnyConnect
+  - VMware vCenter
+  - cloud native fingerprint
+  - Lambda function URL
+  - Cloud Run
+  - kubernetes exposure
+  - kubelet
+  - etcd
+  - CI CD exposure
+  - Jenkins recon
+  - GitLab self-hosted
+  - GitHub Actions secrets
+  - documentation leak
+  - Notion public
+  - Confluence anonymous
+  - Trello board
+  - WHOIS RDAP
+  - DNS record catalog
+  - Wayback CDX
+  - LinkedIn enumeration
+  - job posting tech stack
+  - Slack workspace discovery
+  - Discord server discovery
+  - npm token leak
+  - PyPI token leak
+  - Docker Hub leak
+  - sat imagery physical recon
+  - TLS deep audit
+  - JA3 JA4
+  - reverse DNS sweep
+  - IPv6 enumeration
+  - CVE prioritization
+  - EPSS scoring
+  - CISA KEV
+  - vulnerability prioritization
+  - tooling install
+  - sector specific recon
+  - healthcare DICOM
+  - finance SWIFT
+  - ICS SCADA
+  - Modbus
+  - BACnet
+  - post discovery workflow
+  - JWT triage
+  - AWS key triage
+  - GraphQL field suggestion
+  - Anthropic API key
+  - OpenAI API key
+  - Microsoft 365 deep
+  - Teams federation
+  - SharePoint enum
+  - OneDrive enum
+  - hackerone reference
+  - h1 hacktivity
+  - disclosed reports
+  - community bug reports
+  - prior disclosures
+  - bug bounty reference
 ---
 
 # Offensive OSINT — External Red-Team Arsenal
