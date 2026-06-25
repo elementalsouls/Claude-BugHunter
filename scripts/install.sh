@@ -22,10 +22,14 @@
 #   --normalize-frontmatter
 #               strip non-standard keys (sources/report_count) from the NON-Claude
 #               copies — only needed if a harness rejects unknown frontmatter keys
+#   --uninstall remove this bundle's footprint via the install manifest; skills a
+#               sibling bundle (e.g. claude-osint) still owns are kept
 #   -h|--help   show this help
 #
-# Idempotent. Existing skills/commands are backed up OUTSIDE the loading path
+# Idempotent. Re-runs skip skills already installed and identical; otherwise the
+# existing skill/command is backed up OUTSIDE the loading path
 # (~/.claude/install-backups/<ts>/) so backups never load as duplicate skills.
+# An install manifest is written to ~/.claude/.skill-manifests/ for clean uninstall.
 # Requires: bash. (--burp-mcp also requires python3.)
 # =====================================================================
 set -e
@@ -38,9 +42,16 @@ set -e
 REPO_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 BACKUP_DEST="$HOME/.claude/install-backups/$(date +%Y%m%d-%H%M%S)"
 
-usage() { sed -n '2,30p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'; }
+# Footprint tracking: each bundle records what it placed in ~/.claude here, so
+# uninstall removes only its own files and KEEPS skills a sibling bundle (e.g.
+# claude-osint) still owns. The two recon skills are co-owned by both bundles.
+BUNDLE_NAME="claude-bughunter"
+MANIFEST_DIR="$HOME/.claude/.skill-manifests"
+MANIFEST="$MANIFEST_DIR/$BUNDLE_NAME.txt"
 
-DO_AGENTS=0; DO_HERMES=0; DO_MCP=0; NORMALIZE=0; DETECT=0
+usage() { sed -n '2,/^# ===/p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'; }
+
+DO_AGENTS=0; DO_HERMES=0; DO_MCP=0; NORMALIZE=0; DETECT=0; DO_UNINSTALL=0
 HAS_CLAUDE=0; HAS_OPENCODE=0; HAS_CODEX=0; HAS_HERMES=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -49,11 +60,54 @@ while [ $# -gt 0 ]; do
     --all)    DETECT=1 ;;
     --burp-mcp) DO_MCP=1 ;;
     --normalize-frontmatter) NORMALIZE=1 ;;
+    --uninstall) DO_UNINSTALL=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1 (try --help)" >&2; exit 2 ;;
   esac
   shift
 done
+
+# === Uninstall: remove only our footprint; keep skills a sibling bundle owns ===
+uninstall_bundle() {
+  if [ ! -f "$MANIFEST" ]; then
+    echo "No manifest at $MANIFEST — nothing tracked to uninstall."
+    echo "(Installed before manifests existed? See INSTALL.md for manual removal.)"
+    return 0
+  fi
+  echo "Uninstalling $BUNDLE_NAME using $MANIFEST"
+  local rel target other owned removed=0 kept=0
+  while IFS= read -r rel; do
+    [ -z "$rel" ] && continue
+    target="$HOME/.claude/$rel"
+    owned=0
+    for other in "$MANIFEST_DIR"/*.txt; do
+      [ -e "$other" ] || continue
+      [ "$other" = "$MANIFEST" ] && continue
+      if grep -qxF "$rel" "$other" 2>/dev/null; then owned=1; break; fi
+    done
+    if [ "$owned" = "1" ]; then
+      kept=$((kept + 1))                 # another bundle still owns it — keep
+    else
+      rm -rf "$target"; removed=$((removed + 1))
+    fi
+  done < "$MANIFEST"
+  rm -f "$MANIFEST"
+  echo "  ✓ removed $removed item(s); kept $kept still owned by another bundle"
+  # The hunt.sh rc source line is ours alone — strip it from shell rc files.
+  for rc in "$HOME/.zshrc" "$HOME/.bashrc" "${ZDOTDIR:-}/.zshrc"; do
+    [ -f "$rc" ] || continue
+    if grep -q "claude/scripts/hunt.sh" "$rc" 2>/dev/null; then
+      sed -i.bak '/claude\/scripts\/hunt.sh/d; /Bug-bounty engagement scaffolding/d' "$rc"
+      echo "  ✓ removed hunt.sh source line from $rc (backup: $rc.bak)"
+    fi
+  done
+  echo "Done. (Install backups remain under ~/.claude/install-backups/.)"
+}
+
+if [ "$DO_UNINSTALL" = "1" ]; then
+  uninstall_bundle
+  exit 0
+fi
 
 # --all → detect which harnesses are actually installed (binary on PATH, or its standard
 # config dir present) and route to each. Claude always; ~/.agents only if Codex is present
@@ -87,6 +141,11 @@ install_skills() {
   for skill_dir in "$REPO_DIR/skills"/*/; do
     name="$(basename "$skill_dir")"
     if [ -d "$dest/$name" ] && [ ! -L "$dest/$name" ]; then
+      # Already present and byte-identical (e.g. a sibling bundle installed the
+      # same shared skill) → skip; no needless backup, no "last installer wins".
+      if diff -rq --exclude=__pycache__ "$skill_dir" "$dest/$name" >/dev/null 2>&1; then
+        continue
+      fi
       mkdir -p "$BACKUP_DEST/$label"
       mv "$dest/$name" "$BACKUP_DEST/$label/$name"
     fi
@@ -111,6 +170,7 @@ if [ -d "$REPO_DIR/commands" ]; then
     [ -e "$cmd_file" ] || continue
     cmd_name="$(basename "$cmd_file")"
     if [ -f "$COMMANDS_DEST/$cmd_name" ] && [ ! -L "$COMMANDS_DEST/$cmd_name" ]; then
+      if cmp -s "$cmd_file" "$COMMANDS_DEST/$cmd_name"; then continue; fi
       mkdir -p "$BACKUP_DEST/commands"
       mv "$COMMANDS_DEST/$cmd_name" "$BACKUP_DEST/commands/$cmd_name"
     fi
@@ -149,6 +209,19 @@ else
 fi
 # shellcheck disable=SC1091
 source "$SCRIPTS_DEST/hunt.sh" 2>/dev/null || true
+echo ""
+
+# === Write install manifest (footprint tracking for clean uninstall) ===
+mkdir -p "$MANIFEST_DIR"
+{
+  for d in "$REPO_DIR/skills"/*/; do echo "skills/$(basename "$d")"; done
+  if [ -d "$REPO_DIR/commands" ]; then
+    for c in "$REPO_DIR/commands"/*.md; do [ -e "$c" ] && echo "commands/$(basename "$c")"; done
+  fi
+  echo "scripts/hunt.sh"
+} > "$MANIFEST"
+echo "  ✓ Install manifest ($(wc -l < "$MANIFEST" | tr -d ' ') entries) → $MANIFEST"
+echo "    Uninstall later with:  bash scripts/install.sh --uninstall"
 echo ""
 
 # === Extra harness targets (skills only) ===

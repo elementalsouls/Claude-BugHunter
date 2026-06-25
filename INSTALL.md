@@ -197,24 +197,21 @@ Then go find a real program and put it to work. See [USAGE.md](USAGE.md) for the
 
 ## Uninstall
 
-To remove everything this repo installed:
+The installer writes a manifest of exactly what it placed (under
+`~/.claude/.skill-manifests/claude-bughunter.txt`). Remove that footprint — and
+**only** that footprint — with:
 
 ```bash
-# Remove all bundled skills (this removes EVERY skill in ~/.claude/skills,
-# including any you added manually — be selective if needed)
-# rm -rf ~/.claude/skills
-
-# Or remove only the originals contributed by this repo:
-rm -rf ~/.claude/skills/bugcrowd-reporting
-rm -rf ~/.claude/skills/evidence-hygiene
-
-# Remove all bundled commands
-# rm -rf ~/.claude/commands
-
-# Remove the hunt shell command
-rm -f ~/.claude/scripts/hunt.sh
-sed -i.bak '/claude\/scripts\/hunt.sh/d' ~/.zshrc
-
-# Remove Burp MCP entry
-claude mcp remove burp
+bash scripts/install.sh --uninstall
 ```
+
+This removes the bundle's skills, slash commands, the `hunt.sh` script, and its
+shell-rc source line. Skills you also installed from the **sister bundle**
+[Claude-OSINT](https://github.com/elementalsouls/Claude-OSINT) — `offensive-osint`
+and `osint-methodology` — are **kept** if Claude-OSINT's manifest still claims them,
+so uninstalling one bundle never breaks the other. (Install backups under
+`~/.claude/install-backups/` are left in place; delete them manually if you want.)
+
+If you installed via the **plugin** instead of the script: `/plugin uninstall claude-bughunter@elementalsouls`.
+
+Burp MCP, if you wired it, is removed separately: `claude mcp remove burp`.
