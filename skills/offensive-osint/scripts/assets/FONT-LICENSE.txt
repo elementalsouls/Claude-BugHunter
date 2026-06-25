@@ -1,0 +1,13 @@
+archivo-black.woff2
+====================
+
+Font:     Archivo Black
+Designer: Omnibus-Type
+License:  SIL Open Font License, Version 1.1 (OFL-1.1)
+Source:   https://fonts.google.com/specimen/Archivo+Black
+          https://github.com/Omnibus-Type/Archivo
+
+This font is bundled and served locally by dashboard.py (route
+/font/display.woff2) so the recon console has no runtime CDN dependency.
+The OFL permits bundling and redistribution; this file preserves the
+required attribution. Full license text: https://openfontlicense.org/

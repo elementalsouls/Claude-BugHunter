@@ -16,3 +16,5 @@
 *.gif  binary
 *.ico  binary
 *.cast binary
+*.woff2 binary
+*.woff  binary

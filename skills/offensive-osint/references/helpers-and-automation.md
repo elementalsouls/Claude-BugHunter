@@ -189,3 +189,43 @@ Output is JSONL — one finding per line — drops cleanly into `jq` for filteri
 
 ---
 
+## 49. Runnable Helper — `h1_reference.py`
+
+HackerOne Hacktivity reference agent. Queries HackerOne's **public** GraphQL API for
+disclosed reports during recon — no API key required (max 50 results/page). Use it to
+surface validated techniques and business-impact framing for the target's tech stack
+before you hunt. Pure stdlib.
+
+```bash
+# Best-validated techniques to start from
+python3 h1_reference.py --top-voted --limit 25
+
+# Highest-bounty reports (signal for impact framing)
+python3 h1_reference.py --top-bounty --limit 25
+
+# Scope to a class / CWE / program
+python3 h1_reference.py --query "idor" --severity high critical
+python3 h1_reference.py --cwe "CWE-918" --program <handle>
+python3 h1_reference.py --lookup-program <handle>
+```
+
+Pairs with the bundled `docs/disclosed-reports/` pattern libraries: `h1_reference.py`
+pulls live disclosed reports; the pattern libraries are the curated per-class digests.
+
+## 50. Runnable Helper — `dashboard.py`
+
+Zero-dependency localhost recon console that wraps `secret_scan.py` and
+`h1_reference.py` behind a stdlib web UI. Binds to `127.0.0.1` by default — the scan
+surface can read arbitrary local files you point it at, so it is never exposed to the
+network.
+
+```bash
+python3 dashboard.py                 # http://127.0.0.1:8765
+python3 dashboard.py --port 9000     # custom port
+```
+
+Use it for a fast visual pass — paste a blob or point at a path to aggregate secrets by
+severity/category, and browse disclosed-report references — without leaving the box.
+
+---
+
