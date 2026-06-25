@@ -22,6 +22,7 @@
 #   --normalize-frontmatter
 #               strip non-standard keys (sources/report_count) from the NON-Claude
 #               copies — only needed if a harness rejects unknown frontmatter keys
+#   --no-shell  don't modify any shell rc; just print the 'source hunt.sh' line to add
 #   --uninstall remove this bundle's footprint via the install manifest; skills a
 #               sibling bundle (e.g. claude-osint) still owns are kept
 #   -h|--help   show this help
@@ -51,7 +52,7 @@ MANIFEST="$MANIFEST_DIR/$BUNDLE_NAME.txt"
 
 usage() { sed -n '2,/^# ===/p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'; }
 
-DO_AGENTS=0; DO_HERMES=0; DO_MCP=0; NORMALIZE=0; DETECT=0; DO_UNINSTALL=0
+DO_AGENTS=0; DO_HERMES=0; DO_MCP=0; NORMALIZE=0; DETECT=0; DO_UNINSTALL=0; NO_SHELL=0
 HAS_CLAUDE=0; HAS_OPENCODE=0; HAS_CODEX=0; HAS_HERMES=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -60,6 +61,7 @@ while [ $# -gt 0 ]; do
     --all)    DETECT=1 ;;
     --burp-mcp) DO_MCP=1 ;;
     --normalize-frontmatter) NORMALIZE=1 ;;
+    --no-shell) NO_SHELL=1 ;;
     --uninstall) DO_UNINSTALL=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1 (try --help)" >&2; exit 2 ;;
@@ -194,18 +196,23 @@ elif [ -f "$HOME/.zshrc" ]; then
 elif [ -f "$HOME/.bashrc" ]; then
   SHELL_RC="$HOME/.bashrc"
 fi
-if [ -n "$SHELL_RC" ]; then
+if [ "$NO_SHELL" = "1" ]; then
+  echo "  --no-shell: leaving your shell rc untouched. To enable the 'hunt' command,"
+  echo "    add this one line to your ~/.zshrc or ~/.bashrc yourself:"
+  echo "        source ~/.claude/scripts/hunt.sh"
+elif [ -n "$SHELL_RC" ]; then
   if grep -q "claude/scripts/hunt.sh" "$SHELL_RC" 2>/dev/null; then
     echo "  ✓ hunt.sh already sourced from $SHELL_RC"
   else
     echo "" >> "$SHELL_RC"
     echo "# Bug-bounty engagement scaffolding (bug-bounty-claude-skills)" >> "$SHELL_RC"
     echo "source ~/.claude/scripts/hunt.sh" >> "$SHELL_RC"
-    echo "  ✓ Added 'source ~/.claude/scripts/hunt.sh' to $SHELL_RC"
+    echo "  ✓ Added this line to $SHELL_RC (re-run with --no-shell to skip this):"
+    echo "        source ~/.claude/scripts/hunt.sh"
   fi
 else
-  echo "  ⚠ Could not detect shell rc file. Manually add:"
-  echo "       source ~/.claude/scripts/hunt.sh"
+  echo "  ⚠ Could not detect a shell rc file. Add this line yourself:"
+  echo "        source ~/.claude/scripts/hunt.sh"
 fi
 # shellcheck disable=SC1091
 source "$SCRIPTS_DEST/hunt.sh" 2>/dev/null || true

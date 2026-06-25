@@ -48,6 +48,24 @@ The reasoning: internal-AD attacks against monitored corporate networks have a f
 
 If you reach domain-admin-class objectives during an engagement, the bundle's external-perimeter chain ends at "credential discovered + access verified" — handoff to specialist internal-RT tooling (Impacket, NetExec, CrackMapExec, Rubeus, Certify, BloodHound) is intentionally outside the bundle's scope.
 
+## Verifying what you install (supply-chain trust)
+
+You are installing 71 `SKILL.md` files plus shell and Python helpers into your AI agent's context. Agent Skills are third-party code — treat them like any dependency you run. Independent research (Snyk "ToxicSkills", 2026) found prompt injection in a meaningful fraction of public skills, so verification matters.
+
+**What we do on our side:**
+
+- **CI gate on every skill change** — [`.github/workflows/skill-lint.yml`](.github/workflows/skill-lint.yml) runs `scripts/lint_skills.py` on each PR: it validates `SKILL.md` structure against `CONTRIBUTING.md` and scans for leaked secrets and client/engagement identifiers.
+- **Pinned, reviewable provenance** — installing via the **plugin marketplace** pins each release to a specific commit SHA and runs Anthropic's automated screening. From a clone you can pin yourself: `git checkout <tag-or-commit>` before `bash scripts/install.sh`.
+- **No network calls at install time** — `install.sh` only copies local files and (unless `--no-shell`) appends one `source` line to your shell rc, which it prints back to you.
+
+**What this does NOT prove — read this:**
+
+- The lint is a **structural + secrets/identifier** check. It is **not** a malware or prompt-injection detector and makes no claim to catch a malicious skill. A clean lint means "well-formed, no obvious leaked secret" — nothing more.
+- **Review before you trust.** The `SKILL.md` files and bundled scripts (`skills/*/scripts/`, `scripts/`) are plain text — skim them before installing, paying attention to anything that fetches from the network or executes shell.
+- **Pin to a reviewed tag/commit** rather than tracking `main`, so an upstream change can't alter what runs in your agent without your say-so.
+
+If you find a skill or script in this repo that could be abused, see **Reporting a security issue** below.
+
 ## Reporting a security issue in this repo
 
 If you discover a security issue in **this repository itself** (not in a target you're hunting):

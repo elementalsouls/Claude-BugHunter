@@ -1,0 +1,41 @@
+name: 💬 DX feedback (skill didn't trigger / first-hunt experience)
+description: A skill didn't load when you expected it, install/onboarding tripped you up, or you want to share how your first hunt went.
+title: "[dx] <short summary>"
+labels: ["dx-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Quick, low-friction feedback on the developer experience — onboarding, install, or skill triggering. Helps us tune description keywords and the getting-started flow. **Anonymize all target data.**
+  - type: dropdown
+    id: area
+    attributes:
+      label: What's this about?
+      options:
+        - A skill didn't trigger when I expected it to
+        - Install / onboarding friction
+        - First-hunt experience (good or bad)
+        - cbh CLI behavior
+        - Other DX feedback
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: For a non-triggering skill, paste the prompt you used and which skill you expected to load. For install/onboarding, what step and what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: false
+  - type: input
+    id: env
+    attributes:
+      label: Environment (optional)
+      description: Harness (Claude Code / OpenCode / Codex / Hermes), OS, install path (plugin vs clone), cbh version.
+    validations:
+      required: false
