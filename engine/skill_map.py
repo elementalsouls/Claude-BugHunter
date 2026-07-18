@@ -14,7 +14,7 @@ Active testing is curl-first; Burp MCP is optional (only where noted — OOB/bli
 """
 import os
 
-SKILLS_DIR = os.path.expanduser("~/.claude/skills")
+SKILLS_DIR = os.environ.get("CBH_SKILLS_DIR", os.path.expanduser("~/.claude/skills"))
 
 # attack class -> hunt skill(s) in the bundle
 CLASS_SKILL = {
