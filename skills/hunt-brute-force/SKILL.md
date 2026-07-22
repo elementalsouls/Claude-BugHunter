@@ -1,6 +1,6 @@
 ---
 name: hunt-brute-force
-description: "Hunt Missing/Weak Rate Limiting — login brute force, OTP/2FA brute force (10^6 keyspace), password-reset-token brute, credential stuffing, username/email enumeration via error-string / status-code / timing differences, weak password policy, missing CAPTCHA, IP-based rate-limit bypass via X-Forwarded-For and friends, ReDoS. Distinguishes hard lockout vs soft IP-throttle vs CAPTCHA-injection vs silent shadow-throttling (avoids false-negative 'no rate limit' conclusions). Medium to Critical depending on what the brute reaches (OTP→ATO = Critical)."
+description: "Hunt Missing/Weak Rate Limiting — login brute force, OTP/2FA brute force (10^6 keyspace), password-reset-token brute, credential stuffing, username/email enumeration via error-string / status-code / timing differences, weak password policy, missing CAPTCHA (CAPTCHA token replay / single-use / concurrency-window bypass specifics → hunt-captcha-bypass), IP-based rate-limit bypass via X-Forwarded-For and friends, ReDoS. Distinguishes hard lockout vs soft IP-throttle vs CAPTCHA-injection vs silent shadow-throttling (avoids false-negative 'no rate limit' conclusions). Medium to Critical depending on what the brute reaches (OTP→ATO = Critical)."
 sources: public_research
 report_count: 0
 ---
@@ -23,6 +23,27 @@ OTP brute force (6-digit = 1,000,000 combinations) with no effective rate limit 
 - **Username/email enumeration → targeted credential stuffing** — valid/invalid distinguishable by response string, status code, or timing, then sprayed with breach corpora
 - **Coupon / gift-card / referral code brute** — no rate limit on code validation → financial impact
 - **ReDoS** — attacker-controlled input hits a catastrophic-backtracking regex → CPU exhaustion → DoS
+
+---
+
+## Autonomous Testing Priority
+
+**Work within your turn budget — prioritize signal over volume.**
+
+You cannot brute-force millions of combinations in automated testing. Focus on two things: (1) credential spraying with the most likely candidates, and (2) detecting whether rate limiting exists at all.
+
+**Strategy:**
+1. Identify the login endpoint and the expected parameter names (username/email, password).
+2. Try weak/default credentials likely for the target context — default admin credentials for the app's stack, simple passwords for test environments, credentials visible elsewhere on the app (e.g. usernames exposed in profiles, default passwords in documentation).
+3. After 3-5 failed attempts, check for rate-limit signals (429 status, "too many attempts" message, CAPTCHA appearance, account lockout message). Absence of these = rate limiting is missing = vulnerability.
+4. Use form-encoding for traditional login forms, JSON for REST API login endpoints.
+
+**What to look for as success:**
+- Session token or JWT in the response body or Set-Cookie header
+- Redirect to authenticated dashboard
+- Response body that differs from the failed-login baseline
+
+**Username enumeration (separate finding):** Try a known-valid username vs a random one. If the error message differs ("Wrong password" vs "User not found") or response time differs → user enumeration vulnerability, even without a successful login.
 
 ---
 

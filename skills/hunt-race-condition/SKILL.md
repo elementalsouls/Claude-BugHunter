@@ -5,6 +5,29 @@ sources: github, hackerone_public, portswigger_research, flatt_security
 report_count: 12
 ---
 
+## Firing a race — two primitives (tooling-agnostic)
+
+Winning a race needs requests that arrive in the *same* narrow window — sequential sends never
+work. Use a single-packet / synchronized-send tool: **Burp Repeater** "Send group in parallel"
+(HTTP/2 single-packet attack), **Turbo Intruder** (`engine=Engine.BURP2`, `gate` sync), or any
+client that can flush N requests simultaneously. Two shapes:
+
+- **Identical-copies race** — fire N IDENTICAL copies of one request at once (limit-overrun:
+  double-spend a coupon/gift-card, exceed a one-per-user quota). Success = ≥2 of the N return 2xx.
+- **Different-requests race (partial construction)** — fire a LIST of DIFFERENT requests in one
+  synchronized window, repeated over several rounds. For register-then-confirm / TOCTOU races
+  where the object exists in a usable state mid-creation. Example (email-verification bypass —
+  register an arbitrary email, then confirm it through the construction window with a blank token):
+  ```
+  Request A:  POST /register   body: csrf=<csrf>&username=hacker&email=anything@exploit.net&password=pw
+  Request B:  GET  /confirm    params: token=   (empty)
+  Fire A and B together, repeat ~20 rounds.
+  ```
+  Get a fresh CSRF from `GET /register` first, then fire the batch. After it succeeds, log in as the
+  new account and perform the objective (e.g. a state-changing admin action such as deleting a user).
+  The blank-token confirm wins during the window where the user row exists but its verification
+  token isn't set yet.
+
 ## Crown Jewel Targets
 
 Race conditions are high-severity findings because they break financial, access control, and integrity assumptions that defenders rarely stress-test. Highest payouts come from:
