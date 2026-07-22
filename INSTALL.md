@@ -47,7 +47,7 @@ bash scripts/install.sh
 > shell script aborts with a `syntax error` and cannot fix itself.
 
 This copies:
-- All 71 skills → `~/.claude/skills/`
+- All 82 skills → `~/.claude/skills/`
 - All 15 slash commands → `~/.claude/commands/`
 - The `hunt` shell command → `~/.claude/scripts/hunt.sh` (sourced from your `.zshrc` or `.bashrc` automatically)
 

@@ -22,7 +22,7 @@ platform CVE chains, and the hygiene, and it stays in scope.
 
 ## What you get
 
-- **71 skills** across recon, 48 web-app vuln-class + framework skills, enterprise
+- **82 skills** across recon, 57 web-app vuln-class + framework skills, enterprise
   platform attack, red-team tradecraft, and reporting — all **auto-loading by topic**,
   no invocation by name.
 - **681 disclosed-report patterns** curated from public HackerOne reports.

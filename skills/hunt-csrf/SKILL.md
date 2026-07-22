@@ -5,6 +5,54 @@ sources: github, hackerone_public, bugcrowd_public, github_security_advisories
 report_count: 15
 ---
 
+## Shortcut: a raw HTTP client beats a real cross-origin page for header-check CSRF
+
+A raw HTTP client (curl, Burp Repeater, any scripting client) is not a browser: it will send
+whatever `Origin`/`Referer` header VALUE you set, from any path, on the same connection as your
+authenticated cookie. Many apps that claim to defend against CSRF only do a naive **string check**
+on the incoming `Origin`/`Referer` header (does it contain/equal some expected value?) rather than
+real same-origin enforcement — you can satisfy that check directly by setting the header, with no
+actual cross-site delivery (hosting an HTML page, a headless browser) required. This is faster and
+more reliable than building a real attacker page for this exact pattern:
+```
+POST /profile HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+Origin: https://a-domain-the-app-treats-as-trusted-or-attacker-controlled.example
+Cookie: <authenticated session>
+
+username=csrf_poc
+```
+If some text names a SPECIFIC origin/domain as the "expected" attacker page, that literal value is
+often exactly what the server's check is looking for — try it verbatim in `Origin` (fall back to
+`Referer` if `Origin` alone doesn't flip it). Only build a real cross-origin page (actual browser
+delivery) when the target does genuine SameSite/fetch-based origin enforcement that a spoofed header
+can't satisfy.
+
+## Autonomous Testing Priority
+
+**CSRF only matters on state-changing actions that a browser could be tricked into making cross-site.**
+
+**Testing flow:**
+1. **GET the form endpoint** to establish a baseline and check what fields exist (look for hidden `csrf_token`, `authenticity_token`, `_token`, `csrfmiddlewaretoken` fields).
+2. **POST the state-changing action without any CSRF token field.** Send only the functional parameters (email, amount, etc.).
+3. **Use a "simple-request" Content-Type** — `application/x-www-form-urlencoded`, `multipart/form-data`, OR `text/plain` are the three CORS "simple" content-types a cross-origin form can send with no preflight. A JSON endpoint is CSRF-resistant **only if the server rejects those** — if it also accepts a `text/plain` body (common), craft a `text/plain` payload that parses as valid JSON (see the JSON-CSRF-via-text/plain section). Don't skip a JSON endpoint on the assumption that `application/json` alone is protective.
+4. **If the action succeeds (2xx, no "invalid token" error) → CSRF is confirmed.**
+
+**High-value targets (in order of impact):**
+- Email/password change → account takeover
+- Money transfer or payment → financial fraud
+- Admin actions (role assignment, user deletion)
+- OAuth social-account linking → persistent ATO
+
+**Token bypass techniques when a token IS present:**
+- Omit the token field entirely — some frameworks only validate if the field exists, not if it's absent
+- Send an empty value (`_token=`) — some validate format, not presence
+- Copy a token from another session — some tokens aren't tied to the session
+
+**Scope:** Don't test CSRF on login forms (no existing session to exploit), logout (no real impact), or read-only GET endpoints.
+
+---
+
 ## Crown Jewel Targets
 
 CSRF becomes high-value when it touches **state-changing actions with account-level or financial consequences**. The highest-paying targets are:

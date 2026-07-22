@@ -84,7 +84,7 @@
     <text x="660" y="336" class="white"><tspan class="red">+ </tspan>RED TEAM PIPELINE</text>
     <text x="1000" y="336" class="white"><tspan class="red">+ </tspan>CROSS-HARNESS AGENT SKILLS</text>
   </g>
-  <text x="290" y="384" class="mono muted" font-size="19" letter-spacing="0.2">71 Agent Skills for bug hunting and external red-team work - Claude Code, OpenCode, Codex CLI, and Hermes Agent.</text>
+  <text x="290" y="384" class="mono muted" font-size="19" letter-spacing="0.2">82 Agent Skills for bug hunting and external red-team work - Claude Code, OpenCode, Codex CLI, and Hermes Agent.</text>
 
   <!-- spec card -->
   <g class="mono">
@@ -136,7 +136,7 @@
     <line x1="0" y1="0" x2="1760" y2="0" stroke="#2a2c3a"/>
     <line x1="842" y1="0" x2="918" y2="0" stroke="#ff2d4f" stroke-width="3"/>
     <g class="sans" font-weight="800" text-anchor="middle">
-      <text x="147" y="66" font-size="52" class="red">71</text>
+      <text x="147" y="66" font-size="52" class="red">82</text>
       <text x="440" y="66" font-size="52" class="red">15</text>
       <text x="733" y="66" font-size="52" class="red">48</text>
       <text x="1027" y="66" font-size="52" class="red">681</text>
@@ -163,7 +163,7 @@
     <line x1="0" y1="34" x2="1760" y2="34" stroke="#202230"/>
     <text x="24" y="58" font-size="13" font-weight="800" class="red">&gt;</text>
     <text x="48" y="58" font-size="13" class="white">bash scripts/install.sh --all --burp-mcp</text>
-    <text x="462" y="58" font-size="12" class="dim"># 71 skills across Claude Code, OpenCode, Codex CLI, Hermes Agent</text>
+    <text x="462" y="58" font-size="12" class="dim"># 82 skills across Claude Code, OpenCode, Codex CLI, Hermes Agent</text>
     <text x="1736" y="58" font-size="12" text-anchor="end" class="red" font-weight="800">SHIP WITH DISCIPLINE</text>
   </g>
 </svg>

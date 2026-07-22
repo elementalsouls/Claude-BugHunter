@@ -65,3 +65,4 @@ recon/
 
 # Maintainer-only plaintext client-identifier denylist (never commit names)
 scripts/.identifier-denylist.local
+New_version/

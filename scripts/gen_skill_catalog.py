@@ -23,8 +23,8 @@ GROUPS = [
     ("Hunt — web app vuln classes", lambda n: n.startswith("hunt-")),
     ("Enterprise platform attack", lambda n: n in {
         "m365-entra-attack", "okta-attack", "cloud-iam-deep", "vmware-vcenter-attack",
-        "enterprise-vpn-attack", "apk-redteam-pipeline", "supply-chain-attack-recon",
-        "meme-coin-audit", "web3-audit"}),
+        "enterprise-vpn-attack", "apk-redteam-pipeline", "ios-redteam-pipeline",
+        "supply-chain-attack-recon", "meme-coin-audit", "web3-audit"}),
     ("Recon & OSINT", lambda n: "osint" in n or "recon" in n or n == "security-arsenal"),
     ("Methodology & mindset", lambda n: n in {
         "bb-methodology", "bug-bounty", "bb-local-toolkit", "redteam-mindset"}),

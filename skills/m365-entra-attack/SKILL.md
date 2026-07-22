@@ -228,9 +228,11 @@ When CA policy requires MFA and ROPC cannot satisfy it, Entra returns an error b
 The `claims.access_token.capolids` values are tenant-internal Conditional Access policy IDs — useful recon enrichment, but NOT a token. Document them in engagement notes as "CA policy IDs that fired" — they're a defender-side breadcrumb, not an attacker-side win.
 
 **Pace:**
-- Per-IP: ≤30 req/sec is fine; Microsoft tolerates well
-- Per-user: hard cap from state file is the only thing that matters
-- Random jitter (1-5s between attempts) for less-machine-like signature
+- **NEVER use concurrency. Single-threaded, serial, paced. This is a hard rule, not a tuning knob.** Entra has an IP-reputation anti-spray layer that is SEPARATE from per-user Smart Lockout. Concurrency — not attempts-per-user — is what trips it. Once tripped it returns `AADSTS50053` (LOCKED) en masse for accounts you hit only once (mathematically impossible to be real per-user locks → they are IP-level rejections), which (a) **contaminates your existence data** — 50053 is now ambiguous and you've burned the 1/user cap so you can't re-test — and (b) **flags your egress IP as a spray source** in the tenant. Observed live on an authorized engagement: switching from serial to 12 threads produced ~183 false `AADSTS50053` in 15s vs. 1 across 454 paced attempts.
+- The earlier "≤30 req/sec is fine" guidance is MISLEADING for a real tenant — read it as "serial with 1.5–3s jitter," never as "parallelize up to 30/s."
+- Per-user: hard cap from state file is the only thing that matters for lockout-causation; serial pacing is what matters for IP reputation.
+- Random jitter (1.5–5s between attempts) for less-machine-like signature.
+- **Kill-switch:** if >~5 `AADSTS50053` appear in a run where your cap is 1/user, STOP — you've either tripped IP anti-spray (your fault, pace down / rotate IP / wait for cooldown) or detected a real external spray (a finding). Either way, pause and diagnose before continuing.
 
 ---
 
@@ -355,7 +357,7 @@ For the report:
 
 - **DON'T use the leaked cred for the user across multiple resources** — burns the cap with no marginal benefit when CA blocks all paths
 - **DON'T retry after AADSTS50053** — account is locked, you'll just see lockout again
-- **DON'T spray more than ~30 attempts/sec to login.microsoftonline.com** — Microsoft can flag the IP for sustained credential-stuffing pattern
+- **DON'T parallelize ROPC/auth requests AT ALL** — serial + paced only. Concurrency trips Entra's IP-reputation anti-spray (separate from Smart Lockout), floods false `AADSTS50053`, contaminates results, and flags your IP. "Going faster" by adding threads costs more than it saves. The only safe speed-up is removing dead/nonexistent users first (small `GetCredentialType` batches <60), not raising concurrency.
 - **DON'T forget to test ALL Entra tenants** — sister domains often have separate tenants with different password policies
 - **DON'T retract a CA-block finding** — AADSTS53003 means the password is correct; that's the whole point
 

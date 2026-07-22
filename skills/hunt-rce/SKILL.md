@@ -5,6 +5,27 @@ sources: github, hackerone_public
 report_count: 67
 ---
 
+## Autonomous Testing Priority
+
+**Content-type is the #1 silent failure mode for command injection.**
+
+Traditional web forms use `Content-Type: application/x-www-form-urlencoded`. If you send a JSON body (`{"host":"127.0.0.1;id"}`) to a form endpoint, the server reads `request.form['host']` and gets nothing — the app executes normally with no injection, returning a plausible 200 response. You get a false negative with no indication anything went wrong.
+
+**Rule:** If the page has an HTML form (`<form method="POST">`), use form-encoding. If the path is `/api/...` or the response is JSON, use JSON.
+
+**Command injection operators to try (in order of prevalence):**
+```
+value;id        ← Unix semicolon (most common)
+value|id        ← pipe
+value&&id       ← AND
+value$(id)      ← subshell
+value`id`       ← backtick
+```
+
+**Proof:** OS command output (`uid=N(username) gid=...`) in the response body confirms code execution. The output may be HTML-wrapped — that still counts. If the response is otherwise normal (200, expected content) with the command output appended or embedded, exploitation is confirmed.
+
+---
+
 ## Crown Jewel Targets
 
 RCE vulnerabilities command the highest payouts in bug bounty programs because they grant attackers direct execution control over target infrastructure. The highest-value targets are:

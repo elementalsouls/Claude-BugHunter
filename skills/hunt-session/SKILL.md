@@ -5,6 +5,34 @@ sources: hackerone_public, portswigger_research, owasp_wstg
 report_count: 18
 ---
 
+## Autonomous Testing Priority
+
+**Missing HttpOnly on cookies is auto-detected — focus your active testing on lifecycle invalidation (higher impact).**
+
+**Pattern 1 — Session survives logout (most common high-value finding):**
+1. Login and note the session token/cookie value
+2. Call the logout endpoint (`/logout`, `POST /api/logout`, etc.)
+3. Try to use the OLD session token to access a protected resource (`/api/me`, `/dashboard`, `/account`)
+4. If 200 with user data → session not invalidated on logout = ATO persistence
+
+**Pattern 2 — Session not regenerated on login (session fixation):**
+1. GET any page to receive a pre-authentication session token/cookie
+2. POST valid credentials to the login endpoint
+3. Compare the session token BEFORE and AFTER login
+4. If the token is unchanged → session fixation vulnerability
+
+**Pattern 3 — Session survives password change:**
+1. Login → record session A value
+2. Change the password via the account settings endpoint
+3. Replay session A on a protected endpoint
+4. If 200 → token not rotated on credential change = persistent ATO (critical chain when combined with XSS/cookie theft)
+
+**Content-type:** Login and session endpoints vary — use `application/json` for REST APIs, `application/x-www-form-urlencoded` for traditional web forms. Try both if the first returns an unexpected response.
+
+**Proof:** A protected-resource 200 response (with user data) using a session token that should have been invalidated confirms the finding.
+
+---
+
 # HUNT-SESSION — Session Management
 
 ## Crown Jewel Targets

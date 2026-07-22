@@ -2,7 +2,7 @@
 
 # claude-bughunter
 
-> A self-contained Claude skill bundle for bug hunting and external red-team work · **71 skills** · 15 slash commands · **681 disclosed-report patterns** across 24 core vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Burp MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
+> A self-contained Claude skill bundle for bug hunting and external red-team work · **82 skills** · 15 slash commands · **681 disclosed-report patterns** across 24 core vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Burp MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
 
 Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — Bug Hunting & GenAI Security Research.
 
@@ -43,7 +43,7 @@ All triggered automatically by topic — describe what you're testing in plain E
 /plugin install claude-bughunter@elementalsouls
 ```
 
-All 71 skills + 15 commands load namespaced under `claude-bughunter:` and update when you bump the plugin version — no files copied into `~/.claude/`.
+All 82 skills + 15 commands load namespaced under `claude-bughunter:` and update when you bump the plugin version — no files copied into `~/.claude/`.
 
 **Option B — copy install (no plugin system / pin to a clone):**
 
@@ -55,7 +55,7 @@ bash scripts/install.sh        # copies skills + commands into ~/.claude/
 
 **What each install path gives you:**
 
-| Path | 71 skills + 15 slash commands | `cbh` CLI | `hunt` scaffolder |
+| Path | 82 skills + 15 slash commands | `cbh` CLI | `hunt` scaffolder |
 |---|---|---|---|
 | **A — plugin** | ✅ namespaced under `claude-bughunter:` | ➕ separate `pipx install` | ❌ clone-only |
 | **B — copy install** | ✅ copied into `~/.claude/` | ✅ from the clone | ✅ from the clone |
@@ -142,7 +142,7 @@ If you're running an internal red team that includes domain-takeover chains via 
 
 ## What's inside
 
-**71 skills**, auto-loaded by topic — no invocation by name. Coverage across the external attack surface:
+**82 skills**, auto-loaded by topic — no invocation by name. Coverage across the external attack surface:
 
 | Category | # | Examples |
 |---|---|---|
@@ -263,7 +263,7 @@ Operational tradecraft accumulated across bug-bounty engagements and authorized 
 
 **Sister project:** [Claude-OSINT](https://github.com/elementalsouls/Claude-OSINT) — paired skills for the recon phase that this bundle picks up after. Its two recon skills (`offensive-osint`, `osint-methodology`) are **canonically maintained here** and re-exported there, so the two are byte-identical. **Installing both is safe:** each bundle's `install.sh` records a manifest, the script skips re-copying an identical skill, and `--uninstall` keeps any skill the other bundle still owns — uninstalling one never breaks the other.
 
-**Vendored foundation:** [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) — methodology, validation, reporting, payload library (8 of 71 skills + 15 slash commands)
+**Vendored foundation:** [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) — methodology, validation, reporting, payload library (8 of 82 skills + 15 slash commands)
 
 **Generator tool used (not vendored):** [shuvonsec/public-skills-builder](https://github.com/shuvonsec/public-skills-builder) — used to scaffold per-class skills from H1 disclosed reports
 

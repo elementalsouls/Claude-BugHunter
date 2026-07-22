@@ -3,6 +3,38 @@ name: hunt-mfa-bypass
 description: "Hunt MFA / 2FA bypass — 7 distinct patterns. (1) MFA not enforced on sensitive endpoints (password change, email change accept without MFA challenge), (2) MFA-step skip via direct navigation to post-login URL, (3) MFA-token replay (same code accepted twice), (4) brute-force the 6-digit OTP without rate limit (10^6 attempts at server speed), (5) race condition on OTP validation, (6) recovery-code dump via /api/me, (7) backup factor downgrade (SMS factor with no rate limit). Plus the chain: cookie theft + password oracle + no step-up = ATO without MFA challenge. Detection: trace auth flow in Burp, find every state transition, check if MFA is middleware-gated vs per-endpoint, check OTP entropy and rate limit on OTP-validate. Validate: attacker session reaching post-MFA state. Use when hunting auth bypass, MFA flows, chaining primitives toward ATO."
 ---
 
+## Autonomous Testing Priority
+
+**Try workflow bypasses before brute force — they're faster and more likely to succeed.**
+
+**Pattern 1 — Skip the MFA step entirely (most automatable):**
+1. Login with valid credentials → receive a "pre-MFA" session state
+2. Without completing MFA, directly access a protected resource (`/dashboard`, `/api/me`, `/account/profile`)
+3. If the response returns user data → MFA is enforced only in the UI, not server-side = Critical
+
+**Pattern 2 — OTP replay (reuse a consumed code):**
+1. Complete a valid MFA flow to get a working OTP
+2. Log out, log in again with the same credentials
+3. Submit the same OTP again
+4. If accepted → OTP is not invalidated after use
+
+**Pattern 3 — Submit obviously wrong OTP, observe response:**
+Try submitting `000000` or `123456`. If the response is 200 or returns a session token, OTP validation is broken or client-side only.
+
+**Pattern 4 — Partial / incremental validation (prefix oracle):**
+If a guessed full code is rejected, test whether the server validates the OTP **prefix-by-prefix** instead of all-or-nothing. Submit a short partial code and compare responses:
+1. Submit a 1–3 digit value (e.g. `otp=1`, then `otp=12`, …) — for a POST verify endpoint the code goes in the **request body**, not the URL query string, or the server reads an empty value.
+2. If a *correct* prefix gives a DIFFERENT response than a wrong one (a success/flag, a distinct message, or a different length/timing), the validator leaks correctness one chunk at a time.
+3. Walk the code digit-by-digit: keep the prefix that "responds correct," append 0–9, repeat. This collapses 10^6 brute force to ~10×N guesses (≤60 for a 6-digit code) — very feasible in a bounded test.
+This is the go-to when there is no leaked code and no skip/replay path. Some apps award success on *any* correct prefix outright (so a single correct first digit can win — sweep `otp=0,1,…,9` before giving up).
+**CRITICAL — stay in ONE session:** re-authenticating (POST /…/login again) regenerates the OTP, throwing away your prefix progress. Do the entire sweep against a single established MFA session; never re-login between guesses.
+
+**On full brute force:** brute-forcing all 10^6 codes is infeasible in a bounded test — but the prefix oracle above (Pattern 4) usually makes it unnecessary. Only attempt full brute force with evidence of no rate limit AND a small key space.
+
+**Proof:** A session token or protected resource data in the response without completing MFA confirms the bypass.
+
+---
+
 ## 19. MFA / 2FA BYPASS
 > Growing bug class — 7 distinct patterns. Pays High/Critical when it enables ATO without prior session.
 

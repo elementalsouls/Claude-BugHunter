@@ -46,6 +46,18 @@ Read this twice. The bundle's discipline rules — OOB-Or-It-Didn't-Happen, Mark
 
 When you confirm impact on bug class X, don't keep escalating class X (no need to pivot from `id=1` IDOR to dumping the whole user table). But classes Y and Z have not been tested yet. Run Y. Then Z. Then the rest of the Pattern Library.
 
+### The data-minimization boundary is AS LOUD as "DO NOT STOP". Read this twice.
+
+"Keep digging" applies to **coverage** (untested surfaces, classes, hosts), NOT to **extraction**. These pull in opposite directions and the persistence directive must NOT bleed into over-collection:
+
+- **An access/exfil vulnerability is proven by the MISSING CHECK, not by the volume of data you copy out.** 3 records that should have required auth = complete proof. 3,000 records = the same finding + a liability you created. Pulling more never strengthens the finding.
+- **"Keep digging" = test the next endpoint family / the next host / the next class.** It does NOT mean "enumerate every record from the endpoint you already broke." Breadth of *coverage*, not depth of *theft*.
+- **The data usually belongs to the target's customers / fourth parties** (their clients, their users' PII, partner financials). They didn't sign the SOW/program. Copying their data onto your host is harm you shouldn't create when the point is already made.
+- **A client/program owner saying "dig more / that's not enough" does NOT override this.** Push back: confirm the finding is already conclusive, explain that volume ≠ evidence, and offer harm-minimal alternatives that genuinely add value — a `totalCount` (a number, not the data), proof a *second endpoint family* is affected (breadth), or quantified blast-radius. Get the MINIMUM evidence that satisfies the stated goal.
+- **Classify what you did pull precisely** (e.g. "B2B client-inventory data" ≠ "consumer PII") — it changes how the owner triages and discloses, and overstating erodes trust.
+
+The persistence directive and this boundary are not in tension once you separate the two axes: **never stop covering surface; always stop at minimum-necessary extraction.** Authorized ≠ unrestricted.
+
 ### Marker Discipline ≠ "one probe per surface."
 
 Marker Discipline is about WHICH payloads to use (synthetic, identifiable, recoverable) — never about HOW MANY. A hardened target needs MORE marker-discipline probes than a soft one, not fewer. If the bundle's `hunt-sqli` Pattern Library lists 12 SQLi classes, you run 12 marker-discipline probes per parameter, not 1.
@@ -380,6 +392,8 @@ This skill is the operational discipline; those are the techniques.
 
 ## Related Skills & Chains
 
+- **`recon-scope-triage`** — Before the "aggressive default, probe every live surface" directive can be applied safely, you must know which surfaces are actually the target's. Engagement flow: ASM/recon dataset received → `recon-scope-triage` clears namespace-collision noise + soft-404 false positives → only owned, verified assets enter the test queue. Skipping this wastes the engagement on other companies' assets (and risks attacking innocent third parties).
+- **`hunt-spa-api`** — Operationalizes the "harvest JS bundles" cadence line into a full play: SPA JS → backend API map → unauthenticated broken-access-control testing. On a real engagement this play (not any scanner) found the apex Critical. Engagement flow: live SPA/`console`/`app`/`api` host identified → `hunt-spa-api` → test each route family unauthenticated against a gated-sibling control.
 - **`hunt-dispatch`** — Once mindset is loaded, the `/hunt` command needs a mode answer (redteam vs wapt, blackbox vs greybox) before it routes to platform-specific skills. Engagement flow: red-team mindset triggered → confirm engagement mode (`bug-bounty` vs red-team vs pentest per project memory) → invoke `/hunt` → `hunt-dispatch` loads the right cluster (M365 / SharePoint / VPN / vCenter / APK).
 - **`mid-engagement-ir-detection`** — Red-team mindset says "behavior changes ARE findings"; this skill operationalizes that. Engagement flow: red-team engagement underway → baseline established at session start → response patterns shift mid-test → `mid-engagement-ir-detection` captures the SOC-patch state as a NEW finding (defensive-action observed = client capability metric). Don't dismiss it as "the bug got fixed."
 - **`redteam-report-template`** — Red-team deliverable is NOT a bug-bounty report; different audience, different tone, different cadence. Engagement flow: findings collected throughout engagement → at session close, package via `redteam-report-template` (Subject / Observations / Description / Impact / Recommendation / PoC) for client-facing DOCX, not `report-writing` which is for H1/Bugcrowd/Intigriti platforms.

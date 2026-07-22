@@ -1,6 +1,6 @@
 ---
 name: hunt-api-misconfig
-description: "Hunt API security misconfiguration — mass assignment, JWT attacks, prototype pollution, HTTP verb tampering. Mass assignment: send {is_admin:true, role:admin, verified:true} on profile/account/reset endpoints — server blindly applies. JWT: alg=none, weak HMAC bruteforce, kid path traversal, JWK injection, token confusion. Prototype pollution: __proto__ injection in JSON merge / Object.assign / lodash _.merge → polluted prototype reaches sink (RCE in Node, XSS in browser). HTTP verb: GET-bypass-CSRF, X-HTTP-Method-Override, TRACE enabled. Detection: API responses with extra fields, JWTs in headers (decode at jwt.io). CORS misconfiguration (reflect-any-origin, null origin, subdomain-regex bypass, postMessage) is owned by hunt-cors. Use when hunting API misconfigs, JWT flaws, mass-assignment, prototype pollution."
+description: "Hunt API security misconfiguration — mass assignment, prototype pollution, HTTP verb tampering. Mass assignment: send {is_admin:true, role:admin, verified:true} on profile/account/reset endpoints — server blindly applies. JWT signature/crypto forging (alg:none, key confusion, kid/jku) is owned by hunt-jwt-crypto; this skill covers only non-crypto JWT handling. Prototype pollution: __proto__ injection in JSON merge / Object.assign / lodash _.merge → polluted prototype reaches sink (RCE in Node, XSS in browser). HTTP verb: GET-bypass-CSRF, X-HTTP-Method-Override, TRACE enabled. Detection: API responses with extra fields, JWTs in headers (decode at jwt.io). CORS misconfiguration (reflect-any-origin, null origin, subdomain-regex bypass, postMessage) is owned by hunt-cors. Use when hunting API misconfigs, mass-assignment, prototype pollution (JWT crypto → hunt-jwt-crypto)."
 ---
 
 ## 12. API SECURITY MISCONFIGURATION
@@ -31,6 +31,91 @@ token = jwt.encode({"sub": "admin", "role": "admin"}, pub_key, algorithm="HS256"
 {"__proto__": {"admin": true}}
 {"constructor": {"prototype": {"admin": true}}}
 // URL: ?__proto__[isAdmin]=true&__proto__[role]=superadmin
+```
+
+For server-side prototype pollution, hunt for an object merge primitive first, then a sink. Favor
+JSON/object update endpoints such as profile, address, preferences, settings, cart, admin job, import,
+or webhook configuration. Do not stop at a 200 response to `__proto__`; prove that polluted prototype
+state reaches a later operation.
+
+Hunt sequence:
+
+1. **Find an object-update endpoint.** Prefer endpoints that accept many named fields or JSON objects.
+   Try both JSON and form encodings when the app accepts forms. Include CSRF/session fields when needed.
+2. **Pollute harmless marker properties.** Send variants such as:
+
+```
+{"__proto__":{"polluted":"pp-1337"}}
+{"constructor":{"prototype":{"polluted":"pp-1337"}}}
+__proto__[polluted]=pp-1337
+constructor[prototype][polluted]=pp-1337
+```
+
+3. **Trigger a separate sink.** After pollution, request account/profile/admin/job/export/search/render
+   endpoints and compare with baseline. Strong signals include changed JSON defaults, unexpected fields,
+   server errors mentioning object properties, changed job output, template/render errors, or command/job
+   behavior changes.
+4. **Escalate only through learned sinks.** Candidate properties depend on the sink:
+
+```
+{"__proto__":{"json spaces":10}}
+{"__proto__":{"status":555}}
+{"__proto__":{"isAdmin":true,"role":"admin"}}
+{"__proto__":{"shell":"/bin/bash","argv0":"node","NODE_OPTIONS":"--inspect"}}
+{"__proto__":{"execArgv":["--eval","process.mainModule.require('child_process').execSync('id')"]}}
+```
+
+5. **For exfiltration labs or real impact, prefer non-destructive proof.** If an admin job, diagnostic,
+   export, or rendering endpoint consumes polluted defaults, use a marker or environment/secret read only
+   when authorized. In production, stop at a controlled marker unless scope explicitly permits data access.
+
+### Server-Side Parameter Pollution in Backend URL / REST URL Construction
+
+Use this when a frontend form or endpoint appears to call a server-side API on your behalf
+(password reset, account lookup, profile fetch, product lookup, stock check, search). The bug is not
+ordinary client-side query pollution. The server takes your input and interpolates it into a backend
+URL path or query string, such as:
+
+```
+/api/internal/users/<username>/field/email
+/api/users/<id>
+/api/users?username=<username>&field=email
+```
+
+Hunt sequence:
+
+1. **Find the flow and read the client request.** Fetch the page and any referenced JavaScript. Look
+   for form actions, `fetch(...)`, hidden CSRF fields, and the exact parameter name the browser sends.
+   If there is a reset/account form, test known usernames first to learn the normal success/error shape.
+2. **Determine whether input lands in a backend path or query.** Send URL metacharacters in the input:
+   `#`, `?`, `&x=y`, `/`, `../`, and encoded forms `%23`, `%3f`, `%26x=y`, `%2f`, `%2e%2e%2f`.
+   Distinct errors such as `Invalid route`, `API definition`, `unsupported field`, or changed returned
+   fields mean your value is being interpreted by a server-side URL router, not merely validated as text.
+3. **Use path traversal to move inside the server-side URL.** If `username/../other-user` changes the
+   referenced account, the input is in a REST path segment. Then try appending route fragments such as
+   `/field/email`, `/field/id`, `/field/username`, `/field/passwordResetToken`, and terminate the rest
+   of the original backend path with `#` or `%23` when the backend URL parser honors fragments.
+4. **Discover API documentation from errors.** When an error says to consult the API definition, probe
+   common documentation/spec paths: `/openapi.json`, `/swagger.json`, `/api-docs`, `/api/swagger.json`,
+   `/swagger/v1/swagger.json`, `/v3/api-docs`, and path-traversal variants that attempt to reach the
+   spec from the vulnerable backend route. A spec or descriptive route error tells you valid resources
+   and field names.
+5. **Exploit only to prove impact.** For password reset/account lookup flows, the strongest proof is a
+   sensitive field such as a reset token or secret for another user, then using that token in the normal
+   application flow to complete account takeover. Do not stop at `Invalid route`; use errors as routing
+   feedback.
+
+Payload patterns to try, adapted to the observed parameter name:
+
+```
+username=administrator%23
+username=administrator%3f
+username=administrator%2f..%2fvictimuser
+username=administrator/../victimuser
+username=administrator/field/email%23
+username=administrator/field/id%23
+username=administrator/field/passwordResetToken%23
+username=administrator%2ffield%2fpasswordResetToken%23
 ```
 
 ### CORS Exploitation
@@ -179,4 +264,3 @@ Tools: `kiterunner` natively eats OpenAPI; `sj` (Swagger Jacker), `apidetector`,
 - **`hunt-subdomain`** — CORS regex with wildcard subdomain trusts a takeoverable host. Chain primitive: CORS allowlist `*.target.com` + subdomain takeover → attacker-controlled origin reads credentialed API responses.
 - **`security-arsenal`** — Load the JWT Attack Payloads section (alg=none, kid path traversal, JWK injection, embedded JWK) and the Mass-Assignment Field Wordlist (`is_admin`, `role`, `verified`, `permissions`, `org_id`, `tenant_id`).
 - **`triage-validation`** — Apply the Server-Policy-vs-State gate: a permissive CORS header alone is informational; demonstrate actual cross-origin credentialed read of sensitive data before reporting.
-
