@@ -7,12 +7,17 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Added
+- **Skill library expanded 71 → 82** — 9 new hunt skills (`hunt-jwt-crypto`, `hunt-rag-vector`,
+  `hunt-shadow-api`, `hunt-captcha-bypass`, `hunt-clickjacking`, `hunt-html-injection`,
+  `hunt-forgot-password`, `hunt-exceptional-conditions`, `ios-redteam-pipeline`) plus `hunt-spa-api`
+  and `recon-scope-triage`; 11 existing skills expanded with verified technique content. Hunt
+  sub-stack 48 → 57. `hunt-ai-attacks` folded into `hunt-llm-ai` (was a frontmatter-less duplicate).
 - **Claude Code plugin marketplace** — `.claude-plugin/marketplace.json` + `.claude-plugin/plugin.json`
   make the bundle installable natively: `/plugin marketplace add elementalsouls/Claude-BugHunter`
   then `/plugin install claude-bughunter@elementalsouls`. Skills load namespaced under
   `claude-bughunter:` and update on version bump. The `scripts/install.sh` copy method stays as a
   fallback. This is the convention used by Anthropic's own marketplaces and Trail of Bits.
-- **Multi-harness install** — the 71 Agent Skills now run on **OpenCode, OpenAI Codex CLI, and
+- **Multi-harness install** — the 82 Agent Skills now run on **OpenCode, OpenAI Codex CLI, and
   Hermes Agent**, not just Claude Code. `scripts/install.sh` gains `--agents` (→ `~/.agents/skills/`,
   read by Codex + OpenCode), `--hermes` (→ `~/.hermes/skills/`), `--all`, and `--burp-mcp` (translates
   the existing Burp MCP into each harness's config via `scripts/setup_harness_mcp.py`; OpenCode JSON +
@@ -21,11 +26,21 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
+  `surfaces:`) broke strict YAML / Codex. Also genericized lab/harness-specific language in the new
+  skills for cross-harness portability.
 - `hunt-ntlm-info`: quoted the `description` — it contained an unquoted `` `WWW-Authenticate: NTLM` ``
   (`: ` makes strict YAML parsers read a nested mapping). Claude/OpenCode/Hermes tolerated it; **Codex
   rejected it**. Surfaced by real multi-harness testing.
 
 ### Changed
+- **Dispatch dedup (description-scoping only — bodies unchanged)** — `hunt-jwt-crypto` set as the
+  JWT-crypto owner (`hunt-ato`/`hunt-auth-bypass`/`hunt-api-misconfig` defer to it); `bb-local-toolkit`
+  differentiated from `bug-bounty` (had a byte-identical description); scoped `hunt-sqli`↔`hunt-nosqli`,
+  `hunt-auth-bypass`↔`hunt-saml`, `hunt-cache-poison`↔`hunt-host-header`,
+  `report-writing`/`security-arsenal`↔`triage-validation`, and `hunt-spa-api`↔`hunt-source-leak`/`hunt-shadow-api`.
+- Metrics synced to **82 skills** across README, banner, catalog (regenerated), INSTALL, USAGE, and
+  docs (architecture/credits/index/multi-harness + capability-map/architecture-overview diagrams).
 - `install.sh --agents` **auto-truncates** descriptions > 1024 chars to ≤1024 in the `~/.agents/skills`
   (Codex) copy only — Codex hard-rejects longer ones; `~/.claude`/`~/.hermes` keep full descriptions.
   Affects the 3 aggregator router skills.

@@ -1,6 +1,6 @@
 # Claude-BugHunter — Usage Guide
 
-A practical guide to using the 51-skill Claude-BugHunter bundle for bug hunting (bounty programs, authorized pentesting, CTFs, vuln research) **and external red-team engagements** against enterprise targets. This document covers what's in the bundle, how it composes, and how to use it on a real engagement from intake through paid bounty (or final client deliverable).
+A practical guide to using the 82-skill Claude-BugHunter bundle for bug hunting (bounty programs, authorized pentesting, CTFs, vuln research) **and external red-team engagements** against enterprise targets. This document covers what's in the bundle, how it composes, and how to use it on a real engagement from intake through paid bounty (or final client deliverable).
 
 > Built and validated through authorized red-team and bug-bounty engagements — exposed four bug-bounty capability gaps and five additional gaps around platform attack chains, mid-engagement IR detection, and client-facing reporting. The final stack documented here addresses both modes.
 
@@ -12,9 +12,9 @@ This section is for people who have **never used the bundle before, never used C
 
 ### What is this bundle, in plain English?
 
-It's a collection of 51 markdown files (called **skills**) that turn Claude Code into a methodical bug-hunting assistant.
+It's a collection of 82 markdown files (called **skills**) that turn Claude Code into a methodical bug-hunting assistant.
 
-Without the bundle, asking Claude *"is this XSS?"* gets you a generic answer. With the bundle installed, the same question loads the `hunt-xss` skill — which contains specific detection patterns from 574+ disclosed reports, the exact payloads that have worked, and a validation gate that prevents you from filing a false-positive bug report.
+Without the bundle, asking Claude *"is this XSS?"* gets you a generic answer. With the bundle installed, the same question loads the `hunt-xss` skill — which contains specific detection patterns from 681+ disclosed reports, the exact payloads that have worked, and a validation gate that prevents you from filing a false-positive bug report.
 
 You don't "learn" the bundle. You install it once, then describe what you're testing in plain English, and the relevant skill auto-loads. You read it together with Claude and follow the steps.
 
@@ -31,7 +31,7 @@ You don't "learn" the bundle. You install it once, then describe what you're tes
 - ❌ You don't need to know how to write exploits. The skills include working payloads.
 - ❌ You don't need to know Burp Suite. It's optional. Skills work with curl + browser.
 - ❌ You don't need a bug bounty account yet. You can practice on OWASP Juice Shop first.
-- ❌ You don't need to read all 51 skills. They auto-load when relevant.
+- ❌ You don't need to read all 82 skills. They auto-load when relevant.
 - ❌ You don't need Python beyond `python3 --version` working.
 
 ### Your first 30 minutes
@@ -44,7 +44,7 @@ mkdir -p ~/security-research && cd ~/security-research
 git clone https://github.com/elementalsouls/Claude-BugHunter.git
 cd Claude-BugHunter
 
-# 2. Install (copies 51 skills + 15 commands into Claude Code)
+# 2. Install (copies 82 skills + 15 commands into Claude Code)
 ./scripts/install.sh
 
 # 3. Reload your shell so the 'hunt' command becomes available
@@ -149,7 +149,7 @@ See [docs/architecture.md](docs/architecture.md) for a more detailed breakdown.
 
 ---
 
-## 2. Skill inventory (51 skills total)
+## 2. Skill inventory (82 skills total)
 
 ### Workflow skills — the spine of any engagement
 
@@ -167,7 +167,7 @@ See [docs/architecture.md](docs/architecture.md) for a more detailed breakdown.
 | `web2-recon` | Subdomain enumeration, host discovery, URL crawling | "find all subdomains of X" |
 | `bb-local-toolkit` | Router for local cloned bug-bounty repos | "which tool for X", refers to local stack |
 
-### Hunt — 24 per-class web skills
+### Hunt — 57 per-class web skills
 
 Each focuses on one vulnerability class with detection patterns, payloads, bypass tables, and chain opportunities drawn from disclosed bug-bounty reports.
 
@@ -378,7 +378,7 @@ Cross-reference this UUID in any chained submissions you file later.
 If another pentester wants to replicate this stack, the install steps are in [INSTALL.md](INSTALL.md). The short version:
 
 1. Clone this repo
-2. Run `./scripts/install.sh` (installs all 51 skills, 15 commands, and hunt scaffold in one step)
+2. Run `./scripts/install.sh` (installs all 82 skills, 15 commands, and hunt scaffold in one step)
 3. Set up Burp MCP (BApp Store extension + `claude mcp add burp ...`)
 4. (Optional) Refresh upstream snapshots via `./scripts/install-community-skills.sh`
 5. (Optional) Set up the skill regenerator with Anthropic + H1 API keys
