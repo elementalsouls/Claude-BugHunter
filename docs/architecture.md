@@ -4,7 +4,7 @@ The Claude-BugHunter bundle maps to a 6-phase workflow that supports both bug hu
 
 ## Primary view — phase-by-phase architecture
 
-82 skills mapped to 6 phases, with a 57-skill `hunt-*` sub-stack, a 7-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
+82 skills mapped to 6 phases, with a 57-skill `hunt-*` sub-stack, an 8-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
 
 ![architecture overview](assets/architecture-overview.svg)
 
@@ -45,6 +45,7 @@ The 6-phase workflow expanded into a pipeline showing per-phase active skills, t
 | Skill | Source | Purpose |
 |---|---|---|
 | **`offensive-osint`** | original | 15-reference probe/regex/dork arsenal — loads on demand |
+| **`recon-scope-triage`** | original | On receiving an ASM/recon dataset — ownership & namespace-collision dedup, in-scope triage before testing |
 | `web2-recon` | vendored | Subdomain enumeration, host discovery, URL crawling |
 | **`bb-local-toolkit`** | original | Routes to local cloned bug-bounty repos when applicable |
 
@@ -54,12 +55,12 @@ The 6-phase workflow expanded into a pipeline showing per-phase active skills, t
 
 | Skill | Source | Purpose |
 |---|---|---|
-| **48 `hunt-*` skills** | original + community | Per vuln class / framework, curated from disclosed H1 reports + v3 community expansion — auto-trigger by topic |
+| **57 `hunt-*` skills** | original + community | Per vuln class / framework, curated from disclosed H1 reports + v3 community expansion — auto-trigger by topic |
 | `security-arsenal` | vendored | Payload library (XSS / SSRF / SQLi / SSTI / etc.) |
 | `web3-audit` | vendored | Smart-contract audit (10 bug classes, Foundry PoC) |
 | `meme-coin-audit` | vendored | Token rug-pull detection |
 
-### Per-class hunt skills (48)
+### Per-class hunt skills (57)
 
 ```
 hunt-api-misconfig                      hunt-mfa-bypass
@@ -86,6 +87,13 @@ hunt-laravel          (14)              hunt-websocket        (11)
 hunt-ldap             (8)               hunt-xss              (174)
 hunt-lfi              (31)              hunt-xxe              (10)
 hunt-llm-ai
+
+# added this release (all original):
+hunt-jwt-crypto                         hunt-forgot-password
+hunt-shadow-api                         hunt-exceptional-conditions
+hunt-spa-api                            hunt-captcha-bypass
+hunt-rag-vector                         hunt-clickjacking
+hunt-html-injection
 ```
 
 Plus alternates: `hunt-cache-poison`, `hunt-race-condition`, `hunt-subdomain`. Plus the meta-router `hunt-dispatch` (used internally by the `/hunt` slash command — not user-invoked).
@@ -94,9 +102,9 @@ Plus alternates: `hunt-cache-poison`, `hunt-race-condition`, `hunt-subdomain`. P
 
 **How auto-triggering works**: just describe what you're testing — e.g., *"I see a `?url=` parameter on this endpoint"* — and Claude loads only `hunt-ssrf`. You don't invoke them by name.
 
-### Enterprise platform attack (Phase 3 expansion — 7 skills)
+### Enterprise platform attack (Phase 3 expansion — 8 skills)
 
-External red-team engagements against enterprise estates need attack chains for full platform stacks, not just webapps. These 7 skills extend Phase 3 with current 2024-2026 CVE chains and platform-specific tradecraft.
+External red-team engagements against enterprise estates need attack chains for full platform stacks, not just webapps. These 8 skills extend Phase 3 with current 2024-2026 CVE chains and platform-specific tradecraft.
 
 | Skill | Source | Purpose |
 |---|---|---|
@@ -106,6 +114,7 @@ External red-team engagements against enterprise estates need attack chains for 
 | **`vmware-vcenter-attack`** | original | vSphere / vCenter / Workspace ONE / Aria CVE chain (CVE-2021-21972 → CVE-2024-37085) |
 | **`enterprise-vpn-attack`** | original | Cisco ASA, Fortinet, Citrix NetScaler, PAN GlobalProtect, Pulse/Ivanti, SonicWall, F5 SSL VPN |
 | **`apk-redteam-pipeline`** | original | Android APK red-team pipeline — acquisition → jadx → secret grep → Frida instrumentation |
+| **`ios-redteam-pipeline`** | original | iOS red-team pipeline — IPA acquisition, decryption, class-dump, keychain/ATS/pinning analysis, Frida/objection instrumentation |
 | **`supply-chain-attack-recon`** | original | Dep-confusion, GH Actions injection, SBOM mining, container registry exposure (recon only, no publish-step) |
 
 ### Red-team tradecraft (cross-phase — 2 skills)
@@ -234,7 +243,7 @@ Tools the skills call into during the workflow.
 - **No automated exploitation tooling** — this bundle guides hunting and reporting; it doesn't fire payloads automatically. Use Burp's Active Scanner, sqlmap, etc. for automated work.
 - **No CI/CD integration** — this is a workflow stack for individual researchers, not a continuous scanning pipeline.
 - **No secret leak deletion** — if the stack helps you find leaked credentials, you (and the program) handle remediation.
-- **iOS testing not covered** — `apk-redteam-pipeline` covers Android only. For iOS, use `Mobile-Security-Framework-MobSF` or Burp Mobile Assistant.
+- **Mobile covered on both platforms** — `apk-redteam-pipeline` (Android) and `ios-redteam-pipeline` (iOS) cover mobile red-team recon and instrumentation; deep runtime work can still pair with `Mobile-Security-Framework-MobSF` or Burp Mobile Assistant.
 
 ---
 
