@@ -8,13 +8,37 @@ their 20% expert effort where the 80% automation points:
 
     surface (endpoint / parameter)  ->  attack class  ->  which hunt-* skill  ->  first curl
 
-Mappings are grounded in the skills actually installed (~/.claude/skills); anything not
-present is filtered out so we never point at a skill that isn't there.
+Mappings are grounded in the skills actually installed (auto-detected: the bundle's own
+skills/ for repo/plugin installs, or ~/.claude/skills for the copy installer, overridable
+via $CBH_SKILLS_DIR); anything not present is filtered out so we never point at a skill
+that isn't there.
 Active testing is curl-first; Burp MCP is optional (only where noted — OOB/blind/fuzzing).
 """
 import os
 
-SKILLS_DIR = os.path.expanduser("~/.claude/skills")
+
+def _resolve_skills_dir():
+    """Locate the installed skills/ directory across every install method.
+
+    Resolution order:
+      1. $CBH_SKILLS_DIR — explicit override (e.g. a non-standard plugin cache path).
+      2. skills/ shipped next to the engine — works for both a repo checkout and a
+         Claude Code plugin install (the whole bundle lives in the plugin cache, so
+         engine/ and skills/ stay siblings there too).
+      3. ~/.claude/skills — the target of the scripts/install.sh copy method.
+    """
+    env = os.environ.get("CBH_SKILLS_DIR")
+    if env:
+        return os.path.expanduser(env)
+    bundled = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills"
+    )
+    if os.path.isdir(bundled):
+        return bundled
+    return os.path.expanduser("~/.claude/skills")
+
+
+SKILLS_DIR = _resolve_skills_dir()
 
 # attack class -> hunt skill(s) in the bundle
 CLASS_SKILL = {

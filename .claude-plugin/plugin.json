@@ -1,6 +1,6 @@
 {
   "name": "claude-bughunter",
-  "description": "71-skill bug-hunting & external red-team bundle for Claude Code — 48 hunt-* web/vuln-class + framework skills, enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK), recon/OSINT, reporting & validation gates, and Burp MCP integration. Skills auto-load by topic; 15 slash commands included.",
+  "description": "82-skill bug-hunting & external red-team bundle for Claude Code — 57 hunt-* web/vuln-class + framework skills, enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and Burp MCP integration. Skills auto-load by topic; 15 slash commands included.",
   "version": "2.1.0",
   "author": {
     "name": "Sachin Sharma",
