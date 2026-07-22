@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1100" width="1920" height="1100" role="img" aria-label="Claude-BugHunter Capability Map — 3-layer architecture with 51 skills">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1100" width="1920" height="1100" role="img" aria-label="Claude-BugHunter Capability Map — 3-layer architecture with 82 skills">
   <defs>
     <linearGradient id="cm-bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0a0a0e"/>
@@ -37,7 +37,7 @@
 
   <g font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="14" fill="#5a5a6a" letter-spacing="2">
     <text x="60" y="60">▸ CAPABILITY MAP</text>
-    <text x="780" y="60">· 51 SKILLS · 3 LAYERS · 7 DOMAINS · 574+ DISCLOSED PATTERNS ·</text>
+    <text x="780" y="60">· 82 SKILLS · 3 LAYERS · 7 DOMAINS · 681+ DISCLOSED PATTERNS ·</text>
     <text x="1860" y="60" text-anchor="end">DOC ▸ ARCHITECTURE.0X02</text>
   </g>
   <line x1="40" y1="78" x2="1880" y2="78" stroke="#2a2a35" stroke-width="1"/>
