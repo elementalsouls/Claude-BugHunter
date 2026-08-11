@@ -2,7 +2,7 @@
 
 # claude-bughunter
 
-> A self-contained Claude skill bundle for bug hunting and external red-team work · **82 skills** · 15 slash commands · **681 disclosed-report patterns** across 24 core vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Burp MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
+> A self-contained Claude skill bundle for bug hunting and external red-team work · **83 skills** · 15 slash commands · **681 disclosed-report patterns** across 24 core vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Burp MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
 
 Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — Bug Hunting & GenAI Security Research.
 
@@ -26,7 +26,7 @@ Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — 
 Four layers stack:
 
 - **Think** — `bb-methodology` + `redteam-mindset`: the 5-phase non-linear workflow, critical-thinking framework, and red-team operator discipline.
-- **Hunt webapps** — 57 `hunt-*` skills curated from 681 disclosed HackerOne reports: per-class detection patterns, payloads, bypass tables, and chain templates.
+- **Hunt webapps** — 58 `hunt-*` skills curated from 681 disclosed HackerOne reports: per-class detection patterns, payloads, bypass tables, and chain templates.
 - **Hit the perimeter** — enterprise platform chains (M365/Entra, Okta, vCenter, SSL-VPN appliances, SharePoint, cloud IAM): current 2024–2026 CVE chains + post-credential escalation.
 - **Ship it** — `triage-validation` + reporting + `evidence-hygiene`: the 7-Question Gate, VRT-aware severity, OOS rebuttals, PII redaction, and red-team deliverables.
 
@@ -43,7 +43,7 @@ All triggered automatically by topic — describe what you're testing in plain E
 /plugin install claude-bughunter@elementalsouls
 ```
 
-All 82 skills + 15 commands load namespaced under `claude-bughunter:` and update when you bump the plugin version — no files copied into `~/.claude/`.
+All 83 skills + 15 commands load namespaced under `claude-bughunter:` and update when you bump the plugin version — no files copied into `~/.claude/`.
 
 **Option B — copy install (no plugin system / pin to a clone):**
 
@@ -64,7 +64,7 @@ Both copy the skills + commands into `~/.claude/` (macOS/Linux) or `%USERPROFILE
 
 **What each install path gives you:**
 
-| Path | 82 skills + 15 slash commands | `cbh` CLI | `hunt` scaffolder |
+| Path | 83 skills + 15 slash commands | `cbh` CLI | `hunt` scaffolder |
 |---|---|---|---|
 | **A — plugin** | ✅ namespaced under `claude-bughunter:` | ➕ separate `pipx install` | ❌ clone-only |
 | **B — copy install** | ✅ copied into `~/.claude/` | ✅ from the clone | ✅ from the clone |
@@ -158,11 +158,11 @@ If you're running an internal red team that includes domain-takeover chains via 
 
 ## What's inside
 
-**82 skills**, auto-loaded by topic — no invocation by name. Coverage across the external attack surface:
+**83 skills**, auto-loaded by topic — no invocation by name. Coverage across the external attack surface:
 
 | Category | # | Examples |
 |---|---|---|
-| Hunt — web app vuln classes | 57 | XSS, SQLi, SSRF, IDOR, LFI, SSTI, XXE, CSRF, CORS, open-redirect, SharePoint, ASP.NET/NTLM |
+| Hunt — web app vuln classes | 58 | XSS, SQLi, SSRF, IDOR, LFI, SSTI, XXE, CSRF, CORS, open-redirect, SharePoint, ASP.NET/NTLM |
 | Enterprise platform attack ★ | 10 | M365/Entra, Okta, cloud-IAM-deep, vCenter, enterprise VPN, APK/iOS red-team pipelines, supply-chain recon |
 | Reporting & validation | 6 | triage-validation, evidence-hygiene, report-writing, bugcrowd-reporting |
 | Recon & OSINT | 5 | web2-recon, offensive-osint, osint-methodology, recon-scope-triage |
@@ -261,7 +261,7 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
 
 - [ ] HackerOne MCP integration (currently only Burp MCP wired in)
 - [ ] Per-engagement memory layer — pattern recall across targets
-- [ ] Industry-specific hunt skills — `hunt-fintech-graphql`, `hunt-healthcare-fhir`, `hunt-gov-compliance`
+- [x] Industry-specific hunt skills — `hunt-fintech-graphql` shipped; `hunt-healthcare-fhir`, `hunt-gov-compliance` still open
 - [ ] Program-rules-parser skill — auto-generate structured `scope.md` from program text
 - [ ] Refresh `hunt-*` skills with newer disclosed reports (re-run `public-skills-builder`)
 - [ ] Additional enterprise-platform skills — `citrix-netscaler-deep`, `f5-bigip-attack`, `ad-cs-attack` (AD Certificate Services)
@@ -295,7 +295,7 @@ Operational tradecraft accumulated across bug-bounty engagements and authorized 
 
 **Sister project:** [Claude-OSINT](https://github.com/elementalsouls/Claude-OSINT) — paired skills for the recon phase that this bundle picks up after. Its two recon skills (`offensive-osint`, `osint-methodology`) are **canonically maintained here** and re-exported there, so the two are byte-identical. **Installing both is safe:** each bundle's installer (`install.sh` on macOS/Linux, `install.ps1` on Windows) records a manifest, the script skips re-copying an identical skill, and `--uninstall` keeps any skill the other bundle still owns — uninstalling one never breaks the other.
 
-**Vendored foundation:** [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) — methodology, validation, reporting, payload library (8 of 82 skills + 15 slash commands)
+**Vendored foundation:** [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) — methodology, validation, reporting, payload library (8 of 83 skills + 15 slash commands)
 
 **Generator tool used (not vendored):** [shuvonsec/public-skills-builder](https://github.com/shuvonsec/public-skills-builder) — used to scaffold per-class skills from H1 disclosed reports
 
