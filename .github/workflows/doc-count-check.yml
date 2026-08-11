@@ -1,0 +1,44 @@
+name: doc-count-check
+
+# Keeps skill/command counts in docs honest against what's actually on disk.
+# Catches stale numbers (e.g. "71 SKILL.md files" after the bundle grew to 82)
+# before they merge. No external dependencies — stdlib Python only.
+
+on:
+  pull_request:
+    paths:
+      - "skills/**"
+      - "commands/**"
+      - "README.md"
+      - "SECURITY.md"
+      - "USAGE.md"
+      - "INSTALL.md"
+      - "docs/skills.md"
+      - "docs/credits.md"
+      - "docs/architecture.md"
+      - "scripts/check_doc_counts.py"
+      - ".github/workflows/doc-count-check.yml"
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - "commands/**"
+      - "scripts/check_doc_counts.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check doc counts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify skill/command counts in docs match disk
+        run: python3 scripts/check_doc_counts.py
