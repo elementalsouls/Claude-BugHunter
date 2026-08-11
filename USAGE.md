@@ -159,7 +159,7 @@ The stack maps to a 6-phase bug-bounty workflow. Each phase has its own skill se
 |---|---|---|
 | **1. Scope** | Reading program rules, deciding what's in/out, scaffolding the engagement folder | `bug-bounty`, `bb-methodology`, `osint-methodology` + `hunt <target>` shell command |
 | **2. Recon** | Asset discovery, subdomain enum, endpoint mapping, secret hunting | `offensive-osint`, `web2-recon`, `bb-local-toolkit` |
-| **3. Hunt** | Active testing for bugs in specific vuln classes | 24 `hunt-*` skills + 7 enterprise-platform skills (M365/Okta/cloud-IAM/vCenter/VPN/SharePoint/APK) + `security-arsenal` |
+| **3. Hunt** | Active testing for bugs in specific vuln classes | 57 `hunt-*` skills + 7 enterprise-platform skills (M365/Okta/cloud-IAM/vCenter/VPN/SharePoint/APK) + `security-arsenal` |
 | **4. Validate** | Decide whether a lead is actually a reportable bug | `triage-validation` (7-Question Gate) via `/triage` or `/validate` |
 | **5. Capture** | PoC screenshots, HAR files, evidence redaction | `evidence-hygiene` |
 | **6. Report** | Draft and submit | `report-writing`, `bugcrowd-reporting` |
