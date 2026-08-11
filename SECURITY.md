@@ -50,7 +50,7 @@ If you reach domain-admin-class objectives during an engagement, the bundle's ex
 
 ## Verifying what you install (supply-chain trust)
 
-You are installing 71 `SKILL.md` files plus shell and Python helpers into your AI agent's context. Agent Skills are third-party code — treat them like any dependency you run. Independent research (Snyk "ToxicSkills", 2026) found prompt injection in a meaningful fraction of public skills, so verification matters.
+You are installing 82 `SKILL.md` files plus shell and Python helpers into your AI agent's context. Agent Skills are third-party code — treat them like any dependency you run. Independent research (Snyk "ToxicSkills", 2026) found prompt injection in a meaningful fraction of public skills, so verification matters.
 
 **What we do on our side:**
 

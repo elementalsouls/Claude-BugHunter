@@ -26,7 +26,7 @@ Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — 
 Four layers stack:
 
 - **Think** — `bb-methodology` + `redteam-mindset`: the 5-phase non-linear workflow, critical-thinking framework, and red-team operator discipline.
-- **Hunt webapps** — 48 `hunt-*` skills curated from 681 disclosed HackerOne reports: per-class detection patterns, payloads, bypass tables, and chain templates.
+- **Hunt webapps** — 57 `hunt-*` skills curated from 681 disclosed HackerOne reports: per-class detection patterns, payloads, bypass tables, and chain templates.
 - **Hit the perimeter** — enterprise platform chains (M365/Entra, Okta, vCenter, SSL-VPN appliances, SharePoint, cloud IAM): current 2024–2026 CVE chains + post-credential escalation.
 - **Ship it** — `triage-validation` + reporting + `evidence-hygiene`: the 7-Question Gate, VRT-aware severity, OOS rebuttals, PII redaction, and red-team deliverables.
 
@@ -162,16 +162,11 @@ If you're running an internal red team that includes domain-takeover chains via 
 
 | Category | # | Examples |
 |---|---|---|
-| Web application hunting | 13 | XSS, SQLi, SSRF, IDOR, LFI, SSTI, XXE, CSRF, CORS, open-redirect |
-| Authentication & identity | 7 | auth-bypass, session, OAuth, SAML, MFA-bypass, ATO |
-| API & infrastructure | 15 | GraphQL, gRPC, WebSocket, API-misconfig, host-header, RCE |
-| Advanced & concurrency | 6 | race-condition, HTTP smuggling, deserialization, cache-poison |
-| Framework-specific | 4 | Next.js, Node.js, Laravel, Spring Boot |
-| Enterprise identity & cloud ★ | 3 | M365/Entra, Okta, cloud-IAM-deep |
-| Infrastructure & appliance ★ | 4 | VMware vCenter, enterprise VPN, SharePoint, ASP.NET/NTLM |
-| Red-team tradecraft ★ | 4 | redteam-mindset, APK pipeline, supply-chain recon, mid-engagement IR |
-| Recon & OSINT | 4 | web2-recon, offensive-osint, subdomain |
-| Workflow, reporting & specialized | 11 | methodology, triage-validation, evidence-hygiene, VRT-aware reporting |
+| Hunt — web app vuln classes | 57 | XSS, SQLi, SSRF, IDOR, LFI, SSTI, XXE, CSRF, CORS, open-redirect, SharePoint, ASP.NET/NTLM |
+| Enterprise platform attack ★ | 10 | M365/Entra, Okta, cloud-IAM-deep, vCenter, enterprise VPN, APK/iOS red-team pipelines, supply-chain recon |
+| Reporting & validation | 6 | triage-validation, evidence-hygiene, report-writing, bugcrowd-reporting |
+| Recon & OSINT | 5 | web2-recon, offensive-osint, osint-methodology, recon-scope-triage |
+| Methodology & mindset | 4 | bb-methodology, bug-bounty, redteam-mindset, bb-local-toolkit |
 
 Full searchable catalog → **[docs/skills.md](docs/skills.md)**. Also ships **15 slash commands** (`/hunt`, `/recon`, `/report`, …) and a deterministic **engagement engine** (`engine/`) that maps a target's attack surface and routes each finding to the skill that handles it.
 
