@@ -125,7 +125,7 @@ pwsh ./scripts/install.ps1 -All -BurpMcp
 </a>
 
 <sub>Chart is self-hosted — regenerate with `python3 scripts/gen_star_history.py` (needs `gh auth login`).
-Refreshes automatically each Monday via `.github/workflows/star-history.yml`.</sub>
+Refreshes automatically each day via `.github/workflows/star-history.yml`.</sub>
 
 ---
 

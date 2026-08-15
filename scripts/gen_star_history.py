@@ -43,6 +43,12 @@ def fetch_stars(repo):
              "-H", "Accept: application/vnd.github.star+json", "--jq", ".[].starred_at"],
             capture_output=True, text=True,
         )
+        # Distinguish a real end-of-data (rc 0, empty array) from a transient
+        # failure (rate-limit / 5xx → rc != 0). Without this, a failed page
+        # looks like "no more stars" and we'd render+commit a truncated chart
+        # with a lower count. Abort instead, leaving the committed SVGs intact.
+        if out.returncode != 0:
+            sys.exit(f"stargazers fetch failed at page {page}: {out.stderr.strip()}")
         got = [l for l in out.stdout.split("\n") if l.strip()]
         if not got:
             break
