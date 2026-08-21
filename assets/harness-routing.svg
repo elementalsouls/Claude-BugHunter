@@ -4,6 +4,15 @@
       <stop offset="0%" stop-color="#08080d"/>
       <stop offset="100%" stop-color="#0b1117"/>
     </linearGradient>
+    <linearGradient id="agy-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="50%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#9333ea"/>
+    </linearGradient>
+    <linearGradient id="agy-icon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
     <pattern id="grid" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
       <path d="M48 0H0V48" fill="none" stroke="#202230" stroke-width="0.8" opacity="0.5"/>
     </pattern>
@@ -59,8 +68,8 @@
     </g>
     <!-- box 5 : AntiGravity -->
     <g transform="translate(834 60)">
-      <rect width="190" height="112" rx="6" fill="#12131c" stroke="#34a853"/>
-      <g transform="translate(14 16) scale(0.95)" fill="#34a853"><path d="M12 0C12 6.627 6.627 12 0 12c6.627 0 12 5.373 12 12 0-6.627 5.373-12 12-12-6.627 0-12-5.373-12-12z"/></g>
+      <rect width="190" height="112" rx="6" fill="#12131c" stroke="url(#agy-grad)" stroke-width="1.2"/>
+      <g transform="translate(14 16) scale(0.95)" fill="url(#agy-icon)"><path d="M12 0C12 6.627 6.627 12 0 12c6.627 0 12 5.373 12 12 0-6.627 5.373-12 12-12-6.627 0-12-5.373-12-12z"/></g>
       <text x="46" y="33" class="mono white" font-size="12.5" font-weight="800" letter-spacing="0.6">AntiGravity</text>
       <line x1="14" y1="62" x2="176" y2="62" stroke="#23242f"/>
       <text x="14" y="90" class="mono muted" font-size="9.8" letter-spacing="0.1">~/.gemini/antigravity/skills</text>
