@@ -60,7 +60,7 @@
     <!-- box 5 : ZCode Agent -->
     <g transform="translate(1028 60)">
       <rect width="238" height="112" rx="6" fill="#12131c" stroke="#34d399"/>
-      <g transform="translate(18 16) scale(1.166)" fill="#34d399"><path d="M5 4h14v3.2l-8.4 9.6H19V20H5v-3.2l8.4-9.6H5z"/></g>
+      <g transform="translate(18 16) scale(0.11)" fill="#34d399"><path d="M134.4 0.130152L116.48 25.6022C113.665 29.5699 109.054 32.0019 104.064 32.0019H6.3999V0C6.3999 0.130149 134.4 0.130152 134.4 0.130152Z"/><path d="M256 0.130127L102.401 217.732H0L153.599 0.130127H256Z"/><path d="M121.601 217.732L139.65 192.134C142.465 188.166 147.076 185.734 152.067 185.734H249.604V217.736H121.601V217.732Z"/></g>
       <text x="56" y="35" class="mono white" font-size="13" font-weight="800" letter-spacing="0.8">ZCode Agent</text>
       <line x1="18" y1="62" x2="220" y2="62" stroke="#23242f"/>
       <text x="18" y="90" class="mono muted" font-size="11.5" letter-spacing="0.6">~/.zcode/skills</text>
