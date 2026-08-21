@@ -7,15 +7,16 @@ Code already uses — we never invent one) and writes the equivalent into each
 selected harness's config, backing up the file first. Idempotent.
 
 Usage:
-    python3 scripts/setup_harness_mcp.py [--opencode] [--codex] [--hermes] [--dry-run]
+    python3 scripts/setup_harness_mcp.py [--opencode] [--codex] [--hermes] [--antigravity] [--dry-run]
     # optional overrides if auto-discovery fails:
     python3 scripts/setup_harness_mcp.py --opencode --command java --arg -jar --arg /path/mcp-proxy-all.jar --arg --sse-url --arg http://127.0.0.1:9876
 
 Schema notes (verified against each tool's docs, mid-2026):
-  - OpenCode  ~/.config/opencode/opencode.json  →  mcp.<name> = {type:"local", command:[...], enabled:true}   (JSON — written here)
-  - Codex     ~/.codex/config.toml              →  [mcp_servers.<name>] command/args/env                      (TOML — appended here)
-  - Hermes    ~/.hermes/config.yaml             →  MCP block (schema not independently verified) — we PRINT the
-              command + the Hermes MCP guide instead of blind-writing YAML.
+  - OpenCode     ~/.config/opencode/opencode.json  →  mcp.<name> = {type:"local", command:[...], enabled:true}   (JSON — written here)
+  - Codex        ~/.codex/config.toml              →  [mcp_servers.<name>] command/args/env                      (TOML — appended here)
+  - Hermes       ~/.hermes/config.yaml             →  MCP block (schema not independently verified) — we PRINT the
+                 command + the Hermes MCP guide instead of blind-writing YAML.
+  - AntiGravity  ~/.gemini/config/mcp_config.json  →  mcpServers.<name> = {command: "...", args: [...]}         (JSON — written here)
 """
 import argparse, json, os, shutil, sys, time
 
@@ -153,11 +154,40 @@ def write_hermes(cmd, args, env, dry):
     print("  ✓ Hermes burp MCP written.")
 
 
+def write_antigravity(cmd, args, env, dry):
+    path = os.path.expanduser("~/.gemini/config/mcp_config.json")
+    cfg = {}
+    if os.path.isfile(path):
+        try:
+            cfg = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            print(f"  ✗ AntiGravity: {path} is not valid JSON — skipping (fix it or edit manually).")
+            return
+    servers = cfg.setdefault("mcpServers", {})
+    entry = {"command": cmd, "args": args}
+    if env:
+        entry["env"] = env
+    if servers.get("burp") == entry:
+        print("  = AntiGravity: burp MCP already configured in mcp_config.json (no change).")
+        return
+    servers["burp"] = entry
+    print(f"  → AntiGravity: set mcpServers.burp in {path}")
+    if dry:
+        print("      [dry-run] " + json.dumps(entry))
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    backup(path)
+    json.dump(cfg, open(path, "w", encoding="utf-8"), indent=2)
+    open(path, "a").write("\n")
+    print("  ✓ AntiGravity burp MCP written.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--opencode", action="store_true")
     ap.add_argument("--codex", action="store_true")
     ap.add_argument("--hermes", action="store_true")
+    ap.add_argument("--antigravity", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--command")
     ap.add_argument("--arg", action="append", default=[])
@@ -175,8 +205,8 @@ def main():
         cmd, args, env = found
 
     print(f"Burp MCP source: {cmd} {' '.join(args)}{'  (dry-run)' if a.dry_run else ''}")
-    if not (a.opencode or a.codex or a.hermes):
-        print("Nothing to do — pass --opencode / --codex / --hermes.")
+    if not (a.opencode or a.codex or a.hermes or a.antigravity):
+        print("Nothing to do — pass --opencode / --codex / --hermes / --antigravity.")
         return 0
     if a.opencode:
         write_opencode(cmd, args, env, a.dry_run)
@@ -184,6 +214,8 @@ def main():
         write_codex(cmd, args, env, a.dry_run)
     if a.hermes:
         write_hermes(cmd, args, env, a.dry_run)
+    if a.antigravity:
+        write_antigravity(cmd, args, env, a.dry_run)
     return 0
 
 

@@ -398,7 +398,7 @@ Cross-reference this UUID in any chained submissions you file later.
 If another pentester wants to replicate this stack, the install steps are in [INSTALL.md](INSTALL.md). The short version:
 
 1. Clone this repo
-2. Run the installer — `bash scripts/install.sh` (macOS/Linux) or `pwsh ./scripts/install.ps1` (Windows) — installs all 83 skills, 15 commands, and the `hunt` scaffold in one step
+2. Run the installer — `bash scripts/install.sh` (macOS/Linux) or `pwsh ./scripts/install.ps1` (Windows) — installs all 83 skills, 15 commands, and the `hunt` scaffold in one step (use `--all` / `-All` or `--antigravity` / `-AntiGravity` for other harnesses like Google AntiGravity, Codex, or Hermes)
 3. Set up Burp MCP (BApp Store extension + `claude mcp add burp ...`)
 4. (Optional) Refresh upstream snapshots via `./scripts/install-community-skills.sh` (macOS/Linux) or `pwsh ./scripts/install-community-skills.ps1` (Windows)
 5. (Optional) Set up the skill regenerator with Anthropic + H1 API keys

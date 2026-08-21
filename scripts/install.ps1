@@ -15,9 +15,11 @@
 # NOT port; other harnesses get the knowledge, not the orchestration):
 #   -Agents        force-copy skills -> ~\.agents\skills\  (Codex; OpenCode reads ~\.claude)
 #   -Hermes        force-copy skills -> ~\.hermes\skills\   (Hermes Agent)
+#   -AntiGravity   force-copy skills -> ~\.gemini\antigravity\skills\ (Google AntiGravity)
 #   -All           DETECT installed harnesses and install to each: Claude always, ~\.agents
-#                  if Codex is present, ~\.hermes if Hermes is present. With -BurpMcp it
-#                  wires Burp only into the detected harnesses. (-Agents/-Hermes still
+#                  if Codex is present, ~\.hermes if Hermes is present, ~\.gemini\antigravity
+#                  if Google AntiGravity is present. With -BurpMcp it
+#                  wires Burp only into the detected harnesses. (-Agents/-Hermes/-AntiGravity still
 #                  force a path regardless of detection.)
 #   -BurpMcp       wire your existing Burp MCP server into the selected harnesses'
 #                  configs (opt-in; backs up each config first; uses python)
@@ -39,6 +41,7 @@
 param(
     [switch] $Agents,
     [switch] $Hermes,
+    [switch] $AntiGravity,
     [switch] $All,
     [switch] $BurpMcp,
     [switch] $NormalizeFrontmatter,
@@ -69,7 +72,7 @@ if ($Help) {
     for ($i = 0; $i -lt $lines.Count; $i++) {
         if ($lines[$i] -match '^# ={30,}\s*$' -and $i -gt 0) { $end = $i; break }
     }
-    if ($end -eq 0) { $end = 45 }
+    if ($end -eq 0) { $end = 50 }
     $lines[0..($end - 1)] |
         ForEach-Object { ($_ -replace '^# ?', '') } |
         Where-Object { $_ -ne '' -and $_ -notmatch '^={30,}\s*$' }
@@ -154,10 +157,10 @@ function Install-Skills([string] $Dest, [string] $Label) {
 }
 
 # --- flag plumbing -----------------------------------------------------
-$DO_AGENTS = [bool]$Agents; $DO_HERMES = [bool]$Hermes; $DO_MCP = [bool]$BurpMcp
+$DO_AGENTS = [bool]$Agents; $DO_HERMES = [bool]$Hermes; $DO_ANTIGRAVITY = [bool]$AntiGravity; $DO_MCP = [bool]$BurpMcp
 $NORMALIZE = [bool]$NormalizeFrontmatter; $DETECT = [bool]$All
 $DO_UNINSTALL = [bool]$Uninstall; $NO_PROFILE = [bool]$NoProfile
-$HAS_CLAUDE = $false; $HAS_OPENCODE = $false; $HAS_CODEX = $false; $HAS_HERMES = $false
+$HAS_CLAUDE = $false; $HAS_OPENCODE = $false; $HAS_CODEX = $false; $HAS_HERMES = $false; $HAS_ANTIGRAVITY = $false
 
 # --- Uninstall ---------------------------------------------------------
 function Uninstall-Bundle {
@@ -179,6 +182,12 @@ function Uninstall-Bundle {
         foreach ($s in $otherSets) { if ($s -contains $rel) { $owned = $true; break } }
         if ($owned) { $kept++ } else {
             if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue }
+            $agentsTarget = Join-Path $HOME ".agents\$rel"
+            if (Test-Path -LiteralPath $agentsTarget) { Remove-Item -LiteralPath $agentsTarget -Recurse -Force -ErrorAction SilentlyContinue }
+            $hermesTarget = Join-Path $HOME ".hermes\$rel"
+            if (Test-Path -LiteralPath $hermesTarget) { Remove-Item -LiteralPath $hermesTarget -Recurse -Force -ErrorAction SilentlyContinue }
+            $antiGravityTarget = Join-Path $HOME ".gemini\antigravity\$rel"
+            if (Test-Path -LiteralPath $antiGravityTarget) { Remove-Item -LiteralPath $antiGravityTarget -Recurse -Force -ErrorAction SilentlyContinue }
             $removed++
         }
     }
@@ -214,17 +223,20 @@ if ($DETECT) {
     if ((Get-Command opencode -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.config\opencode'))) { $HAS_OPENCODE = $true }
     if ((Get-Command codex -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.codex'))) { $HAS_CODEX = $true }
     if ((Get-Command hermes -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.hermes'))) { $HAS_HERMES = $true }
+    if ((Get-Command antigravity -ErrorAction SilentlyContinue) -or (Get-Command agy -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.gemini\antigravity')) -or (Test-Path (Join-Path $HOME '.gemini'))) { $HAS_ANTIGRAVITY = $true }
     Write-Host "Detecting installed harnesses:"
-    if ($HAS_CLAUDE)   { Write-Host "  + Claude Code   -> ~\.claude\skills" }
-    if ($HAS_OPENCODE) { Write-Host "  + OpenCode      -> reads ~\.claude\skills (MCP wired separately)" }
-    if ($HAS_CODEX)    { Write-Host "  + Codex CLI     -> ~\.agents\skills" }
-    if ($HAS_HERMES)   { Write-Host "  + Hermes Agent  -> ~\.hermes\skills" }
-    if (-not ($HAS_OPENCODE -or $HAS_CODEX -or $HAS_HERMES)) {
-        Write-Host "  (only Claude Code detected -- installing there. Force others with -Agents / -Hermes.)"
+    if ($HAS_CLAUDE)      { Write-Host "  + Claude Code        -> ~\.claude\skills" }
+    if ($HAS_OPENCODE)    { Write-Host "  + OpenCode           -> reads ~\.claude\skills (MCP wired separately)" }
+    if ($HAS_CODEX)       { Write-Host "  + Codex CLI          -> ~\.agents\skills" }
+    if ($HAS_HERMES)      { Write-Host "  + Hermes Agent       -> ~\.hermes\skills" }
+    if ($HAS_ANTIGRAVITY) { Write-Host "  + Google AntiGravity -> ~\.gemini\antigravity\skills" }
+    if (-not ($HAS_OPENCODE -or $HAS_CODEX -or $HAS_HERMES -or $HAS_ANTIGRAVITY)) {
+        Write-Host "  (only Claude Code detected -- installing there. Force others with -Agents / -Hermes / -AntiGravity.)"
     }
     Write-Host ''
-    if ($HAS_CODEX)  { $DO_AGENTS = $true }
-    if ($HAS_HERMES) { $DO_HERMES = $true }
+    if ($HAS_CODEX)       { $DO_AGENTS = $true }
+    if ($HAS_HERMES)      { $DO_HERMES = $true }
+    if ($HAS_ANTIGRAVITY) { $DO_ANTIGRAVITY = $true }
 }
 
 if (-not (Test-Path -LiteralPath $SkillsSource -PathType Container)) {
@@ -234,7 +246,7 @@ $skillCount = (Get-ChildItem -LiteralPath $SkillsSource -Directory).Count
 
 # --- Claude Code (always): skills + commands + hunt.ps1 ----------------
 Write-Host "Installing Claude-BugHunter bundle from $RepoDir"
-if ($DO_AGENTS -or $DO_HERMES) { Write-Host "(multi-harness mode)" }
+if ($DO_AGENTS -or $DO_HERMES -or $DO_ANTIGRAVITY) { Write-Host "(multi-harness mode)" }
 Write-Host ''
 
 Install-Skills (Join-Path $HOME '.claude\skills') 'skills'
@@ -351,20 +363,23 @@ for name in sorted(os.listdir(root)):
     }
 }
 if ($DO_HERMES) { Install-Skills (Join-Path $HOME '.hermes\skills') 'hermes' }
+if ($DO_ANTIGRAVITY) { Install-Skills (Join-Path $HOME '.gemini\antigravity\skills') 'antigravity' }
 
 # --- opt-in Burp MCP wiring -------------------------------------------
 if ($DO_MCP) {
     $mcpTargets = @()
     if ($DETECT) {
-        if ($HAS_OPENCODE) { $mcpTargets += '--opencode' }
-        if ($HAS_CODEX)    { $mcpTargets += '--codex' }
-        if ($HAS_HERMES)   { $mcpTargets += '--hermes' }
+        if ($HAS_OPENCODE)    { $mcpTargets += '--opencode' }
+        if ($HAS_CODEX)       { $mcpTargets += '--codex' }
+        if ($HAS_HERMES)      { $mcpTargets += '--hermes' }
+        if ($HAS_ANTIGRAVITY) { $mcpTargets += '--antigravity' }
     } else {
-        if ($DO_AGENTS) { $mcpTargets += '--opencode'; $mcpTargets += '--codex' }
-        if ($DO_HERMES) { $mcpTargets += '--hermes' }
+        if ($DO_AGENTS)      { $mcpTargets += '--opencode'; $mcpTargets += '--codex' }
+        if ($DO_HERMES)      { $mcpTargets += '--hermes' }
+        if ($DO_ANTIGRAVITY) { $mcpTargets += '--antigravity' }
     }
     if ($mcpTargets.Count -eq 0) {
-        Write-Host "  ! -BurpMcp found no non-Claude harness (none detected, no -Agents/-Hermes). Skipping."
+        Write-Host "  ! -BurpMcp found no non-Claude harness (none detected, no -Agents/-Hermes/-AntiGravity). Skipping."
     } else {
         $py = Get-Python
         if ($py) {
@@ -388,13 +403,14 @@ Write-Host "============================================"
 Write-Host "+ Install complete"
 Write-Host "============================================"
 Write-Host ''
-Write-Host "Claude Code:   $(Join-Path $HOME '.claude\skills')  (+ commands, hunt.ps1)"
-if ($DO_AGENTS) { Write-Host "Codex+OpenCode: $(Join-Path $HOME '.agents\skills')" }
-if ($DO_HERMES) { Write-Host "Hermes Agent:  $(Join-Path $HOME '.hermes\skills')" }
-if (Test-Path -LiteralPath $BackupDest) { Write-Host "Backups:       $BackupDest  (outside loading paths)" }
+Write-Host "Claude Code:        $(Join-Path $HOME '.claude\skills')  (+ commands, hunt.ps1)"
+if ($DO_AGENTS)      { Write-Host "Codex+OpenCode:     $(Join-Path $HOME '.agents\skills')" }
+if ($DO_HERMES)      { Write-Host "Hermes Agent:       $(Join-Path $HOME '.hermes\skills')" }
+if ($DO_ANTIGRAVITY) { Write-Host "Google AntiGravity: $(Join-Path $HOME '.gemini\antigravity\skills')" }
+if (Test-Path -LiteralPath $BackupDest) { Write-Host "Backups:            $BackupDest  (outside loading paths)" }
 Write-Host ''
-if (-not $DETECT -and -not $DO_AGENTS -and -not $DO_HERMES) {
-    Write-Host "Other harnesses?  pwsh ./scripts/install.ps1 -All   (auto-detects Codex / OpenCode / Hermes)"
+if (-not $DETECT -and -not $DO_AGENTS -and -not $DO_HERMES -and -not $DO_ANTIGRAVITY) {
+    Write-Host "Other harnesses?  pwsh ./scripts/install.ps1 -All   (auto-detects Codex / OpenCode / Hermes / AntiGravity)"
     Write-Host "See also: docs/multi-harness.md"
 }
 Write-Host ''
