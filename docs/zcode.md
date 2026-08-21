@@ -16,7 +16,7 @@ ZCode Agent reads the same plugin layout as Claude Code, so the skills, the 15 s
 |---|---|---|
 | 83 skills | ✅ auto-trigger by topic | Settings → Skills → Plugin skills; `$skill-name` in chat |
 | 15 slash commands | ✅ same commands | `/` panel → Commands group (`/hunt`, `/recon`, `/report`, …) |
-| Burp MCP | ✅ SSE | Settings → MCP → Configured servers → `burp` |
+| Burp MCP | ✅ SSE | Settings → MCP → enable the bundled `burp` entry (Plugin MCP servers) |
 | `cbh` CLI + `engine/` | ✅ plain Python, harness-agnostic | terminal |
 
 ## Install — Option A: plugin via marketplace
@@ -52,6 +52,8 @@ pwsh ./scripts/install.ps1 -Zcode
 ## Burp MCP (SSE)
 
 The Burp Suite **MCP Server** BApp extension listens as an SSE server on `http://127.0.0.1:9876`. Registering that URL with `type: sse` is the recommended setup — simpler than a stdio command.
+
+The plugin ships this entry disabled by default — enable **burp** under Plugin MCP servers in Settings → MCP once Burp is running. Or add it yourself:
 
 **GUI:** Settings → MCP Servers → **New MCP Server** → type **SSE** → URL `http://127.0.0.1:9876` → Add.
 
