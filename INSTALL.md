@@ -64,23 +64,25 @@ This copies:
 
 Existing skills with the same name are backed up to `~/.claude/install-backups/<timestamp>/` — **outside** the skills/commands directories, so backups never load as duplicate skills. Re-runs are non-destructive.
 
-### Run on other harnesses (OpenCode · Codex · Hermes)
+### Run on other harnesses (OpenCode · Codex · Hermes · Google AntiGravity)
 
 The skills are plain Agent Skills, so they also run outside Claude Code:
 
 ```bash
 # macOS / Linux
-./scripts/install.sh --all          # also installs to ~/.agents/skills (Codex + OpenCode) and ~/.hermes/skills (Hermes)
+./scripts/install.sh --all          # also installs to ~/.agents/skills (Codex/OpenCode), ~/.hermes/skills (Hermes), and ~/.gemini/antigravity/skills (AntiGravity)
 ./scripts/install.sh --agents       # just Codex + OpenCode
 ./scripts/install.sh --hermes       # just Hermes
+./scripts/install.sh --antigravity  # just Google AntiGravity
 ./scripts/install.sh --agents --burp-mcp   # also wire your Burp MCP into those harnesses
 ```
 
 ```powershell
 # Windows (PowerShell)
-pwsh ./scripts/install.ps1 -All          # Codex + OpenCode + Hermes
+pwsh ./scripts/install.ps1 -All          # Codex + OpenCode + Hermes + Google AntiGravity
 pwsh ./scripts/install.ps1 -Agents       # just Codex + OpenCode
 pwsh ./scripts/install.ps1 -Hermes       # just Hermes
+pwsh ./scripts/install.ps1 -AntiGravity  # just Google AntiGravity
 pwsh ./scripts/install.ps1 -Agents -BurpMcp   # also wire your Burp MCP into those harnesses
 ```
 
