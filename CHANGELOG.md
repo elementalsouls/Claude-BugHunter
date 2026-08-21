@@ -7,6 +7,15 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Added
+- **ZCode Agent support** — ZCode reads the same plugin layout as Claude Code (manifest at
+  `.zcode-plugin/plugin.json`, existing `.claude-plugin/` as fallback, same `marketplace.json`
+  catalog), so the 83 skills, 15 slash commands, and Burp MCP run there: Settings → Plugins →
+  Create → Add marketplace → this repo → Install. `scripts/install.sh --zcode` /
+  `install.ps1 -Zcode` is the copy alternative (skills → `~/.zcode/skills`, commands →
+  `~/.zcode/commands`). Burp MCP registers as an SSE server: `setup_harness_mcp.py --zcode`
+  writes `mcp.servers.burp = {type:"sse", url:"http://127.0.0.1:9876"}` into
+  `~/.zcode/cli/config.json`. `--all`/`-All` now detect ZCode. New guide `docs/zcode.md`
+  (incl. the skill-metadata-budget caveat); README/INSTALL/multi-harness updated.
 - **Native Windows install ** — every `.sh` installer now has a PowerShell
   counterpart: `scripts/install.ps1`, `scripts/install-community-skills.ps1`, `scripts/hunt.ps1`.
   Same behavior, same flags (hyphen-style: `-All`, `-Agents`, `-Hermes`, `-BurpMcp`, `-NoProfile`,

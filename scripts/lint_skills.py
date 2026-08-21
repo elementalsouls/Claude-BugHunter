@@ -57,6 +57,8 @@ SECRET_ALLOW = re.compile(
 # Intentional kitchen-sink router/aggregator skills whose descriptions deliberately
 # exceed the per-skill limit (they route to everything). Over-length is a warning,
 # not an error, for these. Do NOT add new skills here — write focused descriptions.
+# Strict harnesses (Codex, ZCode) get auto-truncated COPIES from the installer
+# (install.sh --agents/--zcode); the repo keeps the full trigger surface.
 DESC_LIMIT_GRANDFATHERED = {"bug-bounty", "bb-local-toolkit", "osint-methodology"}
 
 WORD_RE = re.compile(r"[a-z0-9]+")
@@ -166,7 +168,8 @@ def lint_skill(skill_dir, denylist):
         errors.append(f"{name}: frontmatter missing `description`")
     elif len(desc) > MAX_DESC:
         msg = (f"{name}: description {len(desc)} chars > {MAX_DESC} limit "
-               f"(Codex rejects >1024; install.sh --agents auto-truncates the Codex copy)")
+               "(Codex rejects >1024 and ZCode drops the skill; install.sh --agents/--zcode "
+               "auto-truncates those copies)")
         (warnings if name in DESC_LIMIT_GRANDFATHERED else errors).append(msg)
     elif len(desc) < 40:
         warnings.append(f"{name}: description very short ({len(desc)} chars) — weak trigger surface")
