@@ -1,0 +1,31 @@
+{
+  "name": "claude-bughunter",
+  "version": "2.1.0",
+  "description": "83-skill bug-hunting & external red-team bundle for ZCode Agent — 58 hunt-* web/vuln-class + framework skills, enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and Burp MCP integration. Skills auto-load by topic; 15 slash commands included.",
+  "author": {
+    "name": "Sachin Sharma",
+    "url": "https://github.com/elementalsouls"
+  },
+  "homepage": "https://elementalsouls.github.io/Claude-BugHunter",
+  "repository": "https://github.com/elementalsouls/Claude-BugHunter",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "offensive-security",
+    "bug-bounty",
+    "red-team",
+    "pentest",
+    "recon",
+    "osint",
+    "hunt"
+  ],
+  "skills": "skills",
+  "commands": "commands",
+  "mcpServers": {
+    "burp": {
+      "type": "sse",
+      "url": "http://127.0.0.1:9876",
+      "enabled": false
+    }
+  }
+}

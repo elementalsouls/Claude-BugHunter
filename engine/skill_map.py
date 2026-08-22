@@ -23,9 +23,10 @@ def _resolve_skills_dir():
     Resolution order:
       1. $CBH_SKILLS_DIR — explicit override (e.g. a non-standard plugin cache path).
       2. skills/ shipped next to the engine — works for both a repo checkout and a
-         Claude Code plugin install (the whole bundle lives in the plugin cache, so
-         engine/ and skills/ stay siblings there too).
+         Claude Code / ZCode plugin install (the whole bundle lives in the plugin
+         cache, so engine/ and skills/ stay siblings there too).
       3. ~/.claude/skills — the target of the scripts/install.sh copy method.
+      4. ~/.zcode/skills — the target of scripts/install.sh --zcode (ZCode Agent).
     """
     env = os.environ.get("CBH_SKILLS_DIR")
     if env:
@@ -35,7 +36,9 @@ def _resolve_skills_dir():
     )
     if os.path.isdir(bundled):
         return bundled
-    return os.path.expanduser("~/.claude/skills")
+    if os.path.isdir(os.path.expanduser("~/.claude/skills")):
+        return os.path.expanduser("~/.claude/skills")
+    return os.path.expanduser("~/.zcode/skills")
 
 
 SKILLS_DIR = _resolve_skills_dir()

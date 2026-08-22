@@ -64,27 +64,29 @@ This copies:
 
 Existing skills with the same name are backed up to `~/.claude/install-backups/<timestamp>/` — **outside** the skills/commands directories, so backups never load as duplicate skills. Re-runs are non-destructive.
 
-### Run on other harnesses (OpenCode · Codex · Hermes)
+### Run on other harnesses (OpenCode · Codex · Hermes · ZCode)
 
 The skills are plain Agent Skills, so they also run outside Claude Code:
 
 ```bash
 # macOS / Linux
-./scripts/install.sh --all          # also installs to ~/.agents/skills (Codex + OpenCode) and ~/.hermes/skills (Hermes)
+./scripts/install.sh --all          # also installs to ~/.agents/skills (Codex + OpenCode), ~/.hermes/skills (Hermes), ~/.zcode (ZCode)
 ./scripts/install.sh --agents       # just Codex + OpenCode
 ./scripts/install.sh --hermes       # just Hermes
+./scripts/install.sh --zcode        # just ZCode Agent (skills + commands)
 ./scripts/install.sh --agents --burp-mcp   # also wire your Burp MCP into those harnesses
 ```
 
 ```powershell
 # Windows (PowerShell)
-pwsh ./scripts/install.ps1 -All          # Codex + OpenCode + Hermes
+pwsh ./scripts/install.ps1 -All          # Codex + OpenCode + Hermes + ZCode
 pwsh ./scripts/install.ps1 -Agents       # just Codex + OpenCode
 pwsh ./scripts/install.ps1 -Hermes       # just Hermes
+pwsh ./scripts/install.ps1 -Zcode        # just ZCode Agent (skills + commands)
 pwsh ./scripts/install.ps1 -Agents -BurpMcp   # also wire your Burp MCP into those harnesses
 ```
 
-Slash commands, the plugin marketplace, and the `/hunt` engine are Claude-Code-only; other harnesses get the skill knowledge + Burp MCP. Full details and per-harness MCP snippets: [`docs/multi-harness.md`](docs/multi-harness.md).
+Slash commands, the plugin marketplace, and the `/hunt` engine are Claude-Code- and ZCode-compatible; other harnesses get the skill knowledge + Burp MCP. Full details and per-harness MCP snippets: [`docs/multi-harness.md`](docs/multi-harness.md), [`docs/zcode.md`](docs/zcode.md).
 
 ## Step 3 — (Optional) Set up Burp MCP
 
@@ -114,6 +116,8 @@ Verify in a fresh `claude` session:
 ```
 
 You should see `burp · ✓ connected`.
+
+**On ZCode:** the recommended setup is type **SSE** with URL `http://127.0.0.1:9876` (Settings → MCP Servers → New MCP Server) — simpler than the stdio command. Or run `python3 scripts/setup_harness_mcp.py --zcode`. Details: [`docs/zcode.md`](docs/zcode.md#burp-mcp-sse).
 
 ## Step 4 — (Optional) Refresh vendored skills from upstream
 

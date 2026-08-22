@@ -7,35 +7,35 @@ Code already uses — we never invent one) and writes the equivalent into each
 selected harness's config, backing up the file first. Idempotent.
 
 Usage:
-    python3 scripts/setup_harness_mcp.py [--opencode] [--codex] [--hermes] [--dry-run]
-    # optional overrides if auto-discovery fails:
-    python3 scripts/setup_harness_mcp.py --opencode --command java --arg -jar --arg /path/mcp-proxy-all.jar --arg --sse-url --arg http://127.0.0.1:9876
+    python3 scripts/setup_harness_mcp.py [--opencode] [--codex] [--hermes] [--zcode] [--dry-run]
+    # --zcode registers the Burp MCP extension's SSE endpoint (no stdio discovery needed):
+    python3 scripts/setup_harness_mcp.py --zcode [--sse-url http://127.0.0.1:9876]
+    # optional overrides if auto-discovery fails (stdio harnesses only):
+    python3 scripts/setup_harness_mcp.py --opencode --command java --arg=-jar --arg /path/mcp-proxy-all.jar --arg=--sse-url --arg http://127.0.0.1:9876
 
 Schema notes (verified against each tool's docs, mid-2026):
   - OpenCode  ~/.config/opencode/opencode.json  →  mcp.<name> = {type:"local", command:[...], enabled:true}   (JSON — written here)
   - Codex     ~/.codex/config.toml              →  [mcp_servers.<name>] command/args/env                      (TOML — appended here)
   - Hermes    ~/.hermes/config.yaml             →  MCP block (schema not independently verified) — we PRINT the
               command + the Hermes MCP guide instead of blind-writing YAML.
+  - ZCode     ~/.zcode/cli/config.json          →  mcp.servers.<name> = {type:"sse", url:"http://127.0.0.1:9876",
+              enabled:true}  — the recommended (and simpler) setup. (JSON — written here;
+              nested mcp.servers, NOT top-level mcpServers.)
 """
 import argparse, json, os, shutil, sys, time
 
 CLAUDE_JSON = os.path.expanduser("~/.claude.json")
+ZCODE_JSON = os.path.expanduser("~/.zcode/cli/config.json")
 
 
-def discover_burp():
-    """Return (command:str, args:list[str], env:dict) for the 'burp' MCP server from ~/.claude.json."""
-    if not os.path.isfile(CLAUDE_JSON):
-        return None
-    try:
-        data = json.load(open(CLAUDE_JSON, encoding="utf-8"))
-    except Exception:
-        return None
+def _find_burp_in(data):
+    """Return the first 'burp'-named stdio server definition anywhere in `data`, or None."""
     hits = []
 
     def walk(o):
         if isinstance(o, dict):
             for k, v in o.items():
-                if k in ("mcpServers", "mcp_servers", "mcp") and isinstance(v, dict):
+                if k in ("mcpServers", "mcp_servers", "mcp", "servers") and isinstance(v, dict):
                     for name, defn in v.items():
                         if "burp" in name.lower() and isinstance(defn, dict) and defn.get("command"):
                             hits.append(defn)
@@ -45,10 +45,26 @@ def discover_burp():
                 walk(x)
 
     walk(data)
-    if not hits:
-        return None
-    d = hits[0]
-    return d.get("command"), list(d.get("args", [])), dict(d.get("env", {}) or {})
+    return hits[0] if hits else None
+
+
+def discover_burp():
+    """Return (command:str, args:list[str], env:dict) for the 'burp' MCP server.
+
+    Looks in ~/.claude.json first (Claude Code), then ~/.zcode/cli/config.json
+    (ZCode Agent, mcp.servers) — whichever harness already has Burp wired.
+    """
+    for path in (CLAUDE_JSON, ZCODE_JSON):
+        if not os.path.isfile(path):
+            continue
+        try:
+            data = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            continue
+        d = _find_burp_in(data)
+        if d:
+            return d.get("command"), list(d.get("args", [])), dict(d.get("env", {}) or {})
+    return None
 
 
 def backup(path):
@@ -153,37 +169,80 @@ def write_hermes(cmd, args, env, dry):
     print("  ✓ Hermes burp MCP written.")
 
 
+def write_zcode(sse_url, dry):
+    # ZCode user config: ~/.zcode/cli/config.json with NESTED mcp.servers.<name>
+    # (a top-level mcpServers key is NOT read there). The file also holds hooks,
+    # plugin state, etc., so read-merge-write — never overwrite wholesale.
+    path = ZCODE_JSON
+    cfg = {}
+    if os.path.isfile(path):
+        try:
+            cfg = json.load(open(path, encoding="utf-8"))
+        except Exception:
+            print(f"  ✗ ZCode: {path} is not valid JSON — skipping (fix it or edit manually).")
+            return
+    entry = {"type": "sse", "url": sse_url, "enabled": True}
+    servers = cfg.setdefault("mcp", {}).setdefault("servers", {})
+    # Any existing server already on this SSE endpoint (under any name) wins —
+    # never register a second connection to the same Burp extension.
+    for srv_name, srv in servers.items():
+        if isinstance(srv, dict) and srv.get("url") == sse_url:
+            print(f"  = ZCode: server '{srv_name}' already uses {sse_url} (no change).")
+            return
+    if servers.get("burp") == entry:
+        print("  = ZCode: mcp.servers.burp already configured (no change).")
+        return
+    servers["burp"] = entry
+    print(f"  → ZCode: set mcp.servers.burp = SSE {sse_url} in {path}")
+    if dry:
+        print("      [dry-run] " + json.dumps(entry))
+        return
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    backup(path)
+    json.dump(cfg, open(path, "w", encoding="utf-8"), indent=2)
+    open(path, "a").write("\n")
+    print("  ✓ ZCode burp MCP written.  Start a NEW ZCode session (Burp running, MCP extension listening) and check Settings → MCP.")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--opencode", action="store_true")
     ap.add_argument("--codex", action="store_true")
     ap.add_argument("--hermes", action="store_true")
+    ap.add_argument("--zcode", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--command")
     ap.add_argument("--arg", action="append", default=[])
+    ap.add_argument("--sse-url", default="http://127.0.0.1:9876",
+                    help="Burp MCP extension SSE endpoint used by --zcode (default: %(default)s)")
     a = ap.parse_args()
 
-    if a.command:
-        cmd, args, env = a.command, a.arg, {}
-    else:
-        found = discover_burp()
-        if not found:
-            print("✗ Could not find a 'burp' MCP server in ~/.claude.json.")
-            print("  Pass it explicitly, e.g.:")
-            print("    --command java --arg -jar --arg ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar --arg --sse-url --arg http://127.0.0.1:9876")
-            return 1
-        cmd, args, env = found
-
-    print(f"Burp MCP source: {cmd} {' '.join(args)}{'  (dry-run)' if a.dry_run else ''}")
-    if not (a.opencode or a.codex or a.hermes):
-        print("Nothing to do — pass --opencode / --codex / --hermes.")
+    stdio_targets = a.opencode or a.codex or a.hermes
+    if not (stdio_targets or a.zcode):
+        print("Nothing to do — pass --opencode / --codex / --hermes / --zcode.")
         return 0
-    if a.opencode:
-        write_opencode(cmd, args, env, a.dry_run)
-    if a.codex:
-        write_codex(cmd, args, env, a.dry_run)
-    if a.hermes:
-        write_hermes(cmd, args, env, a.dry_run)
+
+    if stdio_targets:
+        if a.command:
+            cmd, args, env = a.command, a.arg, {}
+        else:
+            found = discover_burp()
+            if not found:
+                print("✗ Could not find a 'burp' MCP server in ~/.claude.json or ~/.zcode/cli/config.json.")
+                print("  Pass it explicitly, e.g.:")
+                print("    --command java --arg=-jar --arg ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar --arg=--sse-url --arg http://127.0.0.1:9876")
+                print("  (Or use --zcode to register the SSE endpoint instead.)")
+                return 1
+            cmd, args, env = found
+        print(f"Burp MCP source: {cmd} {' '.join(args)}{'  (dry-run)' if a.dry_run else ''}")
+        if a.opencode:
+            write_opencode(cmd, args, env, a.dry_run)
+        if a.codex:
+            write_codex(cmd, args, env, a.dry_run)
+        if a.hermes:
+            write_hermes(cmd, args, env, a.dry_run)
+    if a.zcode:
+        write_zcode(a.sse_url, a.dry_run)
     return 0
 
 
