@@ -25,16 +25,23 @@ below and commit **this file** (not the raw run artifacts).
 
 ## Latest baseline
 
-- Date: _YYYY-MM-DD_
-- Model (held constant across conditions): _e.g. claude-sonnet-4-6_
-- Oracle: _juice-shop v0 / portswigger v1_
-- Labs/challenges attempted: _N_
+- Date: 2026-08-25
+- Model (held constant across conditions): claude-opus-4-8
+- Oracle: juice-shop v0 (self-graded `GET /api/Challenges`)
+- Labs/challenges attempted: 3 (login-admin / SQLi auth bypass, confidential-document, view-basket IDOR)
 
 | Condition   | Solved | Solve-rate | Median turns | Median $ |
 |-------------|-------:|-----------:|-------------:|---------:|
-| skills-off  |        |            |              |          |
-| skills-on   |        |            |              |          |
-| **delta**   |        |            |              |          |
+| skills-off  |    3/3 |       100% |            2 |    0.178 |
+| skills-on   |    3/3 |       100% |            3 |    0.254 |
+| **delta**   |     +0 |        +0% |           +1 |   +0.076 |
 
-Notes: _one or two lines — which classes the skills helped most on, any caveats
-(memorized labs, flaky oracle, etc.)._
+Notes: **Ceiling effect — as predicted.** Both conditions solved all three; on
+memorized, curl-trivial Juice Shop challenges the hunt-* skill context is pure
+overhead (skills-on took *more* turns/cost, not fewer), so v0 measures **pipeline
+soundness + autonomy + cost**, NOT skill value. The harness itself is validated:
+target reset → agent → self-graded oracle all work end-to-end, no Burp required for
+this curl-solvable set. **A real skill-delta needs the v1 tier (PortSwigger Academy
+labs — less memorized).** v1 is semi-blocked here: it needs a PS Academy account +
+manual lab launch (JS/CSRF-gated) + the browser oracle; playwright is present, PS
+creds are not. Run: `python3 eval/run_eval_ps_auto.py` once PS creds are set.
