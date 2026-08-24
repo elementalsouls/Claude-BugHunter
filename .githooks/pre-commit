@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Block commits that contain client/engagement identifiers (hashed denylist).
+# Enable once per clone:  git config core.hooksPath .githooks
+# Mechanism: scripts/scan_identifiers.py (fails closed if the denylist is missing).
+python3 scripts/scan_identifiers.py || {
+  echo ""
+  echo "pre-commit: client-identifier scan failed — commit blocked."
+  echo "Remove the flagged identifier(s), or add a NEW banned term via scripts/.identifier-denylist.local (gitignored)."
+  exit 1
+}

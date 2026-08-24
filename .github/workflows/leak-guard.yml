@@ -1,0 +1,29 @@
+name: leak-guard
+
+# Repo-wide client/engagement-identifier leak guard. Unlike skill-lint.yml (which
+# only watches skills/**), this runs on EVERY push and PR with no path filter —
+# because the real leak that motivated it landed in README.md and tests/, not skills.
+# scan_identifiers.py fails CLOSED if the denylist is missing.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Client-identifier scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Self-test the scanner
+        run: python3 scripts/test_scan_identifiers.py
+      - name: Scan repo for client identifiers
+        run: python3 scripts/scan_identifiers.py

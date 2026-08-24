@@ -54,6 +54,27 @@ There's no automated test suite. Manual smoke tests:
 4. Verify Claude triggers the skill and uses its content correctly
 5. For `hunt-*` skills, also verify the auto-trigger works without explicitly naming the skill
 
+## Leak guard (client/engagement identifiers)
+
+The repo's hard rule: **no real client/engagement identifier ever lands in the public tree.** Two automated gates enforce it — both stdlib-only, no pip install:
+
+- `scripts/lint_skills.py` — scans `skills/**` (structure + secrets + the identifier denylist).
+- `scripts/scan_identifiers.py` — scans **every tracked text file** (README, docs, tests, CHANGELOG, SVGs — the places a name actually leaked once). Runs in CI via `.github/workflows/leak-guard.yml` on every push and PR, and **fails closed** if the denylist is missing.
+
+Enable the local pre-commit hook once per clone so you catch it before pushing:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+To ban a **new** identifier without committing the plaintext name, either add its hash to `scripts/.identifier-denylist.sha256`:
+
+```bash
+printf '%s' "the name" | tr '[:upper:]' '[:lower:]' | shasum -a 256   # paste the hash
+```
+
+or drop the plaintext (one per line) in `scripts/.identifier-denylist.local` — it's gitignored and hashed at runtime, so the name never enters the repo.
+
 ## Code of conduct
 
 - Be respectful in PRs and issues
