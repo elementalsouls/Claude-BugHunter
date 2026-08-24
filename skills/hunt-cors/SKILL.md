@@ -135,6 +135,13 @@ A bypass is real only if the server reflects **your registerable origin** into
 `ACAO` with `ACAC: true`. `evil.target.com` reflecting back is NOT a bug unless
 you can actually control a `*.target.com` host (then see Phase 6 / hunt-subdomain).
 
+### Phase 3b — Trusted insecure (HTTP) origin
+If ACAO reflects/allows any `http://` origin (even a correctly-anchored in-scope one) with ACAC:true, a network attacker on that cleartext host injects a page that reads the authed cross-origin body — no regex flaw needed, the plaintext scheme IS the flaw.
+```bash
+curl -s -D- -o/dev/null "https://$TARGET/api/me" -H "Origin: http://sub.$TARGET" -H "Cookie: $SESSION" | grep -i access-control
+```
+Real only if a MITM can occupy that http origin (no HSTS-preload). Pair with `hunt-tls-network`. (PortSwigger: CORS with trusted insecure protocols.)
+
 ### Phase 4 — Pre-flight (OPTIONS) gating bypass
 Non-simple requests (custom headers, `PUT`/`DELETE`/`PATCH`, non-simple
 `Content-Type`) trigger a CORS **pre-flight** `OPTIONS`. The browser only sends

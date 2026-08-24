@@ -147,6 +147,9 @@ Triage candidates with the static analyzer before opening any PR: `gh extension 
 
 ---
 
+### Actions cache poisoning
+The GitHub Actions cache is not trust-isolated across branches by default: a workflow from an attacker branch/fork PR can write a cache entry (key or restore-key) that a later privileged workflow on the default branch restores, injecting attacker files (built binaries, deps, scripts) into a trusted build -> code execution in the privileged context. Check for cache actions keyed on attacker-influenced values, and whether privileged pipelines `restore-keys` a prefix an untrusted job can populate.
+
 ## Phase 3 — Secrets in Logs & Artifacts
 
 ```bash

@@ -106,6 +106,16 @@ for P in "${PAYLOADS[@]}"; do
 done
 ```
 
+### Phase 3b — DOM-based open redirect (client-side sink)
+Server-side `Location:` grepping misses redirects that happen purely in JS. Source (`location.hash`/`location.search`/`document.referrer`) assigned to a navigation sink.
+```bash
+grep -rEn "location *=|location\.(href|assign|replace)\(|window\.open\(" recon/$TARGET/ --include="*.js" \
+  | grep -iE "location\.(hash|search)|URLSearchParams|getParameter|referrer"
+# Confirm in a browser (curl can't): open  https://$TARGET/page#https://evil.com  (or ?url=...)
+# Common shape:  var u=new URLSearchParams(location.search).get('url'); location=u;
+```
+(PortSwigger: DOM-based open redirection.)
+
 ### Phase 4 — OAuth Chain Test
 ```bash
 # If target has OAuth, check if redirect_uri accepts open redirect

