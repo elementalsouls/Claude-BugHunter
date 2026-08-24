@@ -8,7 +8,8 @@ number didn't get updated along with the rest (see the 71/48/24 stale-count
 fixes). This script computes the real counts from skills/ and commands/ on
 disk, then checks every doc location that asserts one of those numbers in
 prose, plus two places where a count is derived by summing a table/section
-breakdown.
+breakdown, plus a sanity check on the ZCode plugin manifest (must parse, name
+must match ZCode's pattern, component dirs and mcpServers entries must resolve).
 
 It deliberately does NOT try to reconcile every document's bespoke
 sub-categorization (e.g. docs/architecture.md's narrower "enterprise-platform"
@@ -24,6 +25,7 @@ Stdlib only — no pip install needed in CI.
 Usage:
     python3 scripts/check_doc_counts.py
 """
+import json
 import os
 import re
 import sys
@@ -125,6 +127,33 @@ def check_catalog_section_sum(errors, actual):
         errors.append(f"docs/skills.md: section headers sum to {total}, actual total is {actual['total']}")
 
 
+def check_zcode_manifest(errors):
+    """The ZCode plugin manifest must parse and point at real components —
+    ZCode loads it directly from the repo, so rot breaks the plugin install."""
+    path = os.path.join(REPO, ".zcode-plugin", "plugin.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            manifest = json.load(fh)
+    except FileNotFoundError:
+        errors.append(".zcode-plugin/plugin.json missing — the ZCode plugin install breaks")
+        return
+    except ValueError as e:
+        errors.append(f".zcode-plugin/plugin.json is not valid JSON: {e}")
+        return
+    name = manifest.get("name", "")
+    if not re.match(r"^[a-z0-9][a-z0-9._-]{0,127}$", name):
+        errors.append(f".zcode-plugin/plugin.json: name '{name}' fails ZCode's plugin-name pattern")
+    for field in ("skills", "commands"):
+        val = manifest.get(field)
+        if isinstance(val, str) and not os.path.isdir(os.path.join(REPO, val)):
+            errors.append(f".zcode-plugin/plugin.json: {field} '{val}' is not a directory")
+    mcp = manifest.get("mcpServers")
+    if isinstance(mcp, dict):
+        for srv, defn in mcp.items():
+            if not isinstance(defn, dict) or not (defn.get("command") or defn.get("url")):
+                errors.append(f".zcode-plugin/plugin.json: mcpServers.{srv} needs a command or url")
+
+
 def main():
     total, hunt = count_skills()
     commands = count_commands()
@@ -133,12 +162,13 @@ def main():
     errors = check_assertions(actual)
     check_readme_table_sum(errors, actual)
     check_catalog_section_sum(errors, actual)
+    check_zcode_manifest(errors)
 
     for e in errors:
         print(f"::error:: {e}" if os.environ.get("GITHUB_ACTIONS") else f"ERROR {e}")
 
     print(f"\nGround truth: {total} skills ({hunt} hunt-*), {commands} slash commands.")
-    print(f"Checked {len(CHECKS)} doc assertions + 2 structural sums: {len(errors)} error(s).")
+    print(f"Checked {len(CHECKS)} doc assertions + 3 structural checks: {len(errors)} error(s).")
     return 1 if errors else 0
 
 

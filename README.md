@@ -94,11 +94,11 @@ That's it. Open Claude Code and describe what you're testing in plain English �
 
 ---
 
-## Runs on four harnesses
+## Runs on five harnesses
 
-![One install, four agent harnesses — Claude Code, OpenCode, Codex CLI, Hermes Agent](assets/harness-routing.svg)
+![One install, five agent harnesses — Claude Code, OpenCode, Codex CLI, Hermes Agent, ZCode Agent](assets/harness-routing.svg)
 
-The skills are plain [Agent Skills](https://docs.claude.com/en/docs/claude-code/skills) — the same `SKILL.md` format that **Claude Code · OpenCode · OpenAI Codex CLI · Hermes Agent** all load. One command installs them everywhere:
+The skills are plain [Agent Skills](https://docs.claude.com/en/docs/claude-code/skills) — the same `SKILL.md` format that **Claude Code · OpenCode · OpenAI Codex CLI · Hermes Agent · ZCode Agent** all load. One command installs them everywhere:
 
 ```bash
 # macOS / Linux
@@ -108,9 +108,9 @@ bash scripts/install.sh --all --burp-mcp
 pwsh ./scripts/install.ps1 -All -BurpMcp
 ```
 
-`--all` (`-All`) copies the skills to every harness's path (`~/.claude/skills`, `~/.agents/skills`, `~/.hermes/skills`); `--burp-mcp` (`-BurpMcp`) wires the Burp MCP server into each. The full *knowledge* layer ports to all four — the slash commands and `/hunt` engine stay Claude-Code-only by design.
+`--all` (`-All`) copies the skills to every harness's path (`~/.claude/skills`, `~/.agents/skills`, `~/.hermes/skills`, `~/.zcode`); `--burp-mcp` (`-BurpMcp`) wires the Burp MCP server into each. The full *knowledge* layer ports to all five — the slash commands and `/hunt` engine run on Claude Code and ZCode Agent.
 
-→ [Multi-harness guide](docs/multi-harness.md)
+→ [Multi-harness guide](docs/multi-harness.md) · [ZCode guide](docs/zcode.md)
 
 ---
 

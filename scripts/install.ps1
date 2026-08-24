@@ -15,12 +15,18 @@
 # NOT port; other harnesses get the knowledge, not the orchestration):
 #   -Agents        force-copy skills -> ~\.agents\skills\  (Codex; OpenCode reads ~\.claude)
 #   -Hermes        force-copy skills -> ~\.hermes\skills\   (Hermes Agent)
+#   -Zcode         copy skills + commands -> ~\.zcode\ for ZCode Agent (reads user-scope
+#                  slash commands as well as skills; plugin install via the marketplace is
+#                  the primary route, see docs/zcode.md. Uninstall of this copy path is
+#                  manual.)
 #   -All           DETECT installed harnesses and install to each: Claude always, ~\.agents
-#                  if Codex is present, ~\.hermes if Hermes is present. With -BurpMcp it
-#                  wires Burp only into the detected harnesses. (-Agents/-Hermes still
-#                  force a path regardless of detection.)
+#                  if Codex is present, ~\.hermes if Hermes is present, ~\.zcode if ZCode
+#                  is present. With -BurpMcp it wires Burp only into the detected
+#                  harnesses. (-Agents/-Hermes/-Zcode still force a path regardless
+#                  of detection.)
 #   -BurpMcp       wire your existing Burp MCP server into the selected harnesses'
-#                  configs (opt-in; backs up each config first; uses python)
+#                  configs (opt-in; backs up each config first; uses python; for ZCode
+#                  writes the recommended SSE entry)
 #   -NormalizeFrontmatter
 #                  strip non-standard keys (sources/report_count) from the NON-Claude
 #                  copies — only needed if a harness rejects unknown frontmatter keys
@@ -39,6 +45,7 @@
 param(
     [switch] $Agents,
     [switch] $Hermes,
+    [switch] $Zcode,
     [switch] $All,
     [switch] $BurpMcp,
     [switch] $NormalizeFrontmatter,
@@ -154,10 +161,10 @@ function Install-Skills([string] $Dest, [string] $Label) {
 }
 
 # --- flag plumbing -----------------------------------------------------
-$DO_AGENTS = [bool]$Agents; $DO_HERMES = [bool]$Hermes; $DO_MCP = [bool]$BurpMcp
+$DO_AGENTS = [bool]$Agents; $DO_HERMES = [bool]$Hermes; $DO_ZCODE = [bool]$Zcode; $DO_MCP = [bool]$BurpMcp
 $NORMALIZE = [bool]$NormalizeFrontmatter; $DETECT = [bool]$All
 $DO_UNINSTALL = [bool]$Uninstall; $NO_PROFILE = [bool]$NoProfile
-$HAS_CLAUDE = $false; $HAS_OPENCODE = $false; $HAS_CODEX = $false; $HAS_HERMES = $false
+$HAS_CLAUDE = $false; $HAS_OPENCODE = $false; $HAS_CODEX = $false; $HAS_HERMES = $false; $HAS_ZCODE = $false
 
 # --- Uninstall ---------------------------------------------------------
 function Uninstall-Bundle {
@@ -214,17 +221,20 @@ if ($DETECT) {
     if ((Get-Command opencode -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.config\opencode'))) { $HAS_OPENCODE = $true }
     if ((Get-Command codex -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.codex'))) { $HAS_CODEX = $true }
     if ((Get-Command hermes -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.hermes'))) { $HAS_HERMES = $true }
+    if ((Get-Command zcode -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.zcode'))) { $HAS_ZCODE = $true }
     Write-Host "Detecting installed harnesses:"
     if ($HAS_CLAUDE)   { Write-Host "  + Claude Code   -> ~\.claude\skills" }
     if ($HAS_OPENCODE) { Write-Host "  + OpenCode      -> reads ~\.claude\skills (MCP wired separately)" }
     if ($HAS_CODEX)    { Write-Host "  + Codex CLI     -> ~\.agents\skills" }
     if ($HAS_HERMES)   { Write-Host "  + Hermes Agent  -> ~\.hermes\skills" }
-    if (-not ($HAS_OPENCODE -or $HAS_CODEX -or $HAS_HERMES)) {
-        Write-Host "  (only Claude Code detected -- installing there. Force others with -Agents / -Hermes.)"
+    if ($HAS_ZCODE)    { Write-Host "  + ZCode Agent   -> ~\.zcode\skills + ~\.zcode\commands" }
+    if (-not ($HAS_OPENCODE -or $HAS_CODEX -or $HAS_HERMES -or $HAS_ZCODE)) {
+        Write-Host "  (only Claude Code detected -- installing there. Force others with -Agents / -Hermes / -Zcode.)"
     }
     Write-Host ''
     if ($HAS_CODEX)  { $DO_AGENTS = $true }
     if ($HAS_HERMES) { $DO_HERMES = $true }
+    if ($HAS_ZCODE)  { $DO_ZCODE = $true }
 }
 
 if (-not (Test-Path -LiteralPath $SkillsSource -PathType Container)) {
@@ -234,7 +244,7 @@ $skillCount = (Get-ChildItem -LiteralPath $SkillsSource -Directory).Count
 
 # --- Claude Code (always): skills + commands + hunt.ps1 ----------------
 Write-Host "Installing Claude-BugHunter bundle from $RepoDir"
-if ($DO_AGENTS -or $DO_HERMES) { Write-Host "(multi-harness mode)" }
+if ($DO_AGENTS -or $DO_HERMES -or $DO_ZCODE) { Write-Host "(multi-harness mode)" }
 Write-Host ''
 
 Install-Skills (Join-Path $HOME '.claude\skills') 'skills'
@@ -307,14 +317,33 @@ Write-Host "  + Install manifest ($($entries.Count) entries) -> $Manifest"
 Write-Host "    Uninstall later with:  pwsh ./scripts/install.ps1 -Uninstall"
 Write-Host ''
 
-# --- extra harness targets (skills only) ------------------------------
-if ($DO_AGENTS) {
-    Install-Skills (Join-Path $HOME '.agents\skills') 'agents'
+# Copy commands/*.md into <dest>, backing up changed files OUTSIDE the loading path.
+function Install-Commands([string] $Dest, [string] $Label) {
+    if (-not (Test-Path -LiteralPath $CommandsSrc)) { return }
+    if (-not (Test-Path -LiteralPath $Dest)) { New-Item -ItemType Directory -Force -Path $Dest | Out-Null }
+    Write-Host "Commands ->  $Dest   ($Label)"
+    foreach ($f in (Get-ChildItem -LiteralPath $CommandsSrc -Filter *.md -File)) {
+        $dst = Join-Path $Dest $f.Name
+        if (Test-Path -LiteralPath $dst) {
+            if (Test-FilesEqual $f.FullName $dst) { continue }
+            $bk = Join-Path $BackupDest $Label
+            New-Item -ItemType Directory -Force -Path $bk | Out-Null
+            Move-Item -LiteralPath $dst (Join-Path $bk $f.Name) -Force
+        }
+        Copy-Item -LiteralPath $f.FullName -Destination $dst -Force
+    }
+    Write-Host "  + commands installed"
+    Write-Host ''
+}
+
+# Guard a copied skills tree against the 1024-char description limit that Codex
+# (hard reject) and ZCode (whole skill dropped) enforce. Drift insurance only —
+# the repo is linted to stay under the limit. $StripExtras removes non-standard
+# frontmatter keys (Codex-only, -NormalizeFrontmatter).
+function Invoke-DescGuard([string] $Dest, [bool] $StripExtras) {
     $py = Get-Python
-    if ($py) {
-        $limit = 1024
-        # Inline truncation script (ports the bash heredoc verbatim).
-        $trunc = @"
+    if (-not $py) { return }
+    $trunc = @"
 import os, re, sys
 root, strip_extra = sys.argv[1], sys.argv[2] == '1'
 LIMIT = 1024
@@ -334,7 +363,7 @@ for name in sorted(os.listdir(root)):
                 cut = inner[:LIMIT - 2].rsplit(' ', 1)[0].rstrip(' ,;:_-')
                 line = 'description: "' + cut + '..."'
                 changed = True
-                print('    truncated ' + name + ' description ' + str(len(inner)) + '->' + str(len(cut)+1) + ' (Codex 1024 limit)')
+                print('    truncated ' + name + ' description ' + str(len(inner)) + '->' + str(len(cut)+1) + ' (1024-char limit)')
         if strip_extra and i < 12 and re.match(r'^(sources|report_count):\s', line):
             changed = True
             continue
@@ -342,15 +371,29 @@ for name in sorted(os.listdir(root)):
     if changed:
         open(p, 'w', encoding='utf-8').write('\n'.join(out))
 "@
-        $truncFile = Join-Path $env:TEMP 'cbh_trunc.py'
-        Write-HuntFile $truncFile $trunc
-        $pyExe = $py[0]
-        $pyRest = @($py[1..($py.Length - 1)]) + @($truncFile, (Join-Path $HOME '.agents\skills'), "$(if ($NORMALIZE) { '1' } else { '0' })")
-        & $pyExe $pyRest
-        Remove-Item -LiteralPath $truncFile -Force -ErrorAction SilentlyContinue
-    }
+    $truncFile = Join-Path $env:TEMP 'cbh_trunc.py'
+    Write-HuntFile $truncFile $trunc
+    $pyExe = $py[0]
+    $pyRest = @($py[1..($py.Length - 1)]) + @($truncFile, $Dest, "$(if ($StripExtras) { '1' } else { '0' })")
+    & $pyExe $pyRest
+    Remove-Item -LiteralPath $truncFile -Force -ErrorAction SilentlyContinue
+}
+
+# --- extra harness targets (skills only) ------------------------------
+if ($DO_AGENTS) {
+    Install-Skills (Join-Path $HOME '.agents\skills') 'agents'
+    Invoke-DescGuard (Join-Path $HOME '.agents\skills') $NORMALIZE
 }
 if ($DO_HERMES) { Install-Skills (Join-Path $HOME '.hermes\skills') 'hermes' }
+
+# ZCode Agent — skills AND commands (it reads both at user scope). The plugin
+# marketplace install (docs/zcode.md) is the primary route; this is the copy
+# alternative. Not tracked by the ~\.claude uninstall manifest.
+if ($DO_ZCODE) {
+    Install-Skills (Join-Path $HOME '.zcode\skills') 'zcode-skills'
+    Install-Commands (Join-Path $HOME '.zcode\commands') 'zcode-commands'
+    Invoke-DescGuard (Join-Path $HOME '.zcode\skills') $false
+}
 
 # --- opt-in Burp MCP wiring -------------------------------------------
 if ($DO_MCP) {
@@ -359,12 +402,14 @@ if ($DO_MCP) {
         if ($HAS_OPENCODE) { $mcpTargets += '--opencode' }
         if ($HAS_CODEX)    { $mcpTargets += '--codex' }
         if ($HAS_HERMES)   { $mcpTargets += '--hermes' }
+        if ($HAS_ZCODE)    { $mcpTargets += '--zcode' }
     } else {
         if ($DO_AGENTS) { $mcpTargets += '--opencode'; $mcpTargets += '--codex' }
         if ($DO_HERMES) { $mcpTargets += '--hermes' }
+        if ($DO_ZCODE)  { $mcpTargets += '--zcode' }
     }
     if ($mcpTargets.Count -eq 0) {
-        Write-Host "  ! -BurpMcp found no non-Claude harness (none detected, no -Agents/-Hermes). Skipping."
+        Write-Host "  ! -BurpMcp found no non-Claude harness (none detected, no -Agents/-Hermes/-Zcode). Skipping."
     } else {
         $py = Get-Python
         if ($py) {
@@ -391,11 +436,15 @@ Write-Host ''
 Write-Host "Claude Code:   $(Join-Path $HOME '.claude\skills')  (+ commands, hunt.ps1)"
 if ($DO_AGENTS) { Write-Host "Codex+OpenCode: $(Join-Path $HOME '.agents\skills')" }
 if ($DO_HERMES) { Write-Host "Hermes Agent:  $(Join-Path $HOME '.hermes\skills')" }
+if ($DO_ZCODE) {
+    Write-Host "ZCode Agent:   $(Join-Path $HOME '.zcode\skills') + $(Join-Path $HOME '.zcode\commands')"
+    Write-Host "               (plugin install via marketplace also available -- docs/zcode.md)"
+}
 if (Test-Path -LiteralPath $BackupDest) { Write-Host "Backups:       $BackupDest  (outside loading paths)" }
 Write-Host ''
-if (-not $DETECT -and -not $DO_AGENTS -and -not $DO_HERMES) {
-    Write-Host "Other harnesses?  pwsh ./scripts/install.ps1 -All   (auto-detects Codex / OpenCode / Hermes)"
-    Write-Host "See also: docs/multi-harness.md"
+if (-not $DETECT -and -not $DO_AGENTS -and -not $DO_HERMES -and -not $DO_ZCODE) {
+    Write-Host "Other harnesses?  pwsh ./scripts/install.ps1 -All   (auto-detects Codex / OpenCode / Hermes / ZCode)"
+    Write-Host "See also: docs/multi-harness.md, docs/zcode.md"
 }
 Write-Host ''
 Write-Host "Next: open a new PowerShell window (or '. `$PROFILE') and try:  hunt acme-test"

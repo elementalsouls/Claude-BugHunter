@@ -13,12 +13,18 @@
 # NOT port; other harnesses get the knowledge, not the orchestration):
 #   --agents    force-copy skills → ~/.agents/skills/  (Codex; OpenCode reads ~/.claude)
 #   --hermes    force-copy skills → ~/.hermes/skills/   (Hermes Agent)
+#   --zcode     copy skills + commands → ~/.zcode/  (ZCode Agent — reads user-scope
+#               slash commands as well as skills; plugin install via the marketplace is
+#               the primary route, see docs/zcode.md. Uninstall of this copy path is
+#               manual: rm -rf ~/.zcode/skills/<name> ~/.zcode/commands/<cmd>.md)
 #   --all       DETECT installed harnesses and install to each: Claude always, ~/.agents
-#               if Codex is present, ~/.hermes if Hermes is present. With --burp-mcp it
-#               wires Burp only into the detected harnesses. (--agents/--hermes still
-#               force a path regardless of detection.)
+#               if Codex is present, ~/.hermes if Hermes is present, ~/.zcode if ZCode
+#               is present. With --burp-mcp it wires Burp only into the detected
+#               harnesses. (--agents/--hermes/--zcode still force a path regardless
+#               of detection.)
 #   --burp-mcp  wire your existing Burp MCP server into the selected harnesses'
-#               configs (opt-in; backs up each config first; uses python3)
+#               configs (opt-in; backs up each config first; uses python3; for ZCode
+#               writes the recommended SSE entry)
 #   --normalize-frontmatter
 #               strip non-standard keys (sources/report_count) from the NON-Claude
 #               copies — only needed if a harness rejects unknown frontmatter keys
@@ -52,12 +58,13 @@ MANIFEST="$MANIFEST_DIR/$BUNDLE_NAME.txt"
 
 usage() { sed -n '2,/^# ===/p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'; }
 
-DO_AGENTS=0; DO_HERMES=0; DO_MCP=0; NORMALIZE=0; DETECT=0; DO_UNINSTALL=0; NO_SHELL=0
-HAS_CLAUDE=0; HAS_OPENCODE=0; HAS_CODEX=0; HAS_HERMES=0
+DO_AGENTS=0; DO_HERMES=0; DO_ZCODE=0; DO_MCP=0; NORMALIZE=0; DETECT=0; DO_UNINSTALL=0; NO_SHELL=0
+HAS_CLAUDE=0; HAS_OPENCODE=0; HAS_CODEX=0; HAS_HERMES=0; HAS_ZCODE=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --agents) DO_AGENTS=1 ;;
     --hermes) DO_HERMES=1 ;;
+    --zcode)  DO_ZCODE=1 ;;
     --all)    DETECT=1 ;;
     --burp-mcp) DO_MCP=1 ;;
     --normalize-frontmatter) NORMALIZE=1 ;;
@@ -119,17 +126,20 @@ if [ "$DETECT" = "1" ]; then
   if command -v opencode >/dev/null 2>&1 || [ -d "$HOME/.config/opencode" ]; then HAS_OPENCODE=1; fi
   if command -v codex    >/dev/null 2>&1 || [ -d "$HOME/.codex" ];           then HAS_CODEX=1; fi
   if command -v hermes   >/dev/null 2>&1 || [ -d "$HOME/.hermes" ];          then HAS_HERMES=1; fi
+  if command -v zcode    >/dev/null 2>&1 || [ -d "$HOME/.zcode" ];           then HAS_ZCODE=1; fi
   echo "Detecting installed harnesses:"
   if [ "$HAS_CLAUDE"   = "1" ]; then echo "  ✓ Claude Code   → ~/.claude/skills"; fi
   if [ "$HAS_OPENCODE" = "1" ]; then echo "  ✓ OpenCode      → reads ~/.claude/skills (MCP wired separately)"; fi
   if [ "$HAS_CODEX"    = "1" ]; then echo "  ✓ Codex CLI     → ~/.agents/skills"; fi
   if [ "$HAS_HERMES"   = "1" ]; then echo "  ✓ Hermes Agent  → ~/.hermes/skills"; fi
-  if [ "$HAS_OPENCODE" = "0" ] && [ "$HAS_CODEX" = "0" ] && [ "$HAS_HERMES" = "0" ]; then
-    echo "  (only Claude Code detected — installing there. Force others with --agents / --hermes.)"
+  if [ "$HAS_ZCODE"    = "1" ]; then echo "  ✓ ZCode Agent   → ~/.zcode/skills + ~/.zcode/commands"; fi
+  if [ "$HAS_OPENCODE" = "0" ] && [ "$HAS_CODEX" = "0" ] && [ "$HAS_HERMES" = "0" ] && [ "$HAS_ZCODE" = "0" ]; then
+    echo "  (only Claude Code detected — installing there. Force others with --agents / --hermes / --zcode.)"
   fi
   echo ""
   if [ "$HAS_CODEX"  = "1" ]; then DO_AGENTS=1; fi
   if [ "$HAS_HERMES" = "1" ]; then DO_HERMES=1; fi
+  if [ "$HAS_ZCODE"  = "1" ]; then DO_ZCODE=1; fi
 fi
 
 SKILL_COUNT="$(find "$REPO_DIR/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
@@ -157,8 +167,29 @@ install_skills() {
   echo ""
 }
 
+# Copy commands/*.md into <dest>, backing up changed files OUTSIDE the loading
+# path. $2 is a label used for the backup subfolder + logging.
+install_commands() {
+  local dest="$1" label="$2" cmd_file cmd_name
+  [ -d "$REPO_DIR/commands" ] || return 0
+  mkdir -p "$dest"
+  echo "Commands →  $dest   ($label)"
+  for cmd_file in "$REPO_DIR/commands"/*.md; do
+    [ -e "$cmd_file" ] || continue
+    cmd_name="$(basename "$cmd_file")"
+    if [ -f "$dest/$cmd_name" ] && [ ! -L "$dest/$cmd_name" ]; then
+      if cmp -s "$cmd_file" "$dest/$cmd_name"; then continue; fi
+      mkdir -p "$BACKUP_DEST/$label"
+      mv "$dest/$cmd_name" "$BACKUP_DEST/$label/$cmd_name"
+    fi
+    cp "$cmd_file" "$dest/$cmd_name"
+  done
+  echo "  ✓ commands installed"
+  echo ""
+}
+
 echo "Installing Claude-BugHunter bundle from $REPO_DIR"
-if [ "$DO_AGENTS" = "1" ] || [ "$DO_HERMES" = "1" ]; then echo "(multi-harness mode)"; fi
+if [ "$DO_AGENTS" = "1" ] || [ "$DO_HERMES" = "1" ] || [ "$DO_ZCODE" = "1" ]; then echo "(multi-harness mode)"; fi
 echo ""
 
 # === Claude Code (always) — skills + commands + hunt.sh ===
@@ -232,14 +263,14 @@ echo "    Uninstall later with:  bash scripts/install.sh --uninstall"
 echo ""
 
 # === Extra harness targets (skills only) ===
-if [ "$DO_AGENTS" = "1" ]; then
-  install_skills "$HOME/.agents/skills" "agents"
-  # Codex (which reads ~/.agents/skills) HARD-rejects descriptions > 1024 chars.
-  # Auto-truncate over-length descriptions in THIS copy only — ~/.claude and
-  # ~/.hermes keep full descriptions. Optional --normalize-frontmatter also strips
-  # non-standard keys (sources/report_count). Python3 only; skipped if absent.
-  if command -v python3 >/dev/null 2>&1; then
-    python3 - "$HOME/.agents/skills" "$NORMALIZE" <<'PY'
+# Guard a copied skills tree against the 1024-char description limit that Codex
+# (hard reject) and ZCode (whole skill dropped) enforce. The repo is linted to
+# stay under the limit; this pass is drift insurance for the copies. Optional
+# strip of non-standard frontmatter keys is Codex-only (--normalize-frontmatter).
+guard_desc_limit() {
+  local dest="$1" strip="$2"
+  command -v python3 >/dev/null 2>&1 || return 0
+  python3 - "$dest" "$strip" <<'PY'
 import os, re, sys
 root, strip_extra = sys.argv[1], sys.argv[2] == "1"
 LIMIT = 1024
@@ -260,7 +291,7 @@ for name in sorted(os.listdir(root)):
                 cut = inner[:LIMIT - 2].rsplit(" ", 1)[0].rstrip(" ,;:—-")
                 line = 'description: "' + cut + '…"'
                 changed = True
-                print(f"    ✂ truncated {name} description {len(inner)}→{len(cut)+1} (Codex 1024 limit)")
+                print(f"    ✂ truncated {name} description {len(inner)}→{len(cut)+1} (1024-char limit)")
         if strip_extra and i < 12 and re.match(r'^(sources|report_count):\s', line):
             changed = True
             continue
@@ -268,9 +299,21 @@ for name in sorted(os.listdir(root)):
     if changed:
         open(p, "w", encoding="utf-8").write("\n".join(out))
 PY
-  fi
+}
+if [ "$DO_AGENTS" = "1" ]; then
+  install_skills "$HOME/.agents/skills" "agents"
+  guard_desc_limit "$HOME/.agents/skills" "$NORMALIZE"
 fi
 if [ "$DO_HERMES" = "1" ]; then install_skills "$HOME/.hermes/skills" "hermes"; fi
+
+# ZCode Agent — skills AND commands (it reads both at user scope). The plugin
+# marketplace install (docs/zcode.md) is the primary route; this is the copy
+# alternative. Not tracked by the ~/.claude uninstall manifest.
+if [ "$DO_ZCODE" = "1" ]; then
+  install_skills "$HOME/.zcode/skills" "zcode-skills"
+  install_commands "$HOME/.zcode/commands" "zcode-commands"
+  guard_desc_limit "$HOME/.zcode/skills" "0"
+fi
 
 # === Opt-in: wire the existing Burp MCP into the selected harnesses ===
 if [ "$DO_MCP" = "1" ]; then
@@ -280,13 +323,15 @@ if [ "$DO_MCP" = "1" ]; then
     if [ "$HAS_OPENCODE" = "1" ]; then MCP_TARGETS="$MCP_TARGETS --opencode"; fi
     if [ "$HAS_CODEX"    = "1" ]; then MCP_TARGETS="$MCP_TARGETS --codex"; fi
     if [ "$HAS_HERMES"   = "1" ]; then MCP_TARGETS="$MCP_TARGETS --hermes"; fi
+    if [ "$HAS_ZCODE"    = "1" ]; then MCP_TARGETS="$MCP_TARGETS --zcode"; fi
   else
     # explicit-flag mode
     if [ "$DO_AGENTS" = "1" ]; then MCP_TARGETS="$MCP_TARGETS --opencode --codex"; fi
     if [ "$DO_HERMES" = "1" ]; then MCP_TARGETS="$MCP_TARGETS --hermes"; fi
+    if [ "$DO_ZCODE"  = "1" ]; then MCP_TARGETS="$MCP_TARGETS --zcode"; fi
   fi
   if [ -z "$MCP_TARGETS" ]; then
-    echo "  ⚠ --burp-mcp found no non-Claude harness (none detected, no --agents/--hermes). Skipping."
+    echo "  ⚠ --burp-mcp found no non-Claude harness (none detected, no --agents/--hermes/--zcode). Skipping."
   elif command -v python3 >/dev/null 2>&1; then
     # shellcheck disable=SC2086
     python3 "$REPO_DIR/scripts/setup_harness_mcp.py" $MCP_TARGETS || \
@@ -304,11 +349,15 @@ echo ""
 echo "Claude Code:   $HOME/.claude/skills  (+ commands, hunt.sh)"
 if [ "$DO_AGENTS" = "1" ]; then echo "Codex+OpenCode: $HOME/.agents/skills"; fi
 if [ "$DO_HERMES" = "1" ]; then echo "Hermes Agent:  $HOME/.hermes/skills"; fi
+if [ "$DO_ZCODE" = "1" ]; then
+  echo "ZCode Agent:   $HOME/.zcode/skills + $HOME/.zcode/commands"
+  echo "               (plugin install via marketplace also available — docs/zcode.md)"
+fi
 if [ -d "$BACKUP_DEST" ]; then echo "Backups:       $BACKUP_DEST  (outside loading paths)"; fi
 echo ""
-if [ "$DETECT" = "0" ] && [ "$DO_AGENTS" = "0" ] && [ "$DO_HERMES" = "0" ]; then
-  echo "Other harnesses?  bash scripts/install.sh --all   (auto-detects Codex / OpenCode / Hermes)"
-  echo "See also: docs/multi-harness.md"
+if [ "$DETECT" = "0" ] && [ "$DO_AGENTS" = "0" ] && [ "$DO_HERMES" = "0" ] && [ "$DO_ZCODE" = "0" ]; then
+  echo "Other harnesses?  bash scripts/install.sh --all   (auto-detects Codex / OpenCode / Hermes / ZCode)"
+  echo "See also: docs/multi-harness.md, docs/zcode.md"
 fi
 echo ""
 echo "Next: open a new terminal (or 'source $SHELL_RC') and try:  hunt acme-test"
