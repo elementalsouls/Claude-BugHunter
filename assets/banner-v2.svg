@@ -159,7 +159,7 @@
     <circle cx="24" cy="19" r="4" fill="#b81e37"/>
     <circle cx="40" cy="19" r="4" fill="#5f6070"/>
     <circle cx="56" cy="19" r="4" fill="#5f6070"/>
-    <text x="84" y="23" font-size="11" letter-spacing="1.6" class="dim">agent skills session - ~/.claude/skills + ~/.agents/skills + ~/.hermes/skills + ~/.gemini/antigravity/skills</text>
+    <text x="84" y="23" font-size="11" letter-spacing="1.6" class="dim">agent skills session - ~/.claude/skills + ~/.agents/skills + ~/.hermes/skills + ~/.gemini/config/skills</text>
     <line x1="0" y1="34" x2="1760" y2="34" stroke="#202230"/>
     <text x="24" y="58" font-size="13" font-weight="800" class="red">&gt;</text>
     <text x="48" y="58" font-size="13" class="white">bash scripts/install.sh --all --burp-mcp</text>

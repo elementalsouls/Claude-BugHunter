@@ -70,7 +70,7 @@ The skills are plain Agent Skills, so they also run outside Claude Code:
 
 ```bash
 # macOS / Linux
-./scripts/install.sh --all          # also installs to ~/.agents/skills (Codex/OpenCode), ~/.hermes/skills (Hermes), and ~/.gemini/antigravity/skills (AntiGravity)
+./scripts/install.sh --all          # also installs to ~/.agents/skills (Codex/OpenCode), ~/.hermes/skills (Hermes), and ~/.gemini/config/skills (AntiGravity)
 ./scripts/install.sh --agents       # just Codex + OpenCode
 ./scripts/install.sh --hermes       # just Hermes
 ./scripts/install.sh --antigravity  # just Google AntiGravity

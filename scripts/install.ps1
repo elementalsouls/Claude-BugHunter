@@ -15,9 +15,9 @@
 # NOT port; other harnesses get the knowledge, not the orchestration):
 #   -Agents        force-copy skills -> ~\.agents\skills\  (Codex; OpenCode reads ~\.claude)
 #   -Hermes        force-copy skills -> ~\.hermes\skills\   (Hermes Agent)
-#   -AntiGravity   force-copy skills -> ~\.gemini\antigravity\skills\ (Google AntiGravity)
+#   -AntiGravity   force-copy skills -> ~\.gemini\config\skills\ (Google AntiGravity)
 #   -All           DETECT installed harnesses and install to each: Claude always, ~\.agents
-#                  if Codex is present, ~\.hermes if Hermes is present, ~\.gemini\antigravity
+#                  if Codex is present, ~\.hermes if Hermes is present, ~\.gemini\config\skills
 #                  if Google AntiGravity is present. With -BurpMcp it
 #                  wires Burp only into the detected harnesses. (-Agents/-Hermes/-AntiGravity still
 #                  force a path regardless of detection.)
@@ -186,7 +186,7 @@ function Uninstall-Bundle {
             if (Test-Path -LiteralPath $agentsTarget) { Remove-Item -LiteralPath $agentsTarget -Recurse -Force -ErrorAction SilentlyContinue }
             $hermesTarget = Join-Path $HOME ".hermes\$rel"
             if (Test-Path -LiteralPath $hermesTarget) { Remove-Item -LiteralPath $hermesTarget -Recurse -Force -ErrorAction SilentlyContinue }
-            $antiGravityTarget = Join-Path $HOME ".gemini\antigravity\$rel"
+            $antiGravityTarget = Join-Path $HOME ".gemini\config\$rel"
             if (Test-Path -LiteralPath $antiGravityTarget) { Remove-Item -LiteralPath $antiGravityTarget -Recurse -Force -ErrorAction SilentlyContinue }
             $removed++
         }
@@ -223,13 +223,13 @@ if ($DETECT) {
     if ((Get-Command opencode -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.config\opencode'))) { $HAS_OPENCODE = $true }
     if ((Get-Command codex -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.codex'))) { $HAS_CODEX = $true }
     if ((Get-Command hermes -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.hermes'))) { $HAS_HERMES = $true }
-    if ((Get-Command antigravity -ErrorAction SilentlyContinue) -or (Get-Command agy -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.gemini\antigravity')) -or (Test-Path (Join-Path $HOME '.gemini'))) { $HAS_ANTIGRAVITY = $true }
+    if ((Get-Command antigravity -ErrorAction SilentlyContinue) -or (Get-Command agy -ErrorAction SilentlyContinue) -or (Test-Path (Join-Path $HOME '.gemini\config'))) { $HAS_ANTIGRAVITY = $true }
     Write-Host "Detecting installed harnesses:"
     if ($HAS_CLAUDE)      { Write-Host "  + Claude Code        -> ~\.claude\skills" }
     if ($HAS_OPENCODE)    { Write-Host "  + OpenCode           -> reads ~\.claude\skills (MCP wired separately)" }
     if ($HAS_CODEX)       { Write-Host "  + Codex CLI          -> ~\.agents\skills" }
     if ($HAS_HERMES)      { Write-Host "  + Hermes Agent       -> ~\.hermes\skills" }
-    if ($HAS_ANTIGRAVITY) { Write-Host "  + Google AntiGravity -> ~\.gemini\antigravity\skills" }
+    if ($HAS_ANTIGRAVITY) { Write-Host "  + Google AntiGravity -> ~\.gemini\config\skills" }
     if (-not ($HAS_OPENCODE -or $HAS_CODEX -or $HAS_HERMES -or $HAS_ANTIGRAVITY)) {
         Write-Host "  (only Claude Code detected -- installing there. Force others with -Agents / -Hermes / -AntiGravity.)"
     }
@@ -363,7 +363,7 @@ for name in sorted(os.listdir(root)):
     }
 }
 if ($DO_HERMES) { Install-Skills (Join-Path $HOME '.hermes\skills') 'hermes' }
-if ($DO_ANTIGRAVITY) { Install-Skills (Join-Path $HOME '.gemini\antigravity\skills') 'antigravity' }
+if ($DO_ANTIGRAVITY) { Install-Skills (Join-Path $HOME '.gemini\config\skills') 'antigravity' }
 
 # --- opt-in Burp MCP wiring -------------------------------------------
 if ($DO_MCP) {
@@ -406,7 +406,7 @@ Write-Host ''
 Write-Host "Claude Code:        $(Join-Path $HOME '.claude\skills')  (+ commands, hunt.ps1)"
 if ($DO_AGENTS)      { Write-Host "Codex+OpenCode:     $(Join-Path $HOME '.agents\skills')" }
 if ($DO_HERMES)      { Write-Host "Hermes Agent:       $(Join-Path $HOME '.hermes\skills')" }
-if ($DO_ANTIGRAVITY) { Write-Host "Google AntiGravity: $(Join-Path $HOME '.gemini\antigravity\skills')" }
+if ($DO_ANTIGRAVITY) { Write-Host "Google AntiGravity: $(Join-Path $HOME '.gemini\config\skills')" }
 if (Test-Path -LiteralPath $BackupDest) { Write-Host "Backups:            $BackupDest  (outside loading paths)" }
 Write-Host ''
 if (-not $DETECT -and -not $DO_AGENTS -and -not $DO_HERMES -and -not $DO_ANTIGRAVITY) {

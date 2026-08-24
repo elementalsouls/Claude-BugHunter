@@ -114,9 +114,9 @@ pwsh ./scripts/install.ps1 -All -BurpMcp
 | **OpenCode** | reads `~/.claude/skills/` & `~/.agents/skills/` | *(default)* / `--agents` |
 | **OpenAI Codex CLI** | `~/.agents/skills/` | `--agents` |
 | **Hermes Agent** | `~/.hermes/skills/` | `--hermes` |
-| **Google AntiGravity** | `~/.gemini/antigravity/skills/` | `--antigravity` |
+| **Google AntiGravity** | `~/.gemini/config/skills/` | `--antigravity` |
 
-`--all` (`-All`) detects installed harnesses and copies skills to each harness's path (`~/.claude/skills`, `~/.agents/skills`, `~/.hermes/skills`, `~/.gemini/antigravity/skills`); `--burp-mcp` (`-BurpMcp`) wires the Burp MCP server into each. The full *knowledge* layer ports to all five — the slash commands and `/hunt` engine stay Claude-Code-only by design.
+`--all` (`-All`) detects installed harnesses and copies skills to each harness's path (`~/.claude/skills`, `~/.agents/skills`, `~/.hermes/skills`, `~/.gemini/config/skills`); `--burp-mcp` (`-BurpMcp`) wires the Burp MCP server into each. The full *knowledge* layer ports to all five — the slash commands and `/hunt` engine stay Claude-Code-only by design.
 
 → [Multi-harness guide](docs/multi-harness.md)
 

@@ -18,9 +18,9 @@ The 83 skills are plain **Agent Skills** (`SKILL.md` = `name` + `description` fr
 | **OpenCode** | ✅ native | reads `~/.claude/skills/` **and** `~/.agents/skills/` | ✅ `opencode.json` | ✅ own format |
 | **Codex CLI** | ✅ native | `~/.agents/skills/` (does *not* read `~/.claude/`) | ✅ `~/.codex/config.toml` | ✅ own format |
 | **Hermes Agent** | ✅ (agentskills.io) | `~/.hermes/skills/` | ✅ | ✅ own format |
-| **Google AntiGravity** | ✅ native | `~/.gemini/antigravity/skills/` | ✅ `~/.gemini/config/mcp_config.json` | ✅ own format |
+| **Google AntiGravity** | ✅ native | `~/.gemini/config/skills/` | ✅ `~/.gemini/config/mcp_config.json` | ✅ own format |
 
-**Key:** `~/.agents/skills/` is the shared path read by **Codex + OpenCode**. So copies cover everything: `~/.claude/skills/` (Claude) + `~/.agents/skills/` (Codex + OpenCode), plus `~/.hermes/skills/` for Hermes, and `~/.gemini/antigravity/skills/` for Google AntiGravity. Required frontmatter is identical across all harnesses (`name` lowercase-hyphen ≤64, `description` ≤1024) — our `scripts/lint_skills.py` enforces it, so **no per-skill conversion is needed**.
+**Key:** `~/.agents/skills/` is the shared path read by **Codex + OpenCode**. So copies cover everything: `~/.claude/skills/` (Claude) + `~/.agents/skills/` (Codex + OpenCode), plus `~/.hermes/skills/` for Hermes, and `~/.gemini/config/skills/` for Google AntiGravity. Required frontmatter is identical across all harnesses (`name` lowercase-hyphen ≤64, `description` ≤1024) — our `scripts/lint_skills.py` enforces it, so **no per-skill conversion is needed**.
 
 ## Install
 
@@ -30,14 +30,14 @@ One command installs the skills to every harness's path (copy install; existing 
 # macOS / Linux
 git clone https://github.com/elementalsouls/Claude-BugHunter.git
 cd Claude-BugHunter
-bash scripts/install.sh --all          # Claude + ~/.agents/skills (Codex/OpenCode) + ~/.hermes/skills + ~/.gemini/antigravity/skills
+bash scripts/install.sh --all          # Claude + ~/.agents/skills (Codex/OpenCode) + ~/.hermes/skills + ~/.gemini/config/skills
 ```
 
 ```powershell
 # Windows (PowerShell)
 git clone https://github.com/elementalsouls/Claude-BugHunter.git
 cd Claude-BugHunter
-pwsh ./scripts/install.ps1 -All         # Claude + ~/.agents/skills (Codex/OpenCode) + ~/.hermes/skills + ~/.gemini/antigravity/skills
+pwsh ./scripts/install.ps1 -All         # Claude + ~/.agents/skills (Codex/OpenCode) + ~/.hermes/skills + ~/.gemini/config/skills
 ```
 
 Pick specific harnesses instead:
@@ -47,7 +47,7 @@ Pick specific harnesses instead:
 bash scripts/install.sh                 # Claude Code only (default)
 bash scripts/install.sh --agents        # + Codex & OpenCode (~/.agents/skills)
 bash scripts/install.sh --hermes        # + Hermes Agent (~/.hermes/skills)
-bash scripts/install.sh --antigravity   # + Google AntiGravity (~/.gemini/antigravity/skills)
+bash scripts/install.sh --antigravity   # + Google AntiGravity (~/.gemini/config/skills)
 ```
 
 ```powershell
@@ -55,12 +55,12 @@ bash scripts/install.sh --antigravity   # + Google AntiGravity (~/.gemini/antigr
 pwsh ./scripts/install.ps1              # Claude Code only (default)
 pwsh ./scripts/install.ps1 -Agents      # + Codex & OpenCode (~/.agents/skills)
 pwsh ./scripts/install.ps1 -Hermes      # + Hermes Agent (~/.hermes/skills)
-pwsh ./scripts/install.ps1 -AntiGravity # + Google AntiGravity (~/.gemini/antigravity/skills)
+pwsh ./scripts/install.ps1 -AntiGravity # + Google AntiGravity (~/.gemini/config/skills)
 ```
 
 - **OpenCode** already reads `~/.claude/skills/`, so the plain installer (no flags) is enough for OpenCode — you don't need `--agents`/`-Agents` for it. That flag exists mainly for **Codex** (which reads only `~/.agents/skills/`).
   - *Caveat (verified):* OpenCode reads **both** `~/.claude/skills/` and `~/.agents/skills/`. If both are populated (e.g. you ran `--all`/`-All` for Codex too), OpenCode logs harmless `duplicate skill name` warnings and loads one copy — all 83 skills still work. Only populate `~/.agents/skills/` if you actually use Codex.
-- **Codex is the strict parser** (verified by testing): it hard-rejects descriptions > 1024 chars and invalid YAML, where Claude/OpenCode/Hermes/AntiGravity are lenient. So the installer **auto-truncates** any description > 1024 to ≤1024 **only in the `~/.agents/skills` (Codex) copy** — your `~/.claude`, `~/.hermes`, and `~/.gemini/antigravity` copies keep the full descriptions (incl. non-English trigger words). The install logs which were truncated (today: the 3 aggregator router skills). `--normalize-frontmatter` (`-NormalizeFrontmatter`) additionally strips the non-standard `sources:`/`report_count:` keys (optional — Codex tolerates them).
+- **Codex is the strict parser** (verified by testing): it hard-rejects descriptions > 1024 chars and invalid YAML, where Claude/OpenCode/Hermes/AntiGravity are lenient. So the installer **auto-truncates** any description > 1024 to ≤1024 **only in the `~/.agents/skills` (Codex) copy** — your `~/.claude`, `~/.hermes`, and `~/.gemini/config/skills` copies keep the full descriptions (incl. non-English trigger words). The install logs which were truncated (today: the 3 aggregator router skills). `--normalize-frontmatter` (`-NormalizeFrontmatter`) additionally strips the non-standard `sources:`/`report_count:` keys (optional — Codex tolerates them).
 
 ## Burp MCP on other harnesses
 

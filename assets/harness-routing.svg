@@ -72,7 +72,7 @@
       <g transform="translate(14 16) scale(0.95)" fill="url(#agy-icon)"><path d="M12 0C12 6.627 6.627 12 0 12c6.627 0 12 5.373 12 12 0-6.627 5.373-12 12-12-6.627 0-12-5.373-12-12z"/></g>
       <text x="46" y="33" class="mono white" font-size="12.5" font-weight="800" letter-spacing="0.6">AntiGravity</text>
       <line x1="14" y1="62" x2="176" y2="62" stroke="#23242f"/>
-      <text x="14" y="90" class="mono muted" font-size="9.8" letter-spacing="0.1">~/.gemini/antigravity/skills</text>
+      <text x="14" y="90" class="mono muted" font-size="9.8" letter-spacing="0.1">~/.gemini/config/skills</text>
     </g>
 
     <text x="28" y="218" class="mono" font-size="14"><tspan class="red" font-weight="800">$ </tspan><tspan class="white">bash scripts/install.sh --all --burp-mcp</tspan></text>

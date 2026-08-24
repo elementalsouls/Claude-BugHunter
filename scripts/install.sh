@@ -13,9 +13,9 @@
 # NOT port; other harnesses get the knowledge, not the orchestration):
 #   --agents       force-copy skills → ~/.agents/skills/  (Codex; OpenCode reads ~/.claude)
 #   --hermes       force-copy skills → ~/.hermes/skills/   (Hermes Agent)
-#   --antigravity  force-copy skills → ~/.gemini/antigravity/skills/ (Google AntiGravity)
+#   --antigravity  force-copy skills → ~/.gemini/config/skills/ (Google AntiGravity)
 #   --all          DETECT installed harnesses and install to each: Claude always, ~/.agents
-#                  if Codex is present, ~/.hermes if Hermes is present, ~/.gemini/antigravity
+#                  if Codex is present, ~/.hermes if Hermes is present, ~/.gemini/config/skills
 #                  if Google AntiGravity is present. With --burp-mcp it
 #                  wires Burp only into the detected harnesses. (--agents/--hermes/--antigravity still
 #                  force a path regardless of detection.)
@@ -96,7 +96,7 @@ uninstall_bundle() {
       rm -rf "$target"
       if [ -e "$HOME/.agents/$rel" ]; then rm -rf "$HOME/.agents/$rel"; fi
       if [ -e "$HOME/.hermes/$rel" ]; then rm -rf "$HOME/.hermes/$rel"; fi
-      if [ -e "$HOME/.gemini/antigravity/$rel" ]; then rm -rf "$HOME/.gemini/antigravity/$rel"; fi
+      if [ -e "$HOME/.gemini/config/$rel" ]; then rm -rf "$HOME/.gemini/config/$rel"; fi
       removed=$((removed + 1))
     fi
   done < "$MANIFEST"
@@ -121,19 +121,19 @@ fi
 # --all → detect which harnesses are actually installed (binary on PATH, or its standard
 # config dir present) and route to each. Claude always; ~/.agents only if Codex is present
 # (OpenCode reads ~/.claude/skills directly); ~/.hermes only if Hermes is present;
-# ~/.gemini/antigravity only if Google AntiGravity is present.
+# ~/.gemini/config/skills only if Google AntiGravity is present.
 if [ "$DETECT" = "1" ]; then
   if command -v claude      >/dev/null 2>&1 || [ -d "$HOME/.claude" ];             then HAS_CLAUDE=1; fi
   if command -v opencode    >/dev/null 2>&1 || [ -d "$HOME/.config/opencode" ];    then HAS_OPENCODE=1; fi
   if command -v codex       >/dev/null 2>&1 || [ -d "$HOME/.codex" ];              then HAS_CODEX=1; fi
   if command -v hermes      >/dev/null 2>&1 || [ -d "$HOME/.hermes" ];             then HAS_HERMES=1; fi
-  if command -v antigravity >/dev/null 2>&1 || command -v agy >/dev/null 2>&1 || [ -d "$HOME/.gemini/antigravity" ] || [ -d "$HOME/.gemini" ]; then HAS_ANTIGRAVITY=1; fi
+  if command -v antigravity >/dev/null 2>&1 || command -v agy >/dev/null 2>&1 || [ -d "$HOME/.gemini/config" ]; then HAS_ANTIGRAVITY=1; fi
   echo "Detecting installed harnesses:"
   if [ "$HAS_CLAUDE"      = "1" ]; then echo "  ✓ Claude Code        → ~/.claude/skills"; fi
   if [ "$HAS_OPENCODE"    = "1" ]; then echo "  ✓ OpenCode           → reads ~/.claude/skills (MCP wired separately)"; fi
   if [ "$HAS_CODEX"       = "1" ]; then echo "  ✓ Codex CLI          → ~/.agents/skills"; fi
   if [ "$HAS_HERMES"      = "1" ]; then echo "  ✓ Hermes Agent       → ~/.hermes/skills"; fi
-  if [ "$HAS_ANTIGRAVITY" = "1" ]; then echo "  ✓ Google AntiGravity → ~/.gemini/antigravity/skills"; fi
+  if [ "$HAS_ANTIGRAVITY" = "1" ]; then echo "  ✓ Google AntiGravity → ~/.gemini/config/skills"; fi
   if [ "$HAS_OPENCODE" = "0" ] && [ "$HAS_CODEX" = "0" ] && [ "$HAS_HERMES" = "0" ] && [ "$HAS_ANTIGRAVITY" = "0" ]; then
     echo "  (only Claude Code detected — installing there. Force others with --agents / --hermes / --antigravity.)"
   fi
@@ -282,7 +282,7 @@ PY
   fi
 fi
 if [ "$DO_HERMES" = "1" ]; then install_skills "$HOME/.hermes/skills" "hermes"; fi
-if [ "$DO_ANTIGRAVITY" = "1" ]; then install_skills "$HOME/.gemini/antigravity/skills" "antigravity"; fi
+if [ "$DO_ANTIGRAVITY" = "1" ]; then install_skills "$HOME/.gemini/config/skills" "antigravity"; fi
 
 # === Opt-in: wire the existing Burp MCP into the selected harnesses ===
 if [ "$DO_MCP" = "1" ]; then
@@ -318,7 +318,7 @@ echo ""
 echo "Claude Code:        $HOME/.claude/skills  (+ commands, hunt.sh)"
 if [ "$DO_AGENTS" = "1" ]; then echo "Codex+OpenCode:     $HOME/.agents/skills"; fi
 if [ "$DO_HERMES" = "1" ]; then echo "Hermes Agent:       $HOME/.hermes/skills"; fi
-if [ "$DO_ANTIGRAVITY" = "1" ]; then echo "Google AntiGravity: $HOME/.gemini/antigravity/skills"; fi
+if [ "$DO_ANTIGRAVITY" = "1" ]; then echo "Google AntiGravity: $HOME/.gemini/config/skills"; fi
 if [ -d "$BACKUP_DEST" ]; then echo "Backups:            $BACKUP_DEST  (outside loading paths)"; fi
 echo ""
 if [ "$DETECT" = "0" ] && [ "$DO_AGENTS" = "0" ] && [ "$DO_HERMES" = "0" ] && [ "$DO_ANTIGRAVITY" = "0" ]; then
