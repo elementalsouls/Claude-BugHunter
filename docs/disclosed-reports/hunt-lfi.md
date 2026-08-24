@@ -147,3 +147,39 @@ done
 # dotdotpwn
 dotdotpwn.pl -m http -h target.com -o unix
 ```
+
+### Path traversal in a file-handling API → arbitrary file read
+- **Source:** A file-copy rewriter that did not validate the file name, allowing arbitrary files to be copied via directory traversal (<https://hackerone.com/reports/827052>, $20,000); path traversal in package-registry APIs (<https://hackerone.com/reports/733072>, $12,000; <https://hackerone.com/reports/822262>, $12,000); a management-console path traversal (<https://hackerone.com/reports/1497169>, $10,000).
+- **Pattern shape:** A file name or path parameter (upload rewriter, package fetch, download, template include) is used to build a filesystem path without canonicalization, so `../` sequences escape the intended directory and read (or write) arbitrary files — secrets, source, config.
+- **Key trick:** Test every file/path parameter with `../`, encoded (`%2e%2e%2f`, double-encoded), and absolute paths; target `/etc/passwd`, app config, and secret files. Package-registry and upload-rewriter APIs are recurring high-bounty spots.
+- **Why it matters:** Arbitrary read reaches secrets/source → often chains to RCE; consistently five-figure.
+
+### Archive extraction traversal / symlink (zip-slip)
+- **Source:** A bulk-import API that did not strip symlinks when untarring an uploads archive, allowing arbitrary file read (<https://hackerone.com/reports/1439593>, $29,000).
+- **Pattern shape:** A feature that extracts a user-supplied archive (tar/zip) follows `../` entries or symlinks inside it, writing or reading files outside the extraction directory — "zip-slip." Import/restore/backup features are the usual carriers.
+- **Key trick:** Craft an archive with `../` path entries and symlinks pointing at sensitive files; upload via the import/restore feature and check whether extraction escapes the sandbox. Test both write (overwrite config → RCE) and read (symlink → exfil).
+- **Why it matters:** One of the highest-bounty LFI variants ($29k here); reaches arbitrary write → RCE.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/1132378> — $16000
+- <https://hackerone.com/reports/2995025> — $6000
+- <https://hackerone.com/reports/3712279> — $5000
+- <https://hackerone.com/reports/1394916> — $4000
+- <https://hackerone.com/reports/1378889> — $3500
+- <https://hackerone.com/reports/1858574> — $0
+- <https://hackerone.com/reports/2434811> — $2430
+- <https://hackerone.com/reports/301432> — $2000
+- <https://hackerone.com/reports/876295> — $0
+- <https://hackerone.com/reports/1415820> — $1000
+- <https://hackerone.com/reports/307808> — $1500
+- <https://hackerone.com/reports/519220> — $1000
+- <https://hackerone.com/reports/727727> — $0
+- <https://hackerone.com/reports/682774> — $1250
+- <https://hackerone.com/reports/436928> — $0
+- <https://hackerone.com/reports/1302155> — $1250
+- <https://hackerone.com/reports/1400238> — $1000
+- <https://hackerone.com/reports/1404731> — $1000
+- <https://hackerone.com/reports/243156> — $1000

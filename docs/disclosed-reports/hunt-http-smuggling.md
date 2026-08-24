@@ -32,6 +32,33 @@ HTTP request smuggling pays well and has the lowest duplicate rate of any modern
 
 ---
 
+### Desync → cache poisoning → stored XSS (payments program, $20,000)
+- **Source:** A request-smuggling desync on a frontend caching layer was used to convert a page request into a poisoned cached response carrying stored XSS on a signin page (<https://hackerone.com/reports/488147>, $18,900), and a follow-up bypass re-enabled the same stored XSS (<https://hackerone.com/reports/510152>, $20,000).
+- **Pattern shape:** The smuggled request desyncs the front-end cache so an attacker-controlled response body is cached against a victim-facing URL (login/signin). The cached body carries script → stored XSS served to every visitor of the cached path until eviction. Smuggling supplies the poisoning primitive that ordinary cache-poison (`hunt-cache-poison`) can't reach.
+- **Key trick:** Chain, don't stop at the desync. Once you confirm CL.TE/TE.CL, aim the smuggled request at a cacheable path and check whether your body is served to a *second* request — that's the poison landing. The bypass report shows fixes are often incomplete: re-test after remediation.
+- **Why it matters:** Turns a protocol-layer desync into persistent client-side compromise on a high-traffic authenticated page — the reason smuggling routinely pays $15K–$30K. Pairs with `hunt-cache-poison` and `hunt-xss`.
+
+### CL.TE request hijacking → neighbouring-user token capture / mass ATO
+- **Source:** A CL.TE desync on a SaaS program hijacked neighbouring customers' requests on the keep-alive connection, enabling mass account takeover (<https://hackerone.com/reports/737140>); a desync reached through a CDN captured `X-Access-Token` headers from other users in bulk on a food-delivery program (<https://hackerone.com/reports/771666>).
+- **Pattern shape:** The smuggled prefix causes the back-end to attribute the *next* legitimate request's headers/body to the attacker's response — so the victim's `Cookie`/`Authorization`/`X-Access-Token` is reflected back to the attacker. Repeated on a busy socket, it harvests live credentials from arbitrary users → mass ATO.
+- **Key trick:** Use a "collector" gadget — smuggle a request whose back-end handler echoes the full request (a search/redirect that reflects headers), then read captured victim tokens from your own responses. Works even through a CDN (Akamai/Cloudflare) when the CDN↔origin hop desyncs.
+- **Why it matters:** The highest-impact smuggling outcome — no per-user interaction, harvests credentials at scale. Chains to `hunt-ato`.
+
+### HTTP/2 downgrade & modern desync variants (H2.CL / TE.CL / encoding)
+- **Source:** HTTP/2 request smuggling (<https://hackerone.com/reports/1211724>, $7,500); TE.CL desync on a messaging program (<https://hackerone.com/reports/740037>); a Transform-Rules hex-encoding smuggling on an edge platform (<https://hackerone.com/reports/1478633>, $6,000); and the Apache HTTP Server desync class (CVE-2022-22720, <https://hackerone.com/reports/1667974>).
+- **Pattern shape:** Beyond classic CL.TE, modern desyncs arise from HTTP/2→HTTP/1.1 downgrade (the H2 frontend re-serializes to H1 for the origin, re-introducing CL/TE ambiguity), from encoding tricks the edge rewrites but the origin re-parses (hex/upper-lower normalisation), and from server bugs (Apache CVE-2022-22720). All produce the same connection-boundary disagreement.
+- **Key trick:** When the frontend speaks HTTP/2, always test the downgrade path — send `content-length` inside an H2 request and see if the origin honours a smuggled body. For edge platforms, probe whether a rewrite function (lower/concat/hex-decode) changes header parsing between edge and origin.
+- **Why it matters:** As CL.TE gets patched, H2-downgrade and encoding-normalisation are where smuggling still lands in 2024–2026. Keeps the skill current with modern disclosures rather than only the 2019 CL.TE era.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/2280391> — $4660
+- <https://hackerone.com/reports/2327341> — $4660
+- <https://hackerone.com/reports/867952> — $0
+- <https://hackerone.com/reports/726773> — $750
+
 ## Pattern Library
 
 ### Classic CL.TE smuggling

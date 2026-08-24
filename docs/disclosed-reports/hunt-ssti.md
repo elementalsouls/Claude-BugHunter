@@ -30,6 +30,27 @@ Server-side template injection is the easiest path from "reflected input" to "re
 - **Key trick:** SSTI almost always lives in features where the developer *intentionally* lets users write template syntax (email subject lines that embed `{{ first_name }}`, CMS preview, marketing automation). The vulnerability is "we let users write templates without sandboxing them" — not "we accidentally rendered user input."
 - **Why it matters:** The hunt is "find the feature that says users can use placeholders." That feature is the SSTI candidate. Marketing automation, transactional email designers, and PDF invoice generators are perennial wins.
 
+## Disclosed HackerOne Reports (bounty-paid examples)
+
+Bounty-paid public disclosures for this class, on top of the research/CVE grounding above. Targets genericized; each links its source.
+
+### Server-side template injection → RCE (disclosed bounty examples)
+- **Source:** Disclosed across multiple programs (<https://hackerone.com/reports/125980>, <https://hackerone.com/reports/164224>, <https://hackerone.com/reports/217790>).
+- **Pattern shape:** User input is concatenated into a server-side template (email template, PDF generator, name/label field) and evaluated. `{{7*7}}`/`${7*7}`/`#{7*7}` returns 49 → engine executes attacker expressions → RCE.
+- **Key trick:** Send the engine-specific arithmetic probe in every reflected field, especially email/PDF/report templates and CMS label editors. On a hit, escalate to `config`/`os`/`Runtime` per engine.
+- **Why it matters:** Reliable path to RCE; Jinja2/Smarty/Freemarker SSTI routinely pays five figures in disclosed programs.
+
+### Client-side template injection (Angular/Vue) → XSS/sandbox escape
+- **Source:** Disclosed across multiple programs (<https://hackerone.com/reports/125027>).
+- **Pattern shape:** A framework template expression is injected client-side; sandbox escapes turn `{{ }}` evaluation into script execution even under CSP.
+- **Key trick:** Probe `{{constructor.constructor('alert(1)')()}}`-style payloads where the SPA renders user input as a template. Confirm execution; note the framework version.
+- **Why it matters:** XSS that bypasses naive HTML-encoding filters because it rides the template engine, not raw HTML.
+
+### Further disclosed reports (this class)
+
+- <https://hackerone.com/reports/423541>
+- <https://hackerone.com/reports/2332623>
+
 ---
 
 ## Pattern Library

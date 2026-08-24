@@ -32,6 +32,55 @@ GraphQL endpoints are top-paying surface in 2025 because the schema is broad (on
 
 ---
 
+### Field/query-level authz gap → cross-tenant / private-data disclosure
+- **Source:** A GraphQL query disclosed sensitive private-program data ($25,000, <https://hackerone.com/reports/1618347>); queries exposed other customers' emails and confidential data (<https://hackerone.com/reports/807448>; <https://hackerone.com/reports/489146>).
+- **Pattern shape:** A GraphQL field/type is authorized at the query root but not per-field or per-object, so a caller selects fields (email, private metadata, cross-tenant objects) they shouldn't see. GraphQL's flexible selection makes the missing field-level check easy to reach.
+- **Key trick:** Introspect the schema, then request sensitive fields on shared types (`User`, `Program`, `Account`) from an unrelated context. Probe every field, not just what the UI selects — the leak is usually a field the UI never renders.
+- **Why it matters:** Direct info-disclosure at scale; the dominant GraphQL bounty class.
+
+### GraphQL IDOR on operation arguments
+- **Source:** IDOR on `BillingDocumentDownload` / `BillDetails` operations via the invoice ID (<https://hackerone.com/reports/2207248>, $5,000).
+- **Pattern shape:** A GraphQL query/mutation takes an object ID (invoice, document, node) and returns/acts on it without scoping to the viewer — the same IDOR as REST, but reachable through the typed operation and often missed because the REST endpoint *was* fixed.
+- **Key trick:** Enumerate operations taking an ID argument; swap IDs across tenants. Always test the Relay `node(id:)`/`nodes()` backdoor. Pairs with `hunt-idor`.
+- **Why it matters:** GraphQL re-opens IDORs teams thought they'd closed at the REST layer.
+
+### Mutation aliasing / batching → DoS & rate-limit bypass
+- **Source:** DoS via mutation aliasing in an account-recovery flow (<https://hackerone.com/reports/3287208>, $12,500).
+- **Pattern shape:** GraphQL lets one request contain many aliased copies of the same mutation/field. Without per-operation cost limits, this amplifies work (DoS) or bypasses per-request rate limits (e.g. brute-forcing OTP/recovery N times in one HTTP request).
+- **Key trick:** Send a single query with 100 aliased copies of a sensitive mutation (`a: mutation, b: mutation, ...`). If all execute, there's no query-cost/aliasing limit — report as DoS and/or rate-limit bypass.
+- **Why it matters:** A GraphQL-specific amplification with no REST analog; feeds `hunt-brute-force`.
+
+### GraphQL argument → downstream injection (search/sort → engine)
+- **Source:** A `sort_query` string argument passed to a downstream Elasticsearch cluster enabled Painless script execution (<https://hackerone.com/reports/3694007>, $7,000).
+- **Pattern shape:** A GraphQL string argument (sort, filter, search DSL) flows unsanitized into a downstream engine — Elasticsearch Painless, a SQL builder, a template — turning a query field into an injection/RCE sink.
+- **Key trick:** Trace every free-string GraphQL argument to its backend. For search/sort args, test engine-specific injection (Painless `{{...}}`, ES query DSL, SQL). Overlaps `hunt-rce`/`hunt-sqli` at the sink.
+- **Why it matters:** Escalates GraphQL from data-layer to code execution.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/792927> — $0
+- <https://hackerone.com/reports/3000510> — $0
+- <https://hackerone.com/reports/1864188> — $3000
+- <https://hackerone.com/reports/1122408> — $3370
+- <https://hackerone.com/reports/978143> — $2500
+- <https://hackerone.com/reports/770209> — $2500
+- <https://hackerone.com/reports/2122671> — $0
+- <https://hackerone.com/reports/715192> — $2500
+- <https://hackerone.com/reports/877642> — $2500
+- <https://hackerone.com/reports/981472> — $2000
+- <https://hackerone.com/reports/885539> — $0
+- <https://hackerone.com/reports/1969141> — $0
+- <https://hackerone.com/reports/342978> — $2500
+- <https://hackerone.com/reports/343464> — $2500
+- <https://hackerone.com/reports/2218334> — $0
+- <https://hackerone.com/reports/1711938> — $0
+- <https://hackerone.com/reports/871749> — $0
+- <https://hackerone.com/reports/707433> — $0
+- <https://hackerone.com/reports/435066> — $0
+- <https://hackerone.com/reports/898528> — $0
+
 ## Pattern Library
 
 ### Endpoint discovery — find the GraphQL

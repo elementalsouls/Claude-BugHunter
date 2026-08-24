@@ -2,7 +2,7 @@
 name: hunt-race-condition
 description: Hunting skill for race condition vulnerabilities. Built from 12 public bug bounty reports including modern HTTP/2 single-packet attack cases (James Kettle DEF CON 2023 "Smashing the State Machine"; RyotaK / Flatt Security 10,000-request first-sequence-sync expansion 2024). Covers coupon double-redemption, gift-card double-spend, MFA-OTP-validate race, account-create race, faucet/crypto token double-mint, email-activation race, vote/upvote inflation, password-reset token race, rate-limit bypass via concurrent requests. Use when hunting race conditions, TOCTOU bugs, MFA-bypass-via-timing.
 sources: github, hackerone_public, portswigger_research, flatt_security
-report_count: 12
+report_count: 10
 ---
 
 ## Firing a race — two primitives (tooling-agnostic)

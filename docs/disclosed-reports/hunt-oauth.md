@@ -32,6 +32,46 @@ OAuth flaws pay top-tier bounties because they bridge the gap between "a small c
 
 ---
 
+### redirect_uri manipulation → authorization-code / token theft
+- **Source:** A path traversal in the OAuth `redirect_uri` leaking the authorization code to an attacker-controlled destination (<https://hackerone.com/reports/1861974>, $2,000); stealing OAuth codes/access-tokens via `postMessage` in the redirect flow (<https://hackerone.com/reports/1567186>).
+- **Pattern shape:** The authorization server validates `redirect_uri` loosely — prefix match, path traversal, subdomain wildcard, or a `postMessage` relay — so the code/token is delivered to an attacker-controlled URL. With the code, the attacker completes the flow and takes over the account.
+- **Key trick:** Test every `redirect_uri` mutation (append path, `../`, `.attacker.com`, `@attacker.com`, open-redirect on an allowed host) and watch where the `code`/`access_token` lands. Chains with `hunt-open-redirect`.
+- **Why it matters:** The dominant OAuth ATO primitive — one loose validation = full account takeover.
+
+### OAuth flow SSRF (authorization / callback fetches a URL)
+- **Source:** A blind SSRF in an OAuth authorization controller's `access_token` endpoint (<https://hackerone.com/reports/398799>, $4,000).
+- **Pattern shape:** An OAuth authorization/callback/token endpoint fetches a server-side URL (metadata document, JWKS, provider discovery, avatar) built from attacker-influenced input — reachable pre-auth, making it a high-value SSRF entry point.
+- **Key trick:** Point provider-discovery/JWKS/`request_uri` parameters at internal hosts and OOB collaborators. Overlaps `hunt-ssrf`; noted here because the OAuth endpoints are often unauthenticated and overlooked.
+- **Why it matters:** Pre-auth SSRF reaching cloud metadata → infra compromise.
+
+### OAuth grant bypasses verification / permission checks
+- **Source:** Bypassing an email-verification requirement through the OAuth flow (<https://hackerone.com/reports/922456>, $3,000); a staff member without the app permission accessing an app via an OAuth misconfiguration (<https://hackerone.com/reports/740989>).
+- **Pattern shape:** The OAuth grant path skips a control the normal flow enforces — email verification, scope/permission checks, or account-state gating — because the provider trusts the OAuth-established identity without re-checking. Attacker uses OAuth to reach a state direct signup forbids.
+- **Key trick:** Compare what direct signup enforces vs what the OAuth path enforces (email verified? scope granted? role checked?). The bug is a check present on one path and missing on the other.
+- **Why it matters:** Turns "sign in with X" into a control bypass; pairs with `hunt-auth-bypass`.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/294911> — $4000
+- <https://hackerone.com/reports/65825> — $5000
+- <https://hackerone.com/reports/392106> — $3000
+- <https://hackerone.com/reports/202781> — $0
+- <https://hackerone.com/reports/434763> — $2940
+- <https://hackerone.com/reports/905607> — $0
+- <https://hackerone.com/reports/397497> — $3000
+- <https://hackerone.com/reports/3489490> — $2500
+- <https://hackerone.com/reports/821896> — $1200
+- <https://hackerone.com/reports/110293> — $0
+- <https://hackerone.com/reports/861940> — $0
+- <https://hackerone.com/reports/168116> — $0
+- <https://hackerone.com/reports/168538> — $2100
+- <https://hackerone.com/reports/3734676> — $2000
+- <https://hackerone.com/reports/488269> — $0
+- <https://hackerone.com/reports/3423013> — $1000
+- <https://hackerone.com/reports/46485> — $1260
+
 ## Pattern Library
 
 ### `redirect_uri` host injection
@@ -153,3 +193,4 @@ OAuth flaws pay top-tier bounties because they bridge the gap between "a small c
 - **Looks like:** App has an endpoint that issues `Location: <user-supplied>`. Looks like open redirect, looks chainable to OAuth code theft.
 - **Actually is:** Browsers strip fragments on 302 redirects to a new origin (per spec). If the OAuth callback delivers the code in a fragment, the chained redirect drops the code. The attacker receives nothing.
 - **How to disprove:** Trace the redirect chain end-to-end with browser dev tools. If the final URL at attacker.com has no `code=` parameter or fragment, the chain doesn't reach token theft. The open redirect remains a finding on its own (lower severity), but the OAuth chain doesn't land.
+

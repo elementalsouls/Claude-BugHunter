@@ -32,6 +32,57 @@ SSRF earns its place at the top of the impact ladder because every modern applic
 
 ---
 
+### URL-fetching feature → SSRF (import / preview / attachment)
+- **Source:** SSRF via a project-import `remote_attachment_url` (<https://hackerone.com/reports/826361>, $10,000); full-read SSRF via a docs "import as docs" feature (<https://hackerone.com/reports/1409727>, $5,000); partially-blind SSRF via a chat `preview_url` endpoint reaching internal services (<https://hackerone.com/reports/1960765>, $6,000).
+- **Pattern shape:** A feature that fetches a user-supplied URL server-side — import-from-URL, link preview/unfurl, remote attachment, avatar-from-URL, webhook tester — is the SSRF workhorse. The server makes the request with its own network position, reaching internal hosts, cloud metadata, or link-local addresses.
+- **Key trick:** Inventory every "give us a URL and we'll fetch it" feature. Test internal targets (`http://169.254.169.254/`, `http://localhost:<admin-port>`, internal hostnames) and blind exfil (Collaborator/OOB). Bypass allowlists with redirects, DNS rebinding, and alternate IP encodings.
+- **Why it matters:** Highest-frequency SSRF entry point; the import/preview class dominates disclosed SSRF.
+
+### SSRF → cloud metadata / internal control plane → infra compromise
+- **Source:** A critical SSRF via an analytics/reporting feature (<https://hackerone.com/reports/2262382>, $25,000); an SSRF that reached the metadata service and led to root access across containers in an infrastructure subset (<https://hackerone.com/reports/341876>).
+- **Pattern shape:** The SSRF reaches the cloud instance-metadata endpoint (`169.254.169.254/latest/meta-data/iam/security-credentials/`) and lifts IAM role credentials, or reaches an internal orchestration/admin API. Credentials → lateral movement → root/infra compromise.
+- **Key trick:** Once any SSRF is confirmed, always try the metadata endpoint and internal service ports before reporting — the severity (and bounty) jumps an order of magnitude when it yields credentials. On IMDSv2, chain the `PUT` token step.
+- **Why it matters:** Turns a "server made a request" finding into full infrastructure takeover.
+
+### Protocol / proxy SSRF (TURN, gopher, non-HTTP)
+- **Source:** A TURN server permitted TCP/UDP proxying to the internal network and AWS metadata (<https://hackerone.com/reports/333419>, $3,500).
+- **Pattern shape:** A non-HTTP relay (TURN/STUN for WebRTC, an open proxy, a gopher/dict-capable fetcher) forwards attacker traffic to arbitrary internal hosts/ports — a broader SSRF than HTTP-only, reaching databases and metadata over raw TCP/UDP.
+- **Key trick:** For real-time/media features, test whether the TURN/STUN relay accepts arbitrary peer addresses (internal IPs, metadata). For HTTP fetchers, probe `gopher://`/`dict://` to reach non-HTTP internal services.
+- **Why it matters:** Escapes the "HTTP-only SSRF" mental model; reaches services an HTTP fetch can't.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/746024> — $4500
+- <https://hackerone.com/reports/2429894> — $4860
+- <https://hackerone.com/reports/671935> — $4000
+- <https://hackerone.com/reports/374737> — $3500
+- <https://hackerone.com/reports/892049> — $3000
+- <https://hackerone.com/reports/1062888> — $2727
+- <https://hackerone.com/reports/530974> — $0
+- <https://hackerone.com/reports/2301565> — $2500
+- <https://hackerone.com/reports/632101> — $0
+- <https://hackerone.com/reports/590020> — $0
+- <https://hackerone.com/reports/3176157> — $2000
+- <https://hackerone.com/reports/549882> — $0
+- <https://hackerone.com/reports/1189367> — $0
+- <https://hackerone.com/reports/826097> — $1000
+- <https://hackerone.com/reports/265050> — $1500
+- <https://hackerone.com/reports/347139> — $1500
+- <https://hackerone.com/reports/878779> — $0
+- <https://hackerone.com/reports/2035332> — $500
+- <https://hackerone.com/reports/508459> — $0
+- <https://hackerone.com/reports/811136> — $1000
+- <https://hackerone.com/reports/707014> — $1350
+- <https://hackerone.com/reports/429617> — $1000
+- <https://hackerone.com/reports/1719719> — $1000
+- <https://hackerone.com/reports/398641> — $0
+- <https://hackerone.com/reports/644238> — $0
+- <https://hackerone.com/reports/3024673> — $0
+- <https://hackerone.com/reports/305974> — $1000
+- <https://hackerone.com/reports/1624140> — $1000
+
 ## Pattern Library
 
 ### Direct internal-IP fetch (no validation)

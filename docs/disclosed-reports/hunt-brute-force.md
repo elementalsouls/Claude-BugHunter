@@ -149,3 +149,27 @@ hydra -l admin@target.com -P /usr/share/wordlists/rockyou.txt target.com \
 # nuclei rate-limit
 nuclei -u https://target.com -t brute-force/ -severity medium,high,critical
 ```
+
+### No rate-limit on short codes / tokens (invite, OTP, recovery)
+- **Source:** Brute-forceable promotion/invite codes with no protection (<https://hackerone.com/reports/125505>, $5,000); a recovery code brute-forceable from SMS because the client enforced no attempt limit (<https://hackerone.com/reports/743545>).
+- **Pattern shape:** A short numeric/alphanumeric secret (invite code, OTP, SMS recovery code, coupon) is verified server-side with no attempt limit, lockout, or exponential backoff. The keyspace (often 10^4–10^6) is exhaustible in minutes.
+- **Key trick:** Compute the keyspace and the observed request rate; if no lockout/backoff triggers after dozens of wrong attempts, it's brute-forceable. Watch for client-only limits (mobile apps) that the API doesn't enforce.
+- **Why it matters:** Directly reaches OTP/recovery → ATO; the low-effort, high-yield rate-limit class.
+
+### Credential stuffing / unthrottled authentication endpoints
+- **Source:** Documented credential-stuffing attacks against unthrottled auth (<https://hackerone.com/reports/1007689>); brute-forceable access to an admin panel (<https://hackerone.com/reports/128114>, $1,000).
+- **Pattern shape:** A login/auth endpoint (including admin panels and legacy `basic-auth` interfaces) lacks rate-limiting, CAPTCHA, or anomaly detection, permitting credential stuffing and password brute-force at scale.
+- **Key trick:** Test the auth endpoint and its variants (API login, mobile endpoint, admin subdomain) for absence of lockout/CAPTCHA after N failures. Legacy/admin subdomains found via recon are frequent unthrottled targets.
+- **Why it matters:** Credential stuffing is the most common real-world ATO vector; pairs with `hunt-source-leak`/breach-corpus findings for the credential list.
+
+### No rate-limit on account-creation / abuse endpoints
+- **Source:** Absent rate-limiting on an account-creation endpoint enabling automated abuse (<https://hackerone.com/reports/2915502>).
+- **Pattern shape:** Account creation, message sending, or resource-provisioning endpoints lack rate-limiting, enabling spam, resource exhaustion, or enumeration at scale.
+- **Key trick:** Script the creation/abuse endpoint and confirm no throttle. Distinguish a true security gap (enables enumeration/abuse) from a mere hardening nit; tie it to a concrete impact.
+- **Why it matters:** Lower-tier alone, but enables enumeration and abuse chains; frequently the entry point for a larger finding.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/127844> — $0

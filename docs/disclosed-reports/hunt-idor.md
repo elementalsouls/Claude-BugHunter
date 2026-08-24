@@ -147,3 +147,55 @@ IDOR is the workhorse of bug bounty. It pays consistently because the proof is d
 - **Looks like:** You read another user's profile object and see their email / username / display name.
 - **Actually is:** Many platforms intentionally expose username and display name publicly. If the leaked fields are already discoverable on the user's public profile page, the "IDOR" is just the public API doing what it should.
 - **How to disprove:** Compare leaked fields against the public profile page. If everything you can fetch via the IDOR is already public, no privacy boundary was crossed — the bug is N/A. Look for additional fields (email, phone, billing, internal flags) before reporting.
+
+
+## Notable Disclosed IDOR Reports (specific)
+
+The class patterns above are the operator value; these specific high-bounty disclosures anchor them to real, verifiable cases.
+
+### Missing object-level check → delete / modify / read another user's data
+- **Source:** Remotely deleting anyone's content on a media feature (<https://hackerone.com/reports/1819832>, $15,000); deleting all ~4.4M private messages due to a missing permission check (<https://hackerone.com/reports/1213237>, $5,000); transferring/stealing another project's issues and merge requests via an import ID (<https://hackerone.com/reports/743953>, $20,000); arbitrary read of another user's private repository (<https://hackerone.com/reports/3124517>, $10,000).
+- **Pattern shape:** A read or state-changing operation accepts an object identifier and enforces authentication but not *ownership* — so swapping the ID reaches another tenant's object. Delete/modify variants are the highest-impact (data destruction).
+- **Key trick:** For every object-scoped operation (GET/PUT/DELETE, import/transfer), swap the ID for a victim's and confirm a real effect (data returned or state changed), not a 200. Test the destructive verbs — DELETE IDORs are under-tested and pay the most.
+
+### IDOR on account-management → privilege / PII exposure
+- **Source:** Adding secondary users with privileges to another owner's business account (<https://hackerone.com/reports/415081>, $10,500); viewing any user's email via a crafted invitation (<https://hackerone.com/reports/2032716>, $12,500).
+- **Pattern shape:** An account/organization management endpoint (add member, invite, view profile) references a target account/user by ID without verifying the caller's authority over it — reaching privilege assignment or PII across tenants.
+- **Key trick:** Focus on org/team/billing management endpoints; the object is the *account*, so an IDOR there escalates to privilege or PII. Overlaps `hunt-ato` when it adds a controlled user to a victim account.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public IDOR disclosures; read at source for full technique.
+- <https://hackerone.com/reports/767770> — $20000
+- <https://hackerone.com/reports/1658418> — $5000
+- <https://hackerone.com/reports/1145428> — $5750
+- <https://hackerone.com/reports/1966006> — $3000
+- <https://hackerone.com/reports/698579> — $0
+- <https://hackerone.com/reports/762510> — $0
+- <https://hackerone.com/reports/1250037> — $3000
+- <https://hackerone.com/reports/2483666> — $2500
+- <https://hackerone.com/reports/2442008> — $0
+- <https://hackerone.com/reports/1392630> — $2500
+- <https://hackerone.com/reports/1501611> — $0
+- <https://hackerone.com/reports/2487889> — $0
+- <https://hackerone.com/reports/876300> — $0
+- <https://hackerone.com/reports/1581240> — $0
+- <https://hackerone.com/reports/3154983> — $0
+- <https://hackerone.com/reports/703058> — $0
+- <https://hackerone.com/reports/2528293> — $1160
+- <https://hackerone.com/reports/980511> — $1500
+- <https://hackerone.com/reports/1475520> — $0
+- <https://hackerone.com/reports/391092> — $0
+- <https://hackerone.com/reports/1661113> — $0
+- <https://hackerone.com/reports/915114> — $0
+- <https://hackerone.com/reports/1751258> — $1730
+- <https://hackerone.com/reports/514897> — $1500
+- <https://hackerone.com/reports/974222> — $0
+- <https://hackerone.com/reports/2633771> — $0
+- <https://hackerone.com/reports/837400> — $0
+- <https://hackerone.com/reports/1410498> — $1250
+- <https://hackerone.com/reports/2868084> — $0
+- <https://hackerone.com/reports/536853> — $0
+- <https://hackerone.com/reports/1892200> — $1160
+- <https://hackerone.com/reports/283014> — $1000
+- <https://hackerone.com/reports/56511> — $1000

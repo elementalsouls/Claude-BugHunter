@@ -50,6 +50,111 @@ RCE remains the highest-paying bug class because the proof is unambiguous (shell
 
 ---
 
+### Dependency confusion → RCE in build / CI
+- **Source:** Development projects defaulting to the public NPM registry instead of the internal one, enabling dependency confusion (<https://hackerone.com/reports/925585>, $30,000).
+- **Pattern shape:** An internal package name is resolvable on a public registry (npm/PyPI/RubyGems). An attacker publishes a higher-version malicious package under that name; the victim's build/CI pulls it and executes install-time code → RCE in a privileged build context.
+- **Key trick:** Harvest internal package names from leaked `package.json`/lockfiles/source maps (pairs with `hunt-source-leak`); check public-registry availability and scope claimability. Prove impact with a benign callback (`preinstall` → OOB), never a destructive payload.
+- **Why it matters:** Supply-chain RCE reaching CI secrets; top-tier bounty, low duplicate rate.
+
+### Archive / decompression / file-render RCE
+- **Source:** A decompressed-archive size-validator bypass (<https://hackerone.com/reports/1609965>, $33,510); a file-extension handling flaw in an upload proxy (<https://hackerone.com/reports/1154542>, $20,000); wiki-content rendering that invoked a command on certain extensions (<https://hackerone.com/reports/1125425>, $20,000).
+- **Pattern shape:** A server processes attacker-controlled files — extracting archives, rendering documents/wikis, transforming images — and an unsafe handler (a shell-out renderer, a vulnerable parser, an extension-to-processor map) executes code from the file's content or name.
+- **Key trick:** Map every file-processing pipeline (upload → render/convert/extract). Test extensions that route to a code-capable processor (`.rmd`, `.svg`, office macros, `.tar` with traversal). Confirm execution with an OOB callback.
+- **Why it matters:** File-processing RCE is a dominant modern class; consistently $20k+.
+
+### Import / integration → command execution
+- **Source:** Remote command execution via a source-import (from-GitHub) feature (<https://hackerone.com/reports/1679624>, $33,510).
+- **Pattern shape:** An import/mirror/integration feature clones or fetches an attacker-controlled repository/URL and runs a build, hook, or interpreter over its contents (`.git/hooks`, CI config, a Makefile, a lockfile install script) — executing attacker code server-side.
+- **Key trick:** Point import/mirror features at an attacker repo containing hooks/CI/build files; watch for server-side execution. Pairs with the dependency-confusion and archive vectors above.
+- **Why it matters:** Import features are a recurring RCE surface on dev/collaboration platforms.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/591295> — $20160
+- <https://hackerone.com/reports/873614> — $15000
+- <https://hackerone.com/reports/658013> — $12000
+- <https://hackerone.com/reports/181879> — $18000
+- <https://hackerone.com/reports/587854> — $12000
+- <https://hackerone.com/reports/2177925> — $12500
+- <https://hackerone.com/reports/470520> — $0
+- <https://hackerone.com/reports/584603> — $9000
+- <https://hackerone.com/reports/1168765> — $10000
+- <https://hackerone.com/reports/852613> — $10000
+- <https://hackerone.com/reports/807772> — $7500
+- <https://hackerone.com/reports/365271> — $5000
+- <https://hackerone.com/reports/463286> — $7500
+- <https://hackerone.com/reports/2255750> — $8000
+- <https://hackerone.com/reports/422944> — $0
+- <https://hackerone.com/reports/682442> — $7000
+- <https://hackerone.com/reports/403417> — $0
+- <https://hackerone.com/reports/1070835> — $7500
+- <https://hackerone.com/reports/876719> — $7500
+- <https://hackerone.com/reports/138869> — $7000
+- <https://hackerone.com/reports/1418891> — $6000
+- <https://hackerone.com/reports/506646> — $0
+- <https://hackerone.com/reports/630462> — $3645
+- <https://hackerone.com/reports/733267> — $5000
+- <https://hackerone.com/reports/129873> — $0
+- <https://hackerone.com/reports/1104874> — $5000
+- <https://hackerone.com/reports/2438265> — $4860
+- <https://hackerone.com/reports/1200647> — $5000
+- <https://hackerone.com/reports/502758> — $0
+- <https://hackerone.com/reports/2231019> — $5000
+- <https://hackerone.com/reports/544928> — $0
+- <https://hackerone.com/reports/180074> — $0
+- <https://hackerone.com/reports/513154> — $3000
+- <https://hackerone.com/reports/653125> — $3500
+- <https://hackerone.com/reports/861744> — $5000
+- <https://hackerone.com/reports/783877> — $0
+- <https://hackerone.com/reports/1776476> — $4000
+- <https://hackerone.com/reports/231053> — $3000
+- <https://hackerone.com/reports/631956> — $0
+- <https://hackerone.com/reports/1065500> — $0
+- <https://hackerone.com/reports/946409> — $0
+- <https://hackerone.com/reports/1401444> — $3000
+- <https://hackerone.com/reports/487008> — $0
+- <https://hackerone.com/reports/484745> — $3000
+- <https://hackerone.com/reports/397545> — $0
+- <https://hackerone.com/reports/851807> — $0
+- <https://hackerone.com/reports/544096> — $2500
+- <https://hackerone.com/reports/1024575> — $0
+- <https://hackerone.com/reports/1728174> — $2500
+- <https://hackerone.com/reports/1620702> — $2500
+- <https://hackerone.com/reports/550625> — $2500
+- <https://hackerone.com/reports/540242> — $2000
+- <https://hackerone.com/reports/1672388> — $0
+- <https://hackerone.com/reports/1891795> — $2400
+- <https://hackerone.com/reports/833080> — $1500
+- <https://hackerone.com/reports/298873> — $2000
+- <https://hackerone.com/reports/1027822> — $0
+- <https://hackerone.com/reports/402362> — $2000
+- <https://hackerone.com/reports/1705717> — $2000
+- <https://hackerone.com/reports/212696> — $0
+- <https://hackerone.com/reports/1652042> — $2000
+- <https://hackerone.com/reports/329689> — $0
+- <https://hackerone.com/reports/125218> — $2000
+- <https://hackerone.com/reports/1624137> — $1000
+- <https://hackerone.com/reports/722327> — $1500
+- <https://hackerone.com/reports/473888> — $1500
+- <https://hackerone.com/reports/152398> — $1000
+- <https://hackerone.com/reports/1078002> — $1000
+- <https://hackerone.com/reports/113928> — $1500
+- <https://hackerone.com/reports/98259> — $1500
+- <https://hackerone.com/reports/122113> — $1500
+- <https://hackerone.com/reports/351014> — $0
+- <https://hackerone.com/reports/1624172> — $1000
+- <https://hackerone.com/reports/152399> — $1000
+- <https://hackerone.com/reports/116286> — $1000
+- <https://hackerone.com/reports/152400> — $1000
+- <https://hackerone.com/reports/99424> — $1000
+- <https://hackerone.com/reports/127212> — $1000
+- <https://hackerone.com/reports/114079> — $1000
+- <https://hackerone.com/reports/114078> — $1000
+- <https://hackerone.com/reports/167688> — $1000
+- <https://hackerone.com/reports/106548> — $1000
+
 ## Pattern Library
 
 ### Java deserialization on a non-obvious endpoint

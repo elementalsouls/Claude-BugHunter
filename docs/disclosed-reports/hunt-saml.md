@@ -30,6 +30,26 @@ SAML attacks pay top-tier bounties because a single forged assertion silently im
 - **Key trick:** Read the cheat sheet as an inverted bug list. Every "MUST" is a recurring bug somewhere.
 - **Why it matters:** Authoritative reference. When writing a report, citing the specific OWASP recommendation that was violated short-circuits a lot of triage debate.
 
+## Disclosed HackerOne Reports (bounty-paid examples)
+
+Bounty-paid public disclosures for this class, on top of the research/CVE grounding above. Targets genericized; each links its source.
+
+### Signature verification bypass / XSW → auth as any user (disclosed bounty examples)
+- **Source:** Disclosed across multiple programs (<https://hackerone.com/reports/223014>, <https://hackerone.com/reports/2579939>, <https://hackerone.com/reports/136169>).
+- **Pattern shape:** The SP accepts an assertion whose signature isn't properly validated — unsigned assertion, signature over the wrong element (XSW), or bypassed verification — so an attacker forges the `NameID` and logs in as anyone.
+- **Key trick:** Capture a valid SAMLResponse, then: strip the signature, wrap the signed element and inject a forged assertion (XSW), or swap the `NameID`. Any accepted variant = full auth bypass.
+- **Why it matters:** Authenticate as arbitrary users including admins; enterprise-critical, consistently four-to-five figures.
+
+### RelayState / ACS URL validation → ATO / open redirect
+- **Source:** Disclosed across multiple programs (<https://hackerone.com/reports/1923672>, <https://hackerone.com/reports/2101076>).
+- **Pattern shape:** Insufficient validation of RelayState or the ACS/return URL lets an attacker redirect the authenticated flow to a controlled endpoint or bind SSO to an attacker-chosen account.
+- **Key trick:** Tamper RelayState and the ACS URL; check whether the assertion or session lands on an attacker origin. Chain with signup domain-enforcement bypass where SSO auto-provisions accounts.
+- **Why it matters:** Captures the SSO assertion or hijacks provisioning → ATO across the SSO-federated surface.
+
+### Further disclosed reports (this class)
+
+- <https://hackerone.com/reports/171398>
+
 ---
 
 ## Pattern Library

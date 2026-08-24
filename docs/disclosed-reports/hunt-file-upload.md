@@ -30,6 +30,22 @@ File upload pays when the uploaded artifact is *executed* (RCE), *rendered with 
 - **Key trick:** The bypass exploited a normalization mismatch between the validation layer (which sees `shell.jsp/`) and the storage layer (which sees `shell.jsp`). The same shape — validator and storer disagree on the canonical filename — recurs in many CVE entries against different products.
 - **Why it matters:** Tomcat is ubiquitous. The CVE provides a verifiable cite for any operator finding PUT enabled. Internal-tooling Tomcat instances frequently still ship `readonly=false`.
 
+## Disclosed HackerOne Reports (bounty-paid examples)
+
+Bounty-paid public disclosures for this class, on top of the research/CVE grounding above. Targets genericized; each links its source.
+
+### Unrestricted upload → webshell / stored script
+- **Source:** Disclosed across multiple programs (<https://hackerone.com/reports/748903>, <https://hackerone.com/reports/1890284>, <https://hackerone.com/reports/3589247>).
+- **Pattern shape:** The endpoint accepts an executable or active-content file (php/jsp/svg/html) with no extension/content-type/magic-byte validation, served from a path that renders it → RCE or stored XSS.
+- **Key trick:** Upload the app-appropriate payload (svg with script, polyglot, double-extension, null-byte, content-type mismatch) and fetch the stored URL. Confirm execution/rendering, not just acceptance. Check the served `Content-Type` and path.
+- **Why it matters:** Direct RCE (server-side exec) or stored XSS (svg/html) depending on serve context — the highest-severity upload outcome.
+
+### Arbitrary file write / path traversal on upload
+- **Source:** Disclosed across multiple programs (<https://hackerone.com/reports/583184>, <https://hackerone.com/reports/3780695>).
+- **Pattern shape:** The filename or path parameter isn't sanitized, letting the upload write outside the intended directory (traversal), or a DB/engine primitive (`INTO OUTFILE`) writes attacker content to disk → overwrite/RCE.
+- **Key trick:** Inject `../` sequences and absolute paths into the filename/path field; test any server-side write primitive reachable from the app. Confirm the file lands at the traversed path.
+- **Why it matters:** File-write as the service account → config overwrite, webshell drop, privilege escalation. Often Critical.
+
 ---
 
 ## Pattern Library

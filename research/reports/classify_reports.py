@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-classify_reports.py — map each raw H1 report to a vuln class -> hunt-* skill.
+classify_reports.py — map each raw report to a vuln class -> hunt-* skill.
 
-Uses the report's CWE label + title keywords against a hand-maintained map of the
-common classes. Reports that match nothing are 'unmapped' (new-technique candidates).
-Reads research/reports/raw/**/*.json; prints/returns {report_id: skill or None}.
-Stdlib only. Network-free.
+Matches the report's title + CWE + summary against a specificity-ordered map of
+ALL hunt-* skills (framework/platform-specific first, then specific vuln classes,
+then broad classes). First match wins, so a report lands on its MOST specific skill.
+Reports matching nothing are 'unmapped' — genuine new-technique candidates (NOT
+force-binned to hunt-misc, which stays a curated catch-all).
 
-Usage:
-  python3 research/reports/classify_reports.py            # print class per raw report
-  (imported by report_coverage.py / draft_patterns.py)
+Reads research/reports/raw/**/*.json (title-bearing records only). Network-free.
+Usage: python3 research/reports/classify_reports.py
 """
 import glob
 import json
@@ -21,39 +21,71 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "raw")
 SKILLS = os.path.join(os.path.dirname(os.path.dirname(HERE)), "skills")
 
-# class -> (skill dir, [keyword/CWE regexes]). First match wins; order = specificity.
-# Skill names must exist under skills/. Keep patterns tight to avoid mis-binning.
+# (skill, regex). Order = specificity: most-specific tech/platform first.
 RULES = [
-    ("hunt-rce",             r"remote code execution|\brce\b|command inject|code inject|deserializ"),
-    ("hunt-ssrf",            r"\bssrf\b|server.?side request forgery"),
-    ("hunt-sqli",            r"\bsql\b inject|sqli|blind sql"),
-    ("hunt-idor",            r"\bidor\b|insecure direct object|broken object level|\bbola\b"),
-    ("hunt-xss",             r"\bxss\b|cross.?site script"),
-    ("hunt-ssti",            r"\bssti\b|template inject"),
-    ("hunt-xxe",             r"\bxxe\b|xml external entit"),
-    ("hunt-csrf",            r"\bcsrf\b|cross.?site request forgery"),
-    ("hunt-cors",            r"\bcors\b|cross.?origin"),
-    ("hunt-open-redirect",   r"open redirect"),
+    # --- framework / platform / tech-specific (most specific) ---
+    ("hunt-nextjs",          r"next\.?js|_next/|server action|middleware auth bypass"),
+    ("hunt-laravel",         r"laravel|ignition|telescope|horizon|app_debug"),
+    ("hunt-springboot",      r"spring ?boot|actuator|heapdump|spring expression|spel|jolokia"),
+    ("hunt-nodejs",          r"node\.?js|prototype pollution|express|lodash|child_process"),
+    ("hunt-aspnet",          r"asp\.?net|viewstate|machinekey|trace\.axd|__viewstate"),
+    ("hunt-sharepoint",      r"sharepoint"),
+    ("hunt-k8s",             r"kubernetes|kubelet|\bk8s\b|etcd|\bdocker\b|container escape|rbac"),
+    ("hunt-cicd",            r"ci/cd|github action|pull_request_target|self.?hosted runner|pipeline inject|oidc trust|workflow inject"),
+    ("hunt-grpc",            r"\bgrpc\b|protobuf|server reflection"),
+    ("hunt-websocket",       r"websocket|\bws\b handshake|cswsh|cross.?site websocket"),
+    ("hunt-fintech-graphql", r"(ledger|wallet|payment|transfer|withdraw|balance|redeem).{0,30}graphql|graphql.{0,30}(ledger|money|transfer|balance)"),
     ("hunt-graphql",         r"graphql"),
-    ("hunt-oauth",           r"\boauth\b|authorization code|redirect_uri"),
-    ("hunt-saml",            r"\bsaml\b"),
-    ("hunt-jwt-crypto",      r"\bjwt\b|json web token|alg.?none|key confusion"),
-    ("hunt-file-upload",     r"file upload|arbitrary file (write|upload)|unrestricted upload"),
-    ("hunt-http-smuggling",  r"request smuggl|desync|\bcl\.te\b|\bte\.cl\b"),
-    ("hunt-cache-poison",    r"cache poison|web cache"),
-    ("hunt-host-header",     r"host header|host.?header inject"),
-    ("hunt-lfi",             r"\blfi\b|local file inclu|path travers|directory travers"),
-    ("hunt-mfa-bypass",      r"\bmfa\b|2fa|two.?factor|otp bypass"),
+    ("hunt-saml",            r"\bsaml\b|xml signature wrapping|\bxsw\b|assertion consumer"),
+    ("hunt-oauth",           r"\boauth\b|authorization code|redirect_uri|openid|oidc"),
+    ("hunt-jwt-crypto",      r"\bjwt\b|json web token|alg.?none|rs256|hs256|key confusion"),
+    ("hunt-ntlm-info",       r"\bntlm\b|negotiate challenge|type-2 challenge"),
+    ("hunt-llm-ai",          r"prompt inject|\bllm\b|indirect injection|jailbreak|ascii smuggl|agentic|tool.?use exfil"),
+    ("hunt-rag-vector",      r"\brag\b|vector store|embedding|corpus poison"),
+    # --- specific vuln classes ---
+    ("hunt-ssrf",            r"\bssrf\b|server.?side request forgery|metadata (endpoint|service)|169\.254\.169\.254"),
+    ("hunt-ssti",            r"\bssti\b|template inject|jinja|twig|freemarker|\berb\b|velocity"),
+    ("hunt-xxe",             r"\bxxe\b|xml external entit"),
+    ("hunt-deserialization", r"deserializ|ysoserial|pickle|binaryformatter|marshal\.load|gadget chain|log4shell|\bjndi\b|phpggc|object injection"),
+    ("hunt-http-smuggling",  r"request smuggl|desync|\bcl\.te\b|\bte\.cl\b|h2\.cl|h2\.te"),
+    ("hunt-cache-poison",    r"cache poison|web cache|unkeyed (header|input)"),
+    ("hunt-nosqli",          r"nosql|mongo(db)? inject|\$where|\$regex|\$ne\b|couchdb"),
+    ("hunt-ldap",            r"\bldap\b inject|\bldap\b|xpath inject"),
+    ("hunt-lfi",             r"\blfi\b|\brfi\b|local file inclu|remote file inclu|path travers|directory travers|/etc/passwd|filter.?chain"),
+    ("hunt-sqli",            r"\bsqli?\b|sql inject|blind sql|union select|error.?based sql"),
+    ("hunt-rce",             r"remote code execution|\brce\b|command inject|code inject|arbitrary command|shell (upload|command)"),
+    ("hunt-dom",             r"dom clobber|postmessage|post.?message|service worker|dom.?based|dom xss|client.?side prototype"),
+    ("hunt-xss",             r"\bxss\b|cross.?site script|stored script|reflected script|javascript inject"),
+    ("hunt-html-injection",  r"html inject|markup inject|content spoof"),
+    ("hunt-open-redirect",   r"open redirect|unvalidated redirect"),
+    ("hunt-csrf",            r"\bcsrf\b|cross.?site request forgery|samesite"),
+    ("hunt-cors",            r"\bcors\b|cross.?origin resource|access-control-allow-origin|origin reflect"),
+    ("hunt-clickjacking",    r"clickjack|ui redress|x-frame-options|frame-ancestors"),
+    ("hunt-file-upload",     r"file upload|arbitrary file (write|upload)|unrestricted upload|webshell|svg upload"),
+    ("hunt-race-condition",  r"race condition|toctou|single.?packet|concurren(t|cy)|double spend"),
+    ("hunt-fintech-graphql", r"decimal precision|idempotency|double.?spend"),
+    ("hunt-business-logic",  r"business logic|logic flaw|price manipulat|coupon|negative (quantity|amount)|workflow bypass|discount stack"),
+    ("hunt-idor",            r"\bidor\b|insecure direct object|broken object level|\bbola\b|\bbfla\b|access another (user|account)|read any (user|report)|view any"),
+    ("hunt-auth-bypass",     r"auth(entication|z)? bypass|authentication bypass|broken authentication|login bypass|access control (bypass|flaw)|privilege escalat|improper access control"),
+    ("hunt-mfa-bypass",      r"\bmfa\b|2fa|two.?factor|otp bypass|totp"),
+    # ato before forgot-password: an explicit "account takeover" title wins over the
+    # reset *vector* (matches the skills' convention — hunt-ato owns the reset→ATO chain).
     ("hunt-ato",             r"account takeover|\bato\b"),
-    ("hunt-forgot-password", r"password reset|forgot password|reset (token|link)"),
-    ("hunt-business-logic",  r"business logic|race condition|price manipulat|logic flaw"),
-    ("hunt-nosqli",          r"nosql|mongo inject"),
-    ("hunt-ldap",            r"\bldap\b"),
-    ("hunt-clickjacking",    r"clickjack|ui redress"),
-    ("hunt-cloud-misconfig", r"\bs3 bucket\b|misconfigured bucket|cloud (storage|misconfig)|exposed .*credential"),
-    ("hunt-api-misconfig",   r"\bapi\b (key|token) (leak|expos)|mass assign|excessive data expos"),
+    ("hunt-forgot-password", r"password reset|forgot password|reset (token|link)|account recovery"),
+    ("hunt-brute-force",     r"brute.?force|rate.?limit|credential stuff|otp brute|no rate limiting"),
+    ("hunt-captcha-bypass",  r"captcha"),
+    ("hunt-session",         r"session (fixation|management|hijack)|session (id|token) (predictable|not (invalidated|regenerated))|logout (invalidat|session)"),
+    ("hunt-host-header",     r"host header|x-forwarded-host|host.?header inject"),
+    ("hunt-source-leak",     r"source (code|map) (leak|expos)|\.js\.map|\.env\b|\.git\b|swagger|openapi|build artifact|exposed .*(secret|credential|token|api.?key)|leaked (token|key|credential|secret)|\.git/|access token expos|hardcoded (secret|credential)"),
+    ("hunt-cloud-misconfig", r"\bs3 bucket\b|public bucket|cloudfront|cloud (storage )?misconfig|iam (misconfig|policy)|exposed (jenkins|grafana|kibana|prometheus|actuator|dashboard|elasticsearch|redis|database|rabbitmq|amqp|kafka|mongodb|memcached|message broker)|(rabbitmq|kafka|mongodb|memcached|elasticsearch)\b.{0,40}(exposed|internet|default cred)|open (prod|production)|publicly (available|accessible|exposed)"),
+    ("hunt-api-misconfig",   r"mass assign|verb tamper|http verb|excessive data expos|api misconfig"),
+    ("hunt-shadow-api",      r"shadow api|zombie api|undocumented (api|endpoint)|improper inventory|legacy (api|endpoint)"),
+    ("hunt-spa-api",         r"single.?page|js bundle.*api|hidden (api|backend|endpoint)"),
+    ("hunt-subdomain",       r"subdomain takeover|dangling (cname|dns)|nxdomain takeover"),
+    ("hunt-tls-network",     r"\bhsts\b|weak cipher|tls (misconfig|downgrade)|expired cert|\bspf\b|\bdkim\b|\bdmarc\b|email spoof"),
+    ("hunt-exceptional-conditions", r"malformed input|fail open|null byte|type juggl|unexpected input|error (leak|disclos)"),
 ]
-COMPILED = [(skill, re.compile(rx, re.I)) for skill, rx in RULES]
+COMPILED = [(s, re.compile(rx, re.I)) for s, rx in RULES]
 
 
 def _skill_exists(name):
@@ -69,9 +101,6 @@ def classify_one(rec):
 
 
 def load_raw():
-    """Load pattern-bearing raw records (must have a title). Bugcrowd metadata
-    records have no title/technique and are excluded from the pattern loop —
-    they're a separate reference feed, not a pattern source."""
     recs = []
     for f in glob.glob(os.path.join(RAW, "**", "*.json"), recursive=True):
         try:
@@ -85,14 +114,13 @@ def load_raw():
 
 def main():
     recs = load_raw()
-    mapped = unmapped = 0
+    per = {}
     for r in sorted(recs, key=lambda r: -(r.get("bounty") or 0)):
-        skill = classify_one(r)
-        mapped += bool(skill)
-        unmapped += (not skill)
-        print(f"  {skill or '(UNMAPPED — new-technique candidate)':40}  "
-              f"[{r.get('severity') or '?'}/${r.get('bounty') or 0}]  {(r.get('title') or '')[:55]}")
-    print(f"\nclassify: {len(recs)} report(s) — {mapped} mapped, {unmapped} unmapped.")
+        per.setdefault(classify_one(r), []).append(r)
+    mapped = sum(len(v) for k, v in per.items() if k)
+    print(f"classify: {len(recs)} report(s) — {mapped} mapped, {len(per.get(None, []))} unmapped.")
+    for skill in sorted((k for k in per if k), key=lambda s: -len(per[s])):
+        print(f"  {len(per[skill]):4}  {skill}")
     return 0
 
 

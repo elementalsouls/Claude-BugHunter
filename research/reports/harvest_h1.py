@@ -141,6 +141,7 @@ def main(argv):
     ap.add_argument("--h1-cookie", default=os.environ.get("H1_COOKIE", ""),
                     help="H1 session cookie to fetch full report bodies (opt-in; your account).")
     ap.add_argument("--no-summary", action="store_true", help="skip the per-report meta-desc fetch (metadata only)")
+    ap.add_argument("--max-pages", type=int, default=40, help="pagination depth (50 reports/page)")
     a = ap.parse_args(argv)
 
     sort_field = "votes" if a.sort == "votes" else "total_awarded_amount"
@@ -148,7 +149,7 @@ def main(argv):
     seen = load_processed()
     new_ids, wrote, body_hits = [], 0, 0
 
-    for n in enumerate_reports(sort_field):
+    for n in enumerate_reports(sort_field, max_pages=a.max_pages):
         if wrote >= a.limit:
             break
         rep = n.get("report") or {}          # some nodes have report:null (limited disclosure)
@@ -172,7 +173,8 @@ def main(argv):
         json.dump(rec, open(os.path.join(RAW_DIR, f"{rid}.json"), "w"), indent=1)
         wrote += 1
         new_ids.append(rid)
-        time.sleep(0.5 if not a.no_summary else 0.2)   # polite between report fetches
+        if not a.no_summary:
+            time.sleep(0.5)   # polite between per-report page fetches; metadata-only needs none
 
     seen.update(new_ids)
     json.dump(sorted(seen), open(PROCESSED, "w"), indent=1)

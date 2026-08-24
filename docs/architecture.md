@@ -98,7 +98,7 @@ hunt-html-injection                     hunt-fintech-graphql
 
 Plus alternates: `hunt-cache-poison`, `hunt-race-condition`, `hunt-subdomain`. Plus the meta-router `hunt-dispatch` (used internally by the `/hunt` slash command — not user-invoked).
 
-**Total disclosed reports curated**: 681 (plus enterprise CVE catalogues that aren't measured in H1-report counts)
+**Total disclosed reports curated**: 681 — 433 now individually cited & auditable across 36 pattern-library files (plus enterprise CVE catalogues that aren't measured in H1-report counts)
 
 **How auto-triggering works**: just describe what you're testing — e.g., *"I see a `?url=` parameter on this endpoint"* — and Claude loads only `hunt-ssrf`. You don't invoke them by name.
 

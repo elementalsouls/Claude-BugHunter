@@ -8,7 +8,7 @@
 #   - scripts/hunt.sh → ~/.claude/scripts/hunt.sh + sourced from shell rc
 #   (unchanged from prior behavior)
 #
-# MULTI-HARNESS FLAGS (skills only — the 71 SKILL.md files. Slash commands,
+# MULTI-HARNESS FLAGS (skills only — the SKILL.md files. Slash commands,
 # the plugin marketplace, and the /hunt engine are Claude-Code-specific and do
 # NOT port; other harnesses get the knowledge, not the orchestration):
 #   --agents       force-copy skills → ~/.agents/skills/  (Codex; OpenCode reads ~/.claude)

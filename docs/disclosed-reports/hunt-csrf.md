@@ -32,6 +32,42 @@ CSRF pays when the affected action has a real account-level or financial consequ
 
 ---
 
+### CSRF protection missing / bypassable on a sensitive function
+- **Source:** A management-console CSRF-protection bypass (via a path-traversal in the token path) on an enterprise server (<https://hackerone.com/reports/1497169>, $10,000); an integration-setup flow lacking CSRF protection (<https://hackerone.com/reports/170552>, $2,500).
+- **Pattern shape:** A state-changing endpoint either omits an anti-CSRF token, accepts requests without validating it, or the token check is bypassable (predictable, reflected, or reachable via a traversal/parser quirk). An attacker-hosted page forces the victim's authenticated browser to perform the action.
+- **Key trick:** For each sensitive POST, strip the CSRF token and replay; swap it for another user's; change `Content-Type` to bypass a naive check; test whether the token is validated at all. Confirm the action executes cross-origin.
+- **Why it matters:** Classic but still pays on admin/integration/config endpoints where the impact is high.
+
+### Mobile deeplink / cross-app CSRF
+- **Source:** A mobile-app deeplink used to perform a CSRF "follow" action (<https://hackerone.com/reports/583987>, $1,540).
+- **Pattern shape:** A mobile app registers a deeplink/custom-URL-scheme handler that triggers a state-changing action using the app's authenticated session, without an origin/intent check — a web page or another app invokes the deeplink to force the action.
+- **Key trick:** Enumerate the app's deeplinks/intent filters; craft one that performs a sensitive action and trigger it from a web page. Pairs with `hunt-dom`/mobile redteam skills.
+- **Why it matters:** The mobile analog of CSRF, frequently missed because web CSRF defenses don't cover custom schemes.
+
+### CSRF / XSSI chained to token or data theft → ATO
+- **Source:** An issue leaking an access token alongside other third-party data via insufficient URL validation (<https://hackerone.com/reports/1923672>, $2,450); XSSI enabling email-address theft and posting on the victim's behalf (<https://hackerone.com/reports/450796>, $3,500).
+- **Pattern shape:** A cross-site request reads a response containing secrets — an OAuth code, an access token, or PII — because the endpoint returns sensitive JSON without anti-XSSI protection, or a redirect/validation flaw leaks the token cross-origin.
+- **Key trick:** Look for JSON/JS endpoints that return secrets and lack `X-Content-Type-Options`/parser guards; test cross-origin readability. Chains to `hunt-ato` when the leaked value is an auth token.
+- **Why it matters:** Elevates CSRF/XSSI from "force an action" to "steal the session."
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/805073> — $2940
+- <https://hackerone.com/reports/1493437> — $2500
+- <https://hackerone.com/reports/1543234> — $2500
+- <https://hackerone.com/reports/807924> — $0
+- <https://hackerone.com/reports/103787> — $2500
+- <https://hackerone.com/reports/994504> — $1900
+- <https://hackerone.com/reports/463330> — $0
+- <https://hackerone.com/reports/47472> — $2000
+- <https://hackerone.com/reports/442901> — $0
+- <https://hackerone.com/reports/1727221> — $0
+- <https://hackerone.com/reports/1087436> — $1000
+- <https://hackerone.com/reports/624645> — $1000
+- <https://hackerone.com/reports/15412> — $1000
+
 ## Pattern Library
 
 ### Classic POST CSRF — no token, cookie-authed
@@ -135,3 +171,4 @@ CSRF pays when the affected action has a real account-level or financial consequ
 - **Looks like:** Operator probes a cross-origin `fetch()` with `Content-Type: application/json`, browser issues an OPTIONS preflight, server returns 403 — operator concludes CSRF is blocked.
 - **Actually is:** Preflight only fires on CORS-non-simple requests. Simple requests (GET, HEAD, form POST with `text/plain`/`application/x-www-form-urlencoded`/`multipart/form-data`) bypass preflight entirely. CSRF via HTML form submission is a simple request and never triggers preflight regardless of what the server returns to OPTIONS.
 - **How to disprove:** Switch from `fetch` to an HTML form submission. If the form-POST succeeds without a preflight, CSRF is exploitable. The preflight 403 was a red herring.
+

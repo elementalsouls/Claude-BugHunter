@@ -32,6 +32,48 @@ Business logic bugs pay because they cross the gap between "the server processed
 
 ---
 
+### Payment state-machine abuse → funds without payment
+- **Source:** A double payout via mishandled payment-provider transaction states — withdraw money without the funds being deducted (<https://hackerone.com/reports/307239>, $10,000); modifying in-flight data to a payment provider to generate wallet balance (<https://hackerone.com/reports/1295844>, $7,500).
+- **Pattern shape:** The app's payment state machine trusts a provider callback or client-supplied transaction state. By replaying, racing, or tampering the intermediate state (pending→completed, refund+capture, in-flight amount/currency), the attacker gets goods/balance without a matching charge.
+- **Key trick:** Map the full payment flow (initiate → provider redirect → callback → fulfilment). Tamper each hop: replay the success callback, change amount/currency in the in-flight request, cancel-after-fulfil. Confirm a *ledger* effect (balance/goods), not just a 200.
+- **Why it matters:** Directly monetizable; consistently high-bounty. Pairs with `hunt-race-condition` when the flaw is a timing window.
+
+### One-time incentive reused (coupon / fee discount / reward)
+- **Source:** A fee discount redeemable many times, compounding financial loss (<https://hackerone.com/reports/1849626>, $5,000).
+- **Pattern shape:** A discount, coupon, referral credit, or fee waiver intended for single/limited use lacks server-side idempotency — reusing it (sequentially or via race/alias) stacks the benefit arbitrarily.
+- **Key trick:** Apply the incentive, then reapply back-to-back and in parallel (single-packet). If the second application succeeds, there's no server-side single-use enforcement.
+- **Why it matters:** Classic logic-flaw money bug; overlaps `hunt-race-condition` for the parallel variant.
+
+### Approval / workflow-stage bypass & run-as-another-user
+- **Source:** Self-approving an admin approval and changing an effective date (<https://hackerone.com/reports/1543159>, $5,000); running pipeline jobs as an arbitrary user (<https://hackerone.com/reports/894569>, $12,000); an OTP flaw allowing binding of any phone number (<https://hackerone.com/reports/2588329>).
+- **Pattern shape:** A multi-stage workflow (approval, review, effective-dating, CI job execution, phone verification) can be forced past a stage or executed in another principal's context — the server enforces the *happy path* order/identity but not each transition independently.
+- **Key trick:** For each workflow, attempt to invoke a *later* step directly, self-approve, or set the actor/effective values client-side. The bug is a missing per-transition authorization check.
+- **Why it matters:** High-impact (privilege/identity abuse) and hard for scanners to find — the lowest-dup logic class.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/3183520> — $3000
+- <https://hackerone.com/reports/423467> — $0
+- <https://hackerone.com/reports/407971> — $2500
+- <https://hackerone.com/reports/1133118> — $0
+- <https://hackerone.com/reports/334205> — $2500
+- <https://hackerone.com/reports/1408782> — $2000
+- <https://hackerone.com/reports/999789> — $0
+- <https://hackerone.com/reports/938021> — $2000
+- <https://hackerone.com/reports/300748> — $0
+- <https://hackerone.com/reports/771694> — $0
+- <https://hackerone.com/reports/1770797> — $500
+- <https://hackerone.com/reports/511044> — $0
+- <https://hackerone.com/reports/2295958> — $1000
+- <https://hackerone.com/reports/328526> — $0
+- <https://hackerone.com/reports/2885636> — $0
+- <https://hackerone.com/reports/364843> — $0
+- <https://hackerone.com/reports/321699> — $0
+- <https://hackerone.com/reports/783258> — $0
+- <https://hackerone.com/reports/672664> — $0
+
 ## Pattern Library
 
 ### Negative quantity / negative price

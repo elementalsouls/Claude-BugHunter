@@ -32,6 +32,48 @@ SQL injection has been on the OWASP Top 10 since 2003 and still pays out at the 
 
 ---
 
+### Unvalidated parameter → SQL injection → data extraction
+- **Source:** An unvalidated parameter on a reporting page enabling reads of SQL data (<https://hackerone.com/reports/383127>, $25,000); SQL injection in a public dashboard endpoint (<https://hackerone.com/reports/297478>); SQLi in a CMS plugin (<https://hackerone.com/reports/273946>, $4,500).
+- **Pattern shape:** A request parameter (search, filter, id, sort, an XML/report generator) is concatenated into a SQL query without parameterization. Classic union-based, error-based, or boolean/time-blind extraction of arbitrary tables follows.
+- **Key trick:** Fuzz every parameter (including headers, JSON fields, and XML values) with `'`, `"`, `)`, and boolean pairs (`1 AND 1=1` vs `1 AND 1=2`); confirm a differential. For blind, use time delays; for stacked, test the DB's separator. Legacy report/export endpoints (`*.php?...xml`) are recurring high-value spots.
+- **Why it matters:** Direct database read; still pays top-tier ($25k here) on legacy/partner endpoints scanners miss.
+
+### SQLi in a backend service / ORM layer
+- **Source:** A SQL injection in a web service backed by MS SQL Server (<https://hackerone.com/reports/531051>).
+- **Pattern shape:** The injection is not in the obvious web form but in a downstream service, an ORM raw-query escape hatch, or an internal API that trusts an upstream-supplied value. The DB engine (MSSQL/Postgres/MySQL) determines the exploitation primitives (stacked queries, `xp_cmdshell`, `COPY ... TO PROGRAM`).
+- **Key trick:** Trace parameters that flow to internal services; test ORM raw-query endpoints and search DSLs. Identify the engine (error strings, timing) to pick the right escalation (MSSQL `xp_cmdshell` → RCE).
+- **Why it matters:** Backend SQLi often escalates to RCE via DB-specific features; overlaps `hunt-rce`.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/403616> — $4500
+- <https://hackerone.com/reports/2051931> — $4134
+- <https://hackerone.com/reports/150156> — $4000
+- <https://hackerone.com/reports/2646493> — $4263
+- <https://hackerone.com/reports/1044716> — $2000
+- <https://hackerone.com/reports/125932> — $3000
+- <https://hackerone.com/reports/952501> — $2000
+- <https://hackerone.com/reports/761304> — $0
+- <https://hackerone.com/reports/206872> — $2500
+- <https://hackerone.com/reports/476150> — $2500
+- <https://hackerone.com/reports/838855> — $2000
+- <https://hackerone.com/reports/836079> — $2000
+- <https://hackerone.com/reports/1895277> — $2400
+- <https://hackerone.com/reports/298176> — $2000
+- <https://hackerone.com/reports/962889> — $0
+- <https://hackerone.com/reports/592400> — $0
+- <https://hackerone.com/reports/549355> — $0
+- <https://hackerone.com/reports/361623> — $1500
+- <https://hackerone.com/reports/300176> — $1000
+- <https://hackerone.com/reports/1039315> — $0
+- <https://hackerone.com/reports/1224660> — $0
+- <https://hackerone.com/reports/358669> — $1000
+- <https://hackerone.com/reports/258582> — $1000
+- <https://hackerone.com/reports/297534> — $1000
+- <https://hackerone.com/reports/301257> — $1000
+
 ## Pattern Library
 
 ### Classic union-based extraction

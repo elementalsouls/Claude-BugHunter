@@ -7,6 +7,22 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Added
+- **Disclosed-report grounding, content-verified** — 28 `hunt-*` skills strengthened
+  with cited public HackerOne disclosures. **433 distinct disclosed reports** are now
+  individually cited across **36 pattern-library files** in `docs/disclosed-reports/`.
+  New personal-research pipeline under `research/reports/` (`harvest_h1.py` metadata
+  collector, `classify_reports.py` class router, `verify_citations.py` credibility gate).
+  Every citation is **content-verified**: `verify_citations.py` fetches each report's
+  public subject and confirms it corroborates the skill it's cited under — **433 reports,
+  0 mismatch, 0 weak**. `report_count` convention is now explicit: *distinct cited
+  disclosed-report URLs* (grep-auditable), documented in
+  `docs/disclosed-reports/README.md`. Two-tier grounding — `report_count` counts
+  disclosed reports only; deeper web/API technique is cited under `sources:`
+  (research / CVE). The `681` headline stays the pattern-count; `433` is the
+  now-auditable cited-report count. Some counts reconciled **down** where a prior number
+  was asserted without a backing corpus (e.g. `hunt-source-leak` 31→7) — honesty, not a
+  coverage loss: **every SKILL.md methodology body is unchanged**, the delta is purely
+  additive grounding. Targets genericized (technique kept, victim dropped); leak-guard clean.
 - **Native Windows install ** — every `.sh` installer now has a PowerShell
   counterpart: `scripts/install.ps1`, `scripts/install-community-skills.ps1`, `scripts/hunt.ps1`.
   Same behavior, same flags (hyphen-style: `-All`, `-Agents`, `-Hermes`, `-BurpMcp`, `-NoProfile`,

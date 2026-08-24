@@ -38,6 +38,24 @@ MFA bypasses pay High–Critical because they convert "I stole one credential" i
 
 ---
 
+### MFA not enforced on all session-establishing paths
+- **Source:** A bypass of the 2FA requirement letting any user skip multiple program restrictions (<https://hackerone.com/reports/418767>, $10,000); a 2FA-enforcement bypass by logging in and following the post-login redirect directly (<https://hackerone.com/reports/1050244>).
+- **Pattern shape:** MFA is checked in the primary login handler but not on every path that establishes an authenticated session — an alternate login, an OAuth/SSO return, an API token exchange, or the post-2FA redirect target reachable directly. The attacker reaches the authenticated state without completing the challenge.
+- **Key trick:** Enumerate every route that yields a session (SSO callback, "remember me", mobile/API login, password-reset auto-login). For each, complete auth with a 2FA-enabled account and check whether the challenge is actually enforced or just rendered.
+- **Why it matters:** The dominant MFA-bypass root cause — enforcement is per-handler, and one handler always forgets.
+
+### MFA-mode / recovery-channel downgrade
+- **Source:** An "email" MFA mode that allowed bypassing MFA from the victim's perspective (<https://hackerone.com/reports/665722>, $2,500); a 2FA bypass via login-redirect handling (<https://hackerone.com/reports/1247108>, $1,564).
+- **Pattern shape:** The account offers multiple MFA/recovery channels (email OTP, SMS, backup codes) and the *weakest* is not held to the same bar — e.g. an email-OTP mode reachable without proving control of the primary factor, or a recovery flow that skips MFA entirely.
+- **Key trick:** Map every MFA and recovery option; try to satisfy the challenge via the weakest channel or downgrade to it mid-flow. The bug is usually an inconsistent check across channels.
+- **Why it matters:** Attackers pick the weakest link; a strong TOTP is moot if email-OTP recovery bypasses it.
+
+### Enroll MFA / bind factor without verifying identity
+- **Source:** Adding 2FA to an account without verifying the email first (<https://hackerone.com/reports/649533>).
+- **Pattern shape:** The enrollment flow binds an MFA factor (or an email/phone) without verifying ownership of the account's existing identifier — enabling pre-account-takeover setups or locking the legitimate user out.
+- **Key trick:** During signup/enrollment, attempt to bind an MFA factor before the email/phone verification step completes. Chains with `hunt-ato` when it lets you pre-provision an account you'll later claim.
+- **Why it matters:** Turns MFA from a defense into an ATO primitive.
+
 ## Pattern Library
 
 ### Brute-force the 6-digit OTP — no rate limit

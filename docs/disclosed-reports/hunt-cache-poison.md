@@ -32,6 +32,26 @@ Cache poisoning is the highest-leverage class of HTTP bug — one request stored
 
 ---
 
+### Unkeyed input poisons cache → persistent DoS
+- **Source:** An invalid `Transfer-Encoding` header used to replace cached content and impact core functionality (<https://hackerone.com/reports/622122>, $9,700); persistently blocking all redirects via cache poisoning (<https://hackerone.com/reports/409370>, $2,500); a WP-JSON endpoint made unavailable via cache poisoning (<https://hackerone.com/reports/591302>).
+- **Pattern shape:** A request header or input that is **not part of the cache key** (unkeyed) influences the response, so an attacker sends one poisoning request and the broken/hostile response is served from cache to every subsequent visitor of that URL — denial of service or content replacement.
+- **Key trick:** Use Param Miner to find unkeyed inputs (headers, query params). Poison a benign path with a distinctive marker, then confirm a *second* clean request receives it from cache. For DoS, an oversized/invalid header that the origin errors on but the cache stores is the primitive.
+- **Why it matters:** One request affects all users of a cached path; DoS-via-cache is a recurring high-vote class.
+
+### Cache/origin normalization disagreement (host / backslash / path)
+- **Source:** Cache servers treating backslashes differently from the origin, enabling web cache poisoning on CDN domains (<https://hackerone.com/reports/1695604>, $3,800); Host-header web cache poisoning (<https://hackerone.com/reports/1096609>, $2,900).
+- **Pattern shape:** The cache and the origin normalize the request differently — backslash vs slash, case, trailing chars, or which Host/X-Forwarded-* they key on — so a crafted request is cached under a key that legitimate users will hit, serving them the attacker's response.
+- **Key trick:** Probe delimiter/normalization differences (`\`, `;`, `%2f`, duplicate Host) and check whether the cached key differs from the requested one. Pairs with `hunt-host-header`.
+- **Why it matters:** Turns a parser discrepancy into mass response control on CDN-fronted assets.
+
+### Further disclosed reports (this class)
+
+Additional high-signal public disclosures exemplifying the patterns above; read at source for full technique.
+
+- <https://hackerone.com/reports/1181946> — $0
+- <https://hackerone.com/reports/84601> — $0
+- <https://hackerone.com/reports/977851> — $1000
+
 ## Pattern Library
 
 ### Unkeyed `X-Forwarded-Host` reflection

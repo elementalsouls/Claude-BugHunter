@@ -25,7 +25,7 @@ platform CVE chains, and the hygiene, and it stays in scope.
 - **83 skills** across recon, 58 web-app vuln-class + framework skills, enterprise
   platform attack, red-team tradecraft, and reporting — all **auto-loading by topic**,
   no invocation by name.
-- **681 disclosed-report patterns** curated from public HackerOne reports.
+- **681 disclosed-report patterns** curated from public HackerOne reports — 433 now individually cited & auditable.
 - **Enterprise attack matrices** — M365/Entra, Okta, SharePoint, vCenter, SSL-VPN,
   Android APK, supply-chain — with current 2024–2026 CVE chains.
 - **Reporting + validation** — 7-Question Gate, VRT mapping, evidence hygiene,
