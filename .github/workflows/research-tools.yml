@@ -1,0 +1,33 @@
+name: research-tools
+
+# Sanity-gates the report-harvest pipeline. The collectors need network (can't run
+# on a hosted runner), but the pure logic (classify / genericize / skeleton) must
+# not rot. Network-free.
+
+on:
+  pull_request:
+    paths:
+      - "research/reports/**"
+      - ".github/workflows/research-tools.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/reports/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sanity:
+    name: report pipeline sanity (network-free)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: py_compile pipeline
+        run: python3 -m py_compile research/reports/*.py
+      - name: pipeline logic self-test
+        run: python3 research/reports/test_pipeline.py

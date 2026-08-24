@@ -66,3 +66,11 @@ recon/
 # Maintainer-only plaintext client-identifier denylist (never commit names)
 scripts/.identifier-denylist.local
 New_version/
+
+# report-harvest pipeline: local runtime artifacts (raw corpus names real programs;
+# drafts/gaps are pre-curation). Never committed — only the tooling under
+# research/reports/*.py + README are tracked.
+research/reports/raw/
+research/reports/drafts/
+research/reports/gaps.md
+research/reports/processed.json
