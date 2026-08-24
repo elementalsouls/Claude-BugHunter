@@ -37,6 +37,12 @@ http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE-NAME  # ke
 
 ---
 
+### Jenkins SSO-restriction failure → Script Console RCE
+An exposed Jenkins that authenticates ANY personal Google/OAuth account (missing org-domain restriction) is full compromise: log in, then `/script` (Groovy console) = RCE, and `/credentials` + `/scriptText` = stored API tokens and source disclosure. Disclosed: reports/231460.
+
+### Exposed message broker (RabbitMQ / AMQP) with default creds
+Probe RabbitMQ management (`http://TARGET:15672/`, API `:15672/api/overview`) and AMQP `:5672`; try default `guest:guest` (works off-localhost when `loopback_users` is misconfigured) → queue/message read, vhost enumeration, management-plugin admin. Disclosed: reports/753602.
+
 ## Local-verification toolchain
 
 For testing cloud-misconfig findings against a local AWS sim before/instead of hitting real cloud:

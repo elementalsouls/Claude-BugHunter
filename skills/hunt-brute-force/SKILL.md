@@ -163,6 +163,9 @@ curl -s -X POST "https://$TARGET/forgot-password" -d "email=$INVALID_USER" | gre
 curl -s -X POST "https://$TARGET/api/register"   -d "email=$VALID_USER"    | grep -i "exist\|taken\|already"
 ```
 
+### Phase 3b — Unthrottled registration (mass account creation)
+An unrate-limited signup endpoint is an abuse finding on its own, not just an enumeration oracle: burst `*/signup`/`*/register` (rotate email + source per request) and confirm N accounts are actually created with no 429/CAPTCHA/lockout → automated mass-account creation (spam, promo/referral abuse, resource exhaustion). Low–Medium standalone; higher when it chains to a paid/limited resource. Disclosed: reports/2915502.
+
 ### Phase 4 — IP / Source Rotation Bypass
 ```bash
 # Per-IP limits are bypassable when the app trusts a client-controlled source header.

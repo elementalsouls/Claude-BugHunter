@@ -20,6 +20,9 @@ Auth bypass is consistently one of the highest-paying vulnerability classes in b
 
 ---
 
+### SSH certificate-authority trust forgery (Git-hosting / enterprise platforms)
+When an org or instance registers an SSH certificate authority, cert `principals` may not be bound server-side to the requesting identity — a member can mint a cert asserting another user's principal and authenticate as them (e.g. modify another user's resource given only its URL). Add SSH-CA trust to the auth-surface list on Git-hosting targets; niche/platform-specific. Disclosed: reports/1901040.
+
 ## Attack Surface Signals
 
 **URL patterns to hunt:**

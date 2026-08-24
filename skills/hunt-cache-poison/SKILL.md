@@ -206,6 +206,9 @@ True-Client-IP
 
 ---
 
+### Origin header → ACAO cache poisoning
+Add `Origin` to the unkeyed-header set. Test whether it is reflected into `Access-Control-Allow-Origin` and then cached: `curl -H "Origin: evil.example" URL -I` on two consecutive hits. A cached attacker/`*` ACAO breaks CORS for legit users (cache-DoS); a cached permissive ACAO enables cross-user data reads. Disclosed: reports/591302.
+
 ## Common Root Causes
 
 1. **CDN misconfiguration — caching based on URL path only.** Engineers configure cache rules like "cache everything matching `*.js`" without realizing the path can be appended to dynamic routes. The origin server ignores the extra path segments, but the CDN uses them as cache keys.
