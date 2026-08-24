@@ -1,6 +1,8 @@
 ---
 name: hunt-clickjacking
 description: "Hunt Clickjacking — missing X-Frame-Options / CSP frame-ancestors lets an attacker embed the target page in an invisible iframe and trick victims into clicking buttons they cannot see (UI redressing). Targets: login flows, money transfers, account settings, OAuth confirmation pages. Confirm by fetching the page, then PROVE it frames in a real browser and a sensitive state-changing action survives the cross-site context (SameSite cookies / framebusting JS can defeat it) — header-absence alone is not a finding."
+sources: hackerone_public, public_research
+report_count: 0
 ---
 
 ## What is Clickjacking

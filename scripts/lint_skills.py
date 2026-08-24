@@ -39,6 +39,12 @@ NAME_RE = re.compile(r"^[a-z0-9-]+$")
 MAX_DESC = 1024
 MAX_BODY_LINES = 500
 
+# Grounding enforcement. Every skill must declare `sources:`; hunt-* skills (built
+# from disclosed reports) must also declare an integer `report_count:` (0 is fine
+# when `sources:` justifies it — e.g. a pattern library or research-derived skill).
+# Phase 4a ships this as WARNINGS while the backfill lands; 4b flips it to errors.
+GROUNDING_STRICT = False
+
 # --- real-secret patterns (kept tight to avoid flagging documented regexes) ---
 SECRET_PATTERNS = [
     ("AWS access key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
@@ -174,6 +180,17 @@ def lint_skill(skill_dir, denylist):
     body_lines = len(body.splitlines())
     if body_lines > MAX_BODY_LINES:
         warnings.append(f"{name}: body {body_lines} lines > {MAX_BODY_LINES} guideline (use references/ subfolder)")
+
+    # grounding: every skill declares `sources:`; hunt-* also declares report_count.
+    grounding = errors if GROUNDING_STRICT else warnings
+    if not fm.get("sources", "").strip():
+        grounding.append(f"{name}: missing `sources:` — declare grounding provenance in frontmatter")
+    if name.startswith("hunt-"):
+        rc = fm.get("report_count")
+        if rc is None:
+            grounding.append(f"{name}: hunt-* skill missing `report_count:` (use 0 if not a counted-report corpus)")
+        elif not re.fullmatch(r"\d+", rc.strip()):
+            grounding.append(f"{name}: `report_count: {rc}` must be a non-negative integer")
 
     # client-identifier denylist
     if denylist:
