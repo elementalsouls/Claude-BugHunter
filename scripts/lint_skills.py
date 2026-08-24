@@ -42,8 +42,8 @@ MAX_BODY_LINES = 500
 # Grounding enforcement. Every skill must declare `sources:`; hunt-* skills (built
 # from disclosed reports) must also declare an integer `report_count:` (0 is fine
 # when `sources:` justifies it — e.g. a pattern library or research-derived skill).
-# Phase 4a ships this as WARNINGS while the backfill lands; 4b flips it to errors.
-GROUNDING_STRICT = False
+# Phase 4a shipped this as WARNINGS while the backfill landed; now enforced as errors.
+GROUNDING_STRICT = True
 
 # --- real-secret patterns (kept tight to avoid flagging documented regexes) ---
 SECRET_PATTERNS = [
