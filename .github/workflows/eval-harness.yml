@@ -1,0 +1,35 @@
+name: eval-harness
+
+# Sanity-checks the eval/ benchmark WITHOUT running the full agent eval (which
+# needs Docker + Burp + an authed claude CLI and can't run on a hosted runner).
+# Keeps the oracle parser, JSON configs, and the FP-trap app from rotting.
+
+on:
+  pull_request:
+    paths:
+      - "eval/**"
+      - ".github/workflows/eval-harness.yml"
+  push:
+    branches: [main]
+    paths:
+      - "eval/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  harness:
+    name: eval harness sanity (network-free)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: py_compile all eval scripts
+        run: python3 -m py_compile eval/*.py
+      - name: oracle parser self-test
+        run: python3 eval/oracle_portswigger.py
+      - name: harness sanity (configs + oracle + fp_app)
+        run: python3 eval/test_harness.py
