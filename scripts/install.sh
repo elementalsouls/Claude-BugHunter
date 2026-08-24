@@ -148,7 +148,7 @@ SKILL_COUNT="$(find "$REPO_DIR/skills" -mindepth 1 -maxdepth 1 -type d | wc -l |
 # Copy every skill folder into <dest>, backing up any existing same-name dir
 # OUTSIDE the loading path. $2 is a label used for the backup subfolder + logging.
 install_skills() {
-  local dest="$1" label="$2" name sm
+  local dest="$1" label="$2" name
   mkdir -p "$dest"
   echo "Skills →  $dest   ($label)"
   for skill_dir in "$REPO_DIR/skills"/*/; do

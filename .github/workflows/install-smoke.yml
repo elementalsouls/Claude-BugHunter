@@ -1,0 +1,89 @@
+name: install-smoke
+
+# Exercises the installers so a broken path / syntax error fails CI instead of
+# reaching users. Motivated by a harness PR that shipped a skills path the target
+# never read — never caught because nothing ran the installer.
+
+on:
+  pull_request:
+    paths:
+      - "scripts/install*.sh"
+      - "scripts/install*.ps1"
+      - "scripts/hunt.sh"
+      - ".github/workflows/install-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/install*.sh"
+      - "scripts/install*.ps1"
+      - "scripts/hunt.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shell-lint:
+    name: shellcheck + parse (bash)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck (installers only — never the .ps1 files)
+        run: shellcheck -S warning scripts/install.sh scripts/install-community-skills.sh scripts/hunt.sh
+      - name: bash -n parse
+        run: |
+          for f in scripts/install.sh scripts/install-community-skills.sh scripts/hunt.sh; do
+            bash -n "$f" && echo "OK $f"
+          done
+
+  smoke:
+    name: dry-run install into temp HOME
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: default install lands skills; flags behave; uninstall cleans
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          # default Claude install
+          HOME="$T" bash scripts/install.sh --no-shell
+          n=$(find "$T/.claude/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+          echo "claude skills: $n"
+          [ "$n" -ge 80 ] || { echo "FAIL: expected >=80 skills, got $n"; exit 1; }
+          # --help exits 0, unknown flag exits non-zero
+          bash scripts/install.sh --help >/dev/null
+          if bash scripts/install.sh --bogus >/dev/null 2>&1; then
+            echo "FAIL: unknown flag should exit non-zero"; exit 1
+          fi
+          # regression: --antigravity must route to ~/.gemini/config/skills (not antigravity/skills)
+          HOME="$T" bash scripts/install.sh --antigravity --no-shell
+          ag=$(find "$T/.gemini/config/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
+          echo "antigravity skills: $ag"
+          [ "$ag" -ge 80 ] || { echo "FAIL: --antigravity did not land skills in ~/.gemini/config/skills"; exit 1; }
+          [ ! -d "$T/.gemini/antigravity/skills" ] || { echo "FAIL: skills landed in the wrong (antigravity/skills) path"; exit 1; }
+          # uninstall removes the footprint
+          HOME="$T" bash scripts/install.sh --uninstall >/dev/null
+          left=$(find "$T/.claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+          echo "claude skills after uninstall: $left"
+          rm -rf "$T"
+
+  powershell-parse:
+    name: PowerShell syntax parse (no execution)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: parse .ps1 installers
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($f in @('scripts/install.ps1','scripts/install-community-skills.ps1','scripts/hunt.ps1')) {
+            $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$null, [ref]$errs) | Out-Null
+            if ($errs -and $errs.Count -gt 0) {
+              $errs | ForEach-Object { Write-Host "FAIL $f : $($_.Message)" }
+              $failed = $true
+            } else {
+              Write-Host "OK $f"
+            }
+          }
+          if ($failed) { exit 1 }
