@@ -303,9 +303,10 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
   </picture></a>
 </p>
 
+Check out Atlas Cloud's new coding plan promotion for more budget-friendly API access: **<https://www.atlascloud.ai/console/coding-plan>**
+
 **[ThreatWatch360](https://threatwatch360.com)** is an AI-powered offensive-security platform: continuous Attack Surface Management, AI-assisted penetration testing, brand protection, dark-web monitoring, and Cyber Threat Intelligence in one platform. Validated findings with proof-of-concept and business-impact prioritization — signal over alert fatigue.
 
-Check out Atlas Cloud's new coding plan promotion for more budget-friendly API access: **<https://www.atlascloud.ai/console/coding-plan>**
 
 ---
 
