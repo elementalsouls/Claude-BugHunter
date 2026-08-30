@@ -296,14 +296,14 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
 
 **[Atlas Cloud](https://www.atlascloud.ai/console/coding-plan)** is a full-modal AI inference platform that gives developers a single AI API to access video generation, image generation, and LLM APIs. Instead of managing multiple vendor integrations, you connect once and get unified access to 300+ curated models across all modalities.
 
+Check out Atlas Cloud's new coding plan promotion for more budget-friendly API access: **<https://www.atlascloud.ai/console/coding-plan>**
+
 <p align="center">
   <a href="https://threatwatch360.com"><picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/tw360-dark.svg">
     <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" width="430">
   </picture></a>
 </p>
-
-Check out Atlas Cloud's new coding plan promotion for more budget-friendly API access: **<https://www.atlascloud.ai/console/coding-plan>**
 
 **[ThreatWatch360](https://threatwatch360.com)** is an AI-powered offensive-security platform: continuous Attack Surface Management, AI-assisted penetration testing, brand protection, dark-web monitoring, and Cyber Threat Intelligence in one platform. Validated findings with proof-of-concept and business-impact prioritization — signal over alert fatigue.
 
