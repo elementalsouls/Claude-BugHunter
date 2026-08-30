@@ -299,7 +299,7 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
 <p align="center">
   <a href="https://threatwatch360.com"><picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/tw360-dark.svg">
-    <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" width="410">
+    <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" width="430">
   </picture></a>
 </p>
 
