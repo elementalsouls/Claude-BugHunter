@@ -19,7 +19,7 @@ Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — 
   <a href="https://threatwatch360.com">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/tw360-dark.svg">
-      <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" height="36">
+      <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" height="30">
     </picture>
   </a>
 </p>
@@ -288,24 +288,18 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
 ## Sponsors
 
 <p align="center">
-  <a href="https://www.atlascloud.ai/console/coding-plan">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/atlas-cloud-dark.svg">
-      <img alt="Atlas Cloud" src="assets/sponsors/atlas-cloud-light.svg" height="48">
-    </picture>
-  </a>
+  <a href="https://www.atlascloud.ai/console/coding-plan"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/atlas-cloud-dark.svg">
+    <img alt="Atlas Cloud" src="assets/sponsors/atlas-cloud-light.svg" height="40">
+  </picture></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://threatwatch360.com"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/tw360-dark.svg">
+    <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" height="32">
+  </picture></a>
 </p>
 
 **[Atlas Cloud](https://www.atlascloud.ai/console/coding-plan)** is a full-modal AI inference platform that gives developers a single AI API to access video generation, image generation, and LLM APIs. Instead of managing multiple vendor integrations, you connect once and get unified access to 300+ curated models across all modalities.
-
-<p align="center">
-  <a href="https://threatwatch360.com">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/tw360-dark.svg">
-      <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" height="48">
-    </picture>
-  </a>
-</p>
 
 **[ThreatWatch360](https://threatwatch360.com)** is an AI-powered offensive-security platform: continuous Attack Surface Management, AI-assisted penetration testing, brand protection, dark-web monitoring, and Cyber Threat Intelligence in one platform. Validated findings with proof-of-concept and business-impact prioritization — signal over alert fatigue.
 
