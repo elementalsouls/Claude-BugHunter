@@ -228,6 +228,7 @@ def classify(item):
         if p in names:
             return cls
     rules = [
+        (("ws://", "wss://", "/socket.io", "websocket"), "websocket"),
         (("/graphql",), "graphql"),
         (("/chat", "/ai", "/llm", "completion", "/assistant", "/agent", "prompt", "/copilot"), "llm-ai"),
         (("redirect", "returnurl", "callback", "goto", "/go"), "open-redirect"),
@@ -236,6 +237,12 @@ def classify(item):
         (("/search", "/query", "keyword"), "sqli"),
         (("/login", "/signin", "/register", "/auth", "/oauth", "/token", "/session"), "auth-bypass"),
         (("/proxy", "/fetch", "webhook"), "ssrf"),
+        (("/jenkins", "/teamcity", "/drone", "/argo", "/.gitlab-ci", "/.github/workflows"), "cicd"),
+        (("kubernetes", "/apis/", "/api/v1/namespaces", "kubelet"), "k8s"),
+        (("s3.amazonaws", "storage.googleapis", "blob.core.windows", "cloudfront.net"), "cloud-misconfig"),
+        (("/forgot-password", "/forgot", "/reset-password", "/password-reset", "/recover"), "forgot-password"),
+        (("captcha", "recaptcha"), "captcha-bypass"),
+        (("jwt",), "jwt-crypto"),
     ]
     for keys, cls in rules:
         if any(k in url for k in keys):
@@ -262,6 +269,10 @@ def classify_all(item, max_classes=3):
         extras += ["graphql", "info-leak"]
     if any(k in url for k in ("/api", "/rest", "/v1", "/v2")):
         extras += ["info-leak", "idor", "auth-bypass"]
+    if any(k in url for k in ("ws://", "wss://", "/socket.io", "websocket")):
+        extras += ["websocket"]
+    if re.search(r"/v\d+/", url):
+        extras += ["shadow-api"]
     if p:  # any parameter is a generic injection / IDOR surface
         extras += ["idor", "sqli", "xss"]
     for e in extras:
@@ -299,6 +310,14 @@ def classes_for_param(name, url=""):
         add("sqli", "xss")
     if any(k in n for k in ("auth", "token", "session", "login", "sso", "saml", "oauth")):
         add("auth-bypass")
+    if any(k in n for k in ("otp", "mfa", "2fa", "totp", "captcha", "recaptcha")):
+        add("mfa", "brute-force", "captcha-bypass")
+    if any(k in n for k in ("reset", "recover", "forgot")):
+        add("forgot-password", "ato")
+    if "jwt" in n:
+        add("jwt-crypto", "auth-bypass")
+    if any(k in n for k in ("websocket", "socket")):
+        add("websocket")
     if not cls:
         add("sqli", "xss", "idor")     # any reflected/used param is a generic injection/IDOR surface
     return cls[:3]

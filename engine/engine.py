@@ -27,11 +27,20 @@ from state import Engagement       # noqa: E402
 import agent as A                  # noqa: E402
 import memory                     # noqa: E402  (autopilot ledger; import-isolated)
 
-# deterministic priority by class (impact-ish); used by rank
-CLASS_WEIGHT = {"rce": 100, "sqli": 90, "ssrf": 85, "auth-bypass": 85, "idor": 80,
-                "deserialization": 88, "xxe": 75, "ssti": 88, "lfi": 78, "llm-ai": 70,
-                "graphql": 65, "open-redirect": 40, "xss": 55, "cors": 45, "csrf": 50,
-                "info-leak": 30}
+# deterministic priority by class (impact-ish); used by rank. Keep in sync with
+# skill_map.CLASS_SKILL so every routed class gets a sensible (non-default) weight.
+CLASS_WEIGHT = {"rce": 100, "sqli": 90, "deserialization": 88, "ssti": 88,
+                "jwt-crypto": 88, "ato": 88, "ssrf": 85, "auth-bypass": 85, "idor": 80,
+                "lfi": 78, "k8s": 78, "xxe": 75, "forgot-password": 75, "cache-poison": 72,
+                "cicd": 72, "host-header": 70, "http-smuggling": 70, "fintech-graphql": 70,
+                "subdomain-takeover": 70, "llm-ai": 70, "mfa": 70, "nosqli": 68,
+                "file-upload": 68, "cloud-misconfig": 65, "graphql": 65, "saml": 65,
+                "oauth": 62, "websocket": 60, "brute-force": 60, "ldap": 60,
+                "race-condition": 58, "business-logic": 58, "xss": 55, "spa-api": 55,
+                "rag-vector": 55, "shadow-api": 52, "csrf": 50, "captcha-bypass": 48,
+                "cors": 45, "open-redirect": 40, "clickjacking": 38, "secret": 35,
+                "info-leak": 30, "tls-network": 30, "html-injection": 30,
+                "exceptional-conditions": 30, "ntlm-info": 25}
 # OSINT (subdomain/asset enum) is a SEPARATE concern (Claude-OSINT) — not in the engine flow.
 # DEFAULT = recon -> rank -> map (deterministic, ~free): map the surface to the skill arsenal and
 # SHOW it. The operator focuses their effort from there. hunt/validate/report are OPT-IN (--hunt).
