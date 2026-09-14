@@ -42,6 +42,7 @@ Browser extensions: [GetProspect](https://chromewebstore.google.com/detail/email
 - [WhitePages](https://www.whitepages.com/), [Spokeo](https://www.spokeo.com/), [Webmii](https://webmii.com/), [Pipl](https://pipl.com/) (paid).
 - [Clearbit](https://clearbit.com/) — company/individual data enrichment.
 - [FaceCheck](https://facecheck.id/) / [FaceSeek](https://faceseek.online/) — reverse face search.
+- [Face2social](https://face2social.com/) — reverse face search limited to public social media profile pictures (Instagram, Facebook, TikTok, X); does not crawl the open web, so PimEyes and FaceCheck.ID beat it on general web coverage. Free preview without sign-up, paid plans beyond it; U.S. only.
 
 ---
 
