@@ -120,7 +120,7 @@ CLASS_PROBE = {
     "rag-vector": "curl -s \"{u}\"   # shared knowledge base / vector-DB port; cross-tenant query",
     "fintech-graphql": "curl -s -X POST \"{u}\" -d '{\"query\":\"{__schema{types{name}}}\"}'   # money-movement mutations, idempotency-key double-spend",
     "clickjacking": "curl -sI \"{u}\"   # missing X-Frame-Options / CSP frame-ancestors -> confirm framing in a browser",
-    "cors": "curl -sI \"{u}\" -H 'Origin: https://evil.example'   # look for Access-Control-Allow-Origin echoing that origin WITH Allow-Credentials: true",
+    "cors": "curl -sD - -o /dev/null \"{u}\" -H 'Origin: https://evil.example'   # GET, not HEAD: look for Access-Control-Allow-Origin echoing that origin WITH Allow-Credentials: true",
     "deserialization": "curl -s \"{u}\"   # hunt for rO0AB (Java) / O:8: (PHP) / gAS (pickle) / __VIEWSTATE, then replay a tampered blob",
     "file-upload": "curl -s -X POST \"{u}\" -F 'file=@probe.jpg;type=image/jpeg'   # then fetch it back: is it served, and does a .php/.svg extension survive",
     "http-smuggling": "curl -s --http1.1 \"{u}\" -H 'Transfer-Encoding: chunked' -H 'Content-Length: 6'   # desync probe; confirm with Burp's HTTP Request Smuggler",
