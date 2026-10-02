@@ -15,6 +15,7 @@ that isn't there.
 Active testing is curl-first; Burp MCP is optional (only where noted — OOB/blind/fuzzing).
 """
 import os
+import sys
 
 
 def _resolve_skills_dir():
@@ -124,15 +125,25 @@ CLASS_PROBE = {
 
 
 def _present():
+    """Names in SKILLS_DIR, or None when the directory cannot be read.
+
+    None is deliberately distinct from an empty set: an unreadable skills directory
+    means presence cannot be *verified*, and _filter() must not read that as "assume
+    everything is installed".
+    """
     try:
         return set(os.listdir(SKILLS_DIR))
-    except Exception:
-        return set()
+    except OSError:
+        return None
 
 
 def _filter(names):
     present = _present()
-    return [s for s in names if not present or s in present]
+    if present is None:
+        # Unverifiable. The contract above is to name only skills that are actually
+        # installed, so name none rather than every one of them.
+        return []
+    return [s for s in names if s in present]
 
 
 def skills_for(vuln_class, tech=None):
@@ -164,16 +175,65 @@ def probe_for(vuln_class, url, param=None):
     return tmpl.replace("{u}", u).replace("{ur}", ur)
 
 
-if __name__ == "__main__":
-    miss = [s for skills in list(CLASS_SKILL.values()) + list(TECH_SKILL.values())
-            for s in skills if _present() and s not in _present()]
-    print(f"skill_map: {len(CLASS_SKILL)} class mappings, {len(TECH_SKILL)} tech mappings")
-    print(f"  skills referenced but NOT installed: {sorted(set(miss)) or 'none'}")
-    # coverage: every installed hunt-* skill should be reachable through CLASS_SKILL/TECH_SKILL
-    # (hunt-dispatch is an internal loader and hunt-misc is the explicit fallback — both exempt).
-    mapped = {s for skills in list(CLASS_SKILL.values()) + list(TECH_SKILL.values()) for s in skills} | {"hunt-misc"}
+def main(argv=None):
+    """Self-check the maps against the skills actually installed.
+
+    Errors (exit 1) are conditions that make the routing wrong or unverifiable:
+      - the skills directory cannot be read, so nothing can be verified
+      - a mapping names a skill that is not installed
+      - an installed hunt-* skill is unreachable through every mapping
+
+    Warnings (exit 0) are coverage gaps: the class still routes to the right skill,
+    but no tailored starter probe is defined for it.
+    """
     present = _present()
-    unreachable = sorted({s for s in present if s.startswith("hunt-") and s != "hunt-dispatch"} - mapped)
-    print(f"  installed hunt-* skills NOT reachable through any mapping: {unreachable or 'none'}")
-    for c in ("sqli", "open-redirect", "llm-ai", "idor", "websocket", "cicd"):
-        print(f"  {c:14s} -> {skills_for(c, ['Next.js'])}  ::  {probe_for(c, 'https://t/?p=FUZZ', 'p')}")
+    errors, warnings = [], []
+
+    if present is None:
+        errors.append(
+            f"skills directory not readable: {SKILLS_DIR} — set $CBH_SKILLS_DIR or "
+            f"install the bundle; presence cannot be verified"
+        )
+        present = set()
+
+    referenced = {
+        s for skills in list(CLASS_SKILL.values()) + list(TECH_SKILL.values()) for s in skills
+    }
+
+    if present:
+        missing = sorted(referenced - present)
+        if missing:
+            errors.append(f"mapped but NOT installed: {', '.join(missing)}")
+
+        # Coverage: every installed hunt-* skill should be reachable through CLASS_SKILL or
+        # TECH_SKILL (hunt-dispatch is an internal loader and hunt-misc is the explicit
+        # fallback — both exempt).
+        mapped = referenced | {"hunt-misc"}
+        unreachable = sorted(
+            {s for s in present if s.startswith("hunt-") and s != "hunt-dispatch"} - mapped
+        )
+        if unreachable:
+            errors.append(
+                f"installed hunt-* skills NOT reachable through any mapping: {', '.join(unreachable)}"
+            )
+
+    no_probe = sorted(set(CLASS_SKILL) - set(CLASS_PROBE))
+    if no_probe:
+        warnings.append(f"classes with a mapping but no tailored starter probe: {', '.join(no_probe)}")
+
+    print(
+        f"skill_map: {len(CLASS_SKILL)} class mappings, {len(TECH_SKILL)} tech mappings, "
+        f"{len(CLASS_PROBE)} probes"
+    )
+    if present:
+        print(f"  skills installed: {len(present)}")
+    for w in warnings:
+        print(f"::warning:: {w}" if os.environ.get("GITHUB_ACTIONS") else f"WARN  {w}")
+    for e in errors:
+        print(f"::error:: {e}" if os.environ.get("GITHUB_ACTIONS") else f"ERROR {e}")
+    print(f"  {'FAIL' if errors else 'OK'}: {len(errors)} error(s), {len(warnings)} warning(s)")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

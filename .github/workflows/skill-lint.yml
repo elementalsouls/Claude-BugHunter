@@ -9,6 +9,7 @@ on:
   pull_request:
     paths:
       - "skills/**"
+      - "engine/**"
       - "scripts/lint_skills.py"
       - "scripts/.identifier-denylist.sha256"
       - ".github/workflows/skill-lint.yml"
@@ -16,6 +17,7 @@ on:
     branches: [main]
     paths:
       - "skills/**"
+      - "engine/**"
       - "scripts/lint_skills.py"
   workflow_dispatch:
 
@@ -35,6 +37,13 @@ jobs:
 
       - name: Validate skills (structure + identifier/secret scan)
         run: python3 scripts/lint_skills.py
+
+      # The routing maps are only useful if every mapped skill is installed and
+      # every installed hunt-* skill is reachable. skill_map.py checks both and
+      # exits non-zero, so a skill added without a mapping fails here rather than
+      # silently becoming unreachable.
+      - name: Validate skill routing (skill_map self-check)
+        run: python3 engine/skill_map.py
 
       - name: Summary
         if: always()
