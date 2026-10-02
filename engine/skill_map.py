@@ -120,6 +120,13 @@ CLASS_PROBE = {
     "rag-vector": "curl -s \"{u}\"   # shared knowledge base / vector-DB port; cross-tenant query",
     "fintech-graphql": "curl -s -X POST \"{u}\" -d '{\"query\":\"{__schema{types{name}}}\"}'   # money-movement mutations, idempotency-key double-spend",
     "clickjacking": "curl -sI \"{u}\"   # missing X-Frame-Options / CSP frame-ancestors -> confirm framing in a browser",
+    "cors": "curl -sI \"{u}\" -H 'Origin: https://evil.example'   # look for Access-Control-Allow-Origin echoing that origin WITH Allow-Credentials: true",
+    "deserialization": "curl -s \"{u}\"   # hunt for rO0AB (Java) / O:8: (PHP) / gAS (pickle) / __VIEWSTATE, then replay a tampered blob",
+    "file-upload": "curl -s -X POST \"{u}\" -F 'file=@probe.jpg;type=image/jpeg'   # then fetch it back: is it served, and does a .php/.svg extension survive",
+    "http-smuggling": "curl -s --http1.1 \"{u}\" -H 'Transfer-Encoding: chunked' -H 'Content-Length: 6'   # desync probe; confirm with Burp's HTTP Request Smuggler",
+    "mfa": "curl -s \"{u}\"   # after the password step: reach the post-login URL directly, replay an OTP, or omit the MFA field",
+    "race-condition": "curl -s -X POST \"{u}\"   # fire N copies in parallel (Turbo Intruder single-packet); >1 success means the limit is racy",
+    "business-logic": "curl -s \"{u}\"   # replay the same action twice / skip a step / try qty 0 or negative; diff the resulting state",
 }
 
 
