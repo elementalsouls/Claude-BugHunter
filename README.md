@@ -9,10 +9,10 @@ Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — 
 <p align="center">
   <sub>SPONSORED BY</sub>
   <br/>
-  <a href="https://www.atlascloud.ai/console/coding-plan">
+  <a href="https://www.apismart.ai/">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/atlas-cloud-dark.svg">
-      <img alt="Atlas Cloud" src="assets/sponsors/atlas-cloud-light.svg" height="36">
+      <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/apismart-dark.png">
+      <img alt="ApiSmart" src="assets/sponsors/apismart-light.png" height="30">
     </picture>
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;
@@ -288,17 +288,13 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
 ## Sponsors
 
 <p align="center">
-  <a href="https://www.atlascloud.ai/console/coding-plan"><picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/atlas-cloud-dark.svg">
-    <img alt="Atlas Cloud" src="assets/sponsors/atlas-cloud-light.svg" width="340">
+  <a href="https://www.apismart.ai/"><picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/apismart-dark.png">
+    <img alt="ApiSmart" src="assets/sponsors/apismart-light.png" width="210">
   </picture></a>
 </p>
 
-**[Atlas Cloud](https://www.atlascloud.ai/console/coding-plan)** is a full-modal AI inference platform that gives developers a single AI API to access video generation, image generation, and LLM APIs. Instead of managing multiple vendor integrations, you connect once and get unified access to 300+ curated models across all modalities.
-
-Check out Atlas Cloud's new coding plan promotion for more budget-friendly API access: **<https://www.atlascloud.ai/console/coding-plan>**
-
-
+**[ApiSmart](https://www.apismart.ai/)** unifies leading LLM, image, and video models through one OpenAI-compatible API. Use one key to switch models, simplify billing, and improve reliability with automatic failover.
 
 <p align="center">
   <a href="https://threatwatch360.com"><picture>
