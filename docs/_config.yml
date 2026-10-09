@@ -20,8 +20,8 @@ search:
 aux_links:
   "GitHub":
     - "https://github.com/elementalsouls/Claude-BugHunter"
-  "Sponsor — Atlas Cloud":
-    - "https://www.atlascloud.ai/console/coding-plan"
+  "Sponsor — ApiSmart":
+    - "https://www.apismart.ai/"
 aux_links_new_tab: true
 
 color_scheme: dark

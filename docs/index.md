@@ -70,7 +70,6 @@ validation gates that auto-trigger on ambiguity. See the
 
 ## Sponsored by
 
-[Atlas Cloud](https://www.atlascloud.ai/console/coding-plan) — a full-modal AI
-inference platform: one API for video, image, and LLM models (300+ curated).
-Check out their [coding-plan promotion](https://www.atlascloud.ai/console/coding-plan)
-for budget-friendly API access.
+[ApiSmart](https://www.apismart.ai/) unifies leading LLM, image, and video models
+through one OpenAI-compatible API. Use one key to switch models, simplify billing,
+and improve reliability with automatic failover.

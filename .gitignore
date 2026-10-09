@@ -21,10 +21,11 @@ evidence/
 *.jpeg
 *.mp4
 *.mov
-# …but allow display assets under assets/ (banner, diagrams)
+# …but allow display assets under assets/ (banner, diagrams, sponsor logos)
 !assets/*.png
 !assets/*.jpg
 !assets/*.jpeg
+!assets/sponsors/*.png
 findings/
 submissions.txt
 notes.md
