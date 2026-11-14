@@ -1,6 +1,6 @@
 ---
 name: scope
-description: Mandatory pre-flight scope check — verify an asset is in scope BEFORE any HTTP touch. Deterministic (deny-wins, default-deny) via engine/scope.py against the engagement's scope.md. Blocks out-of-scope testing. Usage: /scope <asset> [<asset> ...]
+description: "Mandatory pre-flight scope check — verify an asset is in scope BEFORE any HTTP touch. Deterministic (deny-wins, default-deny) via engine/scope.py against the engagement's scope.md. Blocks out-of-scope testing. Usage: /scope <asset> [<asset> ...]"
 ---
 
 # /scope

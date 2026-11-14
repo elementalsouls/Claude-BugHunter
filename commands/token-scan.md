@@ -1,6 +1,6 @@
 ---
 name: token-scan
-description: Meme coin and token security scan — checks for rug pull vectors (hidden mint, honeypot, fee manipulation, LP lock bypass, authority retention, bonding curve exploits, fake renounce, sandwich amplification). Manual 8-class grep audit (with an optional automated scanner if present). Usage: /token-scan <contract_path_or_dir> [--chain solana]
+description: "Meme coin and token security scan — checks for rug pull vectors (hidden mint, honeypot, fee manipulation, LP lock bypass, authority retention, bonding curve exploits, fake renounce, sandwich amplification). Manual 8-class grep audit (with an optional automated scanner if present). Usage: /token-scan <contract_path_or_dir> [--chain solana]"
 ---
 
 # /token-scan

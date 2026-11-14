@@ -1,6 +1,6 @@
 ---
 name: hunt
-description: Active vulnerability hunting. Two-track dispatcher — asks Red Team vs WAPT, hands off to hunt-dispatch skill and sibling commands. Usage: /hunt target.com | /hunt *.target.com | /hunt targets.txt [--vuln-class X] [--source-code P] [--chrome]
+description: "Active vulnerability hunting. Two-track dispatcher — asks Red Team vs WAPT, hands off to hunt-dispatch skill and sibling commands. Usage: /hunt target.com | /hunt *.target.com | /hunt targets.txt [--vuln-class X] [--source-code P] [--chrome]"
 ---
 
 # /hunt
