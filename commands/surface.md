@@ -1,6 +1,6 @@
 ---
 name: surface
-description: Show ranked attack surface for a target from its recon manifest + hunt memory. Deterministic backing is `cbh surface <target>` (reads recon/<target>/manifest.json); LLM layer adds ledger signal. Usage: /surface target.com
+description: "Show ranked attack surface for a target from its recon manifest + hunt memory. Deterministic backing is `cbh surface <target>` (reads recon/<target>/manifest.json); LLM layer adds ledger signal. Usage: /surface target.com"
 ---
 
 # /surface

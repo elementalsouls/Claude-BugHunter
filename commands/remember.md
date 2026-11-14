@@ -1,6 +1,6 @@
 ---
 name: remember
-description: Optional manual note on a target or the last confirmed finding. Capture is automatic during autopilot; this is for extra context. Usage: /remember
+description: "Optional manual note on a target or the last confirmed finding. Capture is automatic during autopilot; this is for extra context. Usage: /remember"
 ---
 
 # /remember

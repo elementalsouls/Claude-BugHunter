@@ -1,6 +1,6 @@
 ---
 name: intel
-description: On-demand intelligence fetch for a target — CVEs, disclosed reports, new features. Pulls NVD/GitHub-Advisory CVEs + bundled disclosed reports + hunt memory context. Usage: /intel target.com
+description: "On-demand intelligence fetch for a target — CVEs, disclosed reports, new features. Pulls NVD/GitHub-Advisory CVEs + bundled disclosed reports + hunt memory context. Usage: /intel target.com"
 ---
 
 # /intel
