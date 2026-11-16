@@ -45,17 +45,11 @@ def build_task(base, objective):
 
 
 def parse_verdict(text):
-    if not text:
+    if not text or not text.strip():
         return "NO_OUTPUT"
-    m = re.findall(r"VERDICT:\s*(VULNERABLE|NOT[_ ]?VULNERABLE|INCONCLUSIVE)", text, re.I)
-    if m:
-        return m[-1].upper().replace(" ", "_")
-    t = text[-500:].lower()
-    if re.search(r"\bnot\s+vulnerable\b|no\s+(?:xss|sqli|sql injection|vuln|redirect|ssrf|idor|cors)\b|not\s+exploitable", t):
-        return "NOT_VULNERABLE"
-    if re.search(r"\b(is\s+vulnerable|confirmed|exploitable|vulnerability\s+(?:exists|confirmed))\b", t):
-        return "VULNERABLE"
-    return "INCONCLUSIVE"
+    final_line = text.strip().splitlines()[-1]
+    match = re.fullmatch(r"VERDICT:[ \t]*(NOT_VULNERABLE|VULNERABLE)", final_line, re.I)
+    return match.group(1).upper() if match else "INCONCLUSIVE"
 
 
 def do_case(case, base, cond, model, max_turns, timeout):
