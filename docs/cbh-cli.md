@@ -122,7 +122,7 @@ Pipeline (in order):
 
 1. **Passive subdomain enumeration** — `crt.sh` certificate transparency (always, no key needed) + `subfinder` (if installed) merged + deduplicated.
 2. **DNS resolution** — stdlib `socket.getaddrinfo()` to dodge the `dnsx` segfault issue documented on macOS arm64 (per `web2-recon` Operator Notes).
-3. **HTTP probe** — concurrent (10 threads) `urllib.request` → status code, Server header, X-Powered-By, X-Drupal-Cache, and `<title>` extraction.
+3. **HTTP probe** — concurrent (10 threads) `urllib.request` → status code, Server header, X-Powered-By, X-Drupal-Cache, and `<title>` extraction. Redirects are recorded by their first response status without requesting the destination.
 4. **Summary** — writes `recon/<target>/RECON_SUMMARY.md` with the live-host table and a "Suggested next moves" pointer to `classify`.
 
 Outputs:

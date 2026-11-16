@@ -108,6 +108,14 @@ def run_cmd(cmd: list[str], timeout: int = 30) -> tuple[int, str, str]:
         return 127, "", "not found"
 
 
+class _ObserveRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not getattr(req, "cbh_follow_redirects", True):
+            # Active probe evidence belongs to the requested host.
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 _HTTP_OPENER: urllib.request.OpenerDirector | None = None
 
 
@@ -146,7 +154,7 @@ def configure_http_proxy(proxy_url: str | None = None, insecure: bool = False) -
 
     proxy_handler = urllib.request.ProxyHandler({"http": proxy_url, "https": proxy_url})
     https_handler = urllib.request.HTTPSHandler(context=ctx)
-    _HTTP_OPENER = urllib.request.build_opener(proxy_handler, https_handler)
+    _HTTP_OPENER = urllib.request.build_opener(proxy_handler, https_handler, _ObserveRedirect())
     return True, f"via proxy {proxy_url} ({'TLS verify OFF' if insecure else 'TLS verify on'})"
 
 
@@ -162,23 +170,28 @@ def detect_burp() -> str | None:
     return None
 
 
-def http_get(url: str, timeout: int = 5, headers: dict | None = None) -> tuple[int, dict, str]:
+def http_get(url: str, timeout: int = 5, headers: dict | None = None,
+             *, follow_redirects: bool = True) -> tuple[int, dict, str]:
     """Stdlib HTTP GET returning (status_code, headers_dict, body_str). Routes
     through the configured proxy (e.g. Burp) if `configure_http_proxy()` was
-    called. Returns (0, {}, error_msg) on failure."""
+    called. Set follow_redirects=False to observe the first response.
+    Returns (0, {}, error_msg) on failure."""
     req = urllib.request.Request(url, headers=headers or {})
-    opener = _HTTP_OPENER if _HTTP_OPENER is not None else urllib.request
+    req.cbh_follow_redirects = follow_redirects
+    if _HTTP_OPENER is not None:
+        open_request = _HTTP_OPENER.open
+    elif follow_redirects:
+        open_request = urllib.request.urlopen
+    else:
+        open_request = urllib.request.build_opener(_ObserveRedirect()).open
     try:
-        if _HTTP_OPENER is not None:
-            with _HTTP_OPENER.open(req, timeout=timeout) as r:
-                body = r.read().decode("utf-8", errors="replace")
-                return r.status, dict(r.headers), body
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with open_request(req, timeout=timeout) as r:
             body = r.read().decode("utf-8", errors="replace")
             return r.status, dict(r.headers), body
     except urllib.error.HTTPError as e:
         try:
-            body = e.read().decode("utf-8", errors="replace")
+            with e:
+                body = e.read().decode("utf-8", errors="replace")
         except Exception:
             body = ""
         return e.code, dict(e.headers or {}), body
@@ -247,7 +260,7 @@ def recon_http_probe(host: str) -> dict | None:
     a record with code/server/title or None if unreachable."""
     for scheme in ("https", "http"):
         url = f"{scheme}://{host}/"
-        code, headers, body = http_get(url, timeout=4)
+        code, headers, body = http_get(url, timeout=4, follow_redirects=False)
         if code == 0:
             continue
         headers = {key.lower(): value for key, value in headers.items()}
