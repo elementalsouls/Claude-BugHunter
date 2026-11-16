@@ -44,6 +44,13 @@ PRs and issues welcome.
 - **Cross-reference complementary skills**: mention which skills compose with this one
 - **Real examples**: prefer worked examples over abstract descriptions
 
+## Bundled CLI index
+
+If you add a skill, change a skill description, or add or rename a disclosed report,
+run `python3 scripts/gen_skill_index.py` and include the updated
+`cbh/data/skill_index.json`. Standalone `cbh` installations use this file for
+classification and report pointers.
+
 ## Testing changes
 
 There's no automated test suite. Manual smoke tests:
