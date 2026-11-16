@@ -217,7 +217,12 @@ class Engine:
         state writes, so there's no race on state.json."""
         if self.parallel <= 1 or len(items) <= 1:
             for it in items:
-                yield it, fn(it)
+                try:
+                    result = fn(it)
+                except Exception as e:
+                    self.eng.log(f"  worker error on {it.get('url')}: {e}")
+                    result = {}
+                yield it, result
             return
         from concurrent.futures import ThreadPoolExecutor, as_completed
         with ThreadPoolExecutor(max_workers=self.parallel) as ex:
