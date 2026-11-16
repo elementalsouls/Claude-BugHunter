@@ -81,7 +81,8 @@ def main():
     except Exception:
         sys.exit(f"trap app not reachable at {a.base} — start it: python3 eval/fp_app.py 3002 &")
 
-    cases = json.load(open(a.cases))
+    with open(a.cases, encoding="utf-8") as stream:
+        cases = json.load(stream)
     conds = [c.strip() for c in a.conditions.split(",") if c.strip()]
     # Validate up front: an unknown/typo'd condition (e.g. "skils") would silently run as
     # baseline under the wrong label and quietly invalidate the ablation.
@@ -114,13 +115,18 @@ def main():
     print(f"  ({n_safe} safe traps, {n_vuln} real-vuln controls)\n")
     for cond in conds:
         rs = [r for r in rows if r["condition"] == cond]
-        fp = sum(1 for r in rs if r["false_positive"])
-        tp = sum(1 for r in rs if r["true_positive"])
+        scored = [r for r in rs if r["verdict"] in {"VULNERABLE", "NOT_VULNERABLE"}]
+        safe_scored = sum(1 for r in scored if r["ground"] == "safe")
+        vuln_scored = sum(1 for r in scored if r["ground"] == "vulnerable")
+        fp = sum(1 for r in scored if r["false_positive"])
+        tp = sum(1 for r in scored if r["true_positive"])
         cost = sum((r.get("cost_usd") or 0) for r in rs)
-        fpr = fp / n_safe if n_safe else 0
-        tpr = tp / n_vuln if n_vuln else 0
-        print(f"  {cond:9s}: false-positives {fp}/{n_safe} (FPR {fpr:.0%})  |  "
-              f"true-positives {tp}/{n_vuln} (TPR {tpr:.0%})  |  ${cost:.2f}")
+        fpr = f"{fp / safe_scored:.0%}" if safe_scored else "n/a"
+        tpr = f"{tp / vuln_scored:.0%}" if vuln_scored else "n/a"
+        print(f"  {cond:9s}: false-positives {fp}/{safe_scored} (FPR {fpr})  |  "
+              f"true-positives {tp}/{vuln_scored} (TPR {tpr})  |  ${cost:.2f}")
+        print(f"             coverage: {safe_scored}/{n_safe} safe, {vuln_scored}/{n_vuln} vulnerable")
+
     # per-case verdicts side by side
     print("\n  per-case verdict:")
     print(f"    {'case':24s} {'truth':10s} " + " ".join(f"{c:>14s}" for c in conds))
@@ -131,7 +137,7 @@ def main():
             cells.append(m[0]["verdict"] if m else "-")
         print(f"    {c['key']:24s} {c['ground']:10s} " + " ".join(f"{x:>14s}" for x in cells))
     print(f"\n  raw: {a.out}")
-    print("  WIN for skills = fewer false-positives on traps, true-positives on controls held.")
+    print("  Compare FPR and TPR on equivalent coverage. Unscored outcomes are listed above.")
 
 
 if __name__ == "__main__":
