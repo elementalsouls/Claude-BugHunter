@@ -102,11 +102,15 @@ uninstall_bundle() {
   done < "$MANIFEST"
   rm -f "$MANIFEST"
   echo "  ✓ removed $removed item(s); kept $kept still owned by another bundle"
-  # The hunt.sh rc source line is ours alone — strip it from shell rc files.
-  for rc in "$HOME/.zshrc" "$HOME/.bashrc" "${ZDOTDIR:-}/.zshrc"; do
+  # Remove the installer stanza from user shell files, preserving references
+  # such as a comment or command that prints the source path.
+  local source_re='^source ~/\.claude/scripts/hunt\.sh$'
+  local comment_re='^# Bug-bounty engagement scaffolding (bug-bounty-claude-skills)$'
+  local rc
+  for rc in "$HOME/.zshrc" "$HOME/.bashrc" "${ZDOTDIR:-$HOME}/.zshrc"; do
     [ -f "$rc" ] || continue
-    if grep -q "claude/scripts/hunt.sh" "$rc" 2>/dev/null; then
-      sed -i.bak '/claude\/scripts\/hunt.sh/d; /Bug-bounty engagement scaffolding/d' "$rc"
+    if grep -q "$source_re" "$rc" 2>/dev/null; then
+      sed -i.bak -e "\|$source_re|d" -e "\|$comment_re|d" "$rc"
       echo "  ✓ removed hunt.sh source line from $rc (backup: $rc.bak)"
     fi
   done

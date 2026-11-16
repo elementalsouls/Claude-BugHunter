@@ -67,6 +67,16 @@ jobs:
           echo "claude skills after uninstall: $left"
           rm -rf "$T"
 
+      - name: Uninstall preserves unrelated shell configuration
+        run: |
+          T="$(mktemp -d)"
+          printf '%s\n' "echo 'reference: ~/.claude/scripts/hunt.sh'" '# Bug-bounty engagement scaffolding (local notes)' > "$T/.bashrc"
+          cp "$T/.bashrc" "$T/expected"
+          HOME="$T" ZDOTDIR="$T" bash scripts/install.sh --no-shell
+          printf '%s\n' '# Bug-bounty engagement scaffolding (bug-bounty-claude-skills)' 'source ~/.claude/scripts/hunt.sh' >> "$T/.bashrc"
+          HOME="$T" ZDOTDIR="$T" bash scripts/install.sh --uninstall
+          cmp "$T/expected" "$T/.bashrc"
+
   powershell-parse:
     name: PowerShell syntax parse (no execution)
     runs-on: windows-latest

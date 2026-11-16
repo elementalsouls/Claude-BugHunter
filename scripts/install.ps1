@@ -194,20 +194,19 @@ function Uninstall-Bundle {
     Remove-Item -LiteralPath $Manifest -Force -ErrorAction SilentlyContinue
     Write-Host "  + removed $removed item(s); kept $kept still owned by another bundle"
 
-    # Strip the hunt.ps1 dot-source line from any PowerShell profile(s).
+    # Clean only the installer stanza in the current user's profiles.
+    $dotLine = '. "$HOME\.claude\scripts\hunt.ps1"'
+    $installerComment = '# Bug-bounty engagement scaffolding (Claude-BugHunter)'
     $profiles = @(
         $PROFILE.CurrentUserCurrentHost,
-        $PROFILE.CurrentUserAllHosts,
-        $PROFILE.AllUsersCurrentHost,
-        $PROFILE.AllUsersAllHosts
+        $PROFILE.CurrentUserAllHosts
     ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
     foreach ($p in $profiles) {
-        $content = Get-Content -Raw -LiteralPath $p
-        if ($content -match 'scripts[\\/]hunt\.ps1') {
+        $lines = (Get-Content -Raw -LiteralPath $p) -split "`r?`n"
+        if ($lines -ccontains $dotLine) {
             $bak = "$p.bak"
             Copy-Item -LiteralPath $p -Destination $bak -Force
-            $filtered = $content -split "`r?`n" |
-                Where-Object { $_ -notmatch 'scripts[\\/]hunt\.ps1' -and $_ -notmatch 'Bug-bounty engagement scaffolding' }
+            $filtered = $lines | Where-Object { $_ -cne $dotLine -and $_ -cne $installerComment }
             Write-HuntFile $p ($filtered -join "`r`n")
             Write-Host "  + removed hunt.ps1 source line from $p (backup: $bak)"
         }
