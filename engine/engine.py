@@ -58,7 +58,7 @@ class Engine:
         self.allow_intrusive = allow_intrusive
         self.expand = expand
         self.parallel = max(1, parallel)
-        self.use_memory = use_memory
+        self.use_memory = use_memory and not mock
         self.eng.log(f"engine start | scope={self.scope.name} in={self.scope.in_scope} "
                      f"out={self.scope.out_of_scope} seeds={self.scope.seeds} mock={mock} "
                      f"intrusive={'ALLOWED' if allow_intrusive else 'READ-ONLY (default)'}")
@@ -324,10 +324,11 @@ class Engine:
                 if v.get("severity"):
                     c["severity"] = v["severity"]  # use the validator's CALIBRATED severity, not the hunt's
                 self.eng.confirm(c, v)
-                try:
-                    memory.record_finding(self.scope.name, memory._host(c["url"]), self._tech(), c, v)
-                except Exception as e:
-                    self.eng.log(f"memory: capture skipped ({e})")
+                if not self.mock:
+                    try:
+                        memory.record_finding(self.scope.name, memory._host(c["url"]), self._tech(), c, v)
+                    except Exception as e:
+                        self.eng.log(f"memory: capture skipped ({e})")
                 self.eng.log(f"validate: CONFIRMED {c['vuln_class']} @ {c['url']} ({v.get('severity','')})"
                              + (f" ⚠ scope-flagged: {', '.join(c['scope_warning'])}" if c.get('scope_warning') else ''))
             else:
@@ -382,10 +383,11 @@ class Engine:
         path = os.path.join(self.eng.dir, "report.md")
         open(path, "w").write("\n".join(lines))
         self.eng.log(f"report: wrote {len(c)} confirmed finding(s) -> {path}")
-        try:
-            memory.record_run(self.scope.name, self._tech(), self.eng.state["tested"], self.eng.state["confirmed"])
-        except Exception as e:
-            self.eng.log(f"memory: rollup skipped ({e})")
+        if not self.mock:
+            try:
+                memory.record_run(self.scope.name, self._tech(), self.eng.state["tested"], self.eng.state["confirmed"])
+            except Exception as e:
+                self.eng.log(f"memory: rollup skipped ({e})")
         return path
 
     def run(self, phases):
