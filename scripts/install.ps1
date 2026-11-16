@@ -85,10 +85,12 @@ if ($Help) {
 # the Windows convention (only `python.exe` / `py.exe` ship on Windows). Probe
 # py launcher -> python -> python3 in that order.
 function Get-Python {
-    foreach ($c in @(@( 'py', '-3' ), 'python', 'python3')) {
-        $exe = $c[0]
-        if (Get-Command $exe -ErrorAction SilentlyContinue) {
-            return , $c   # array of arg(s)
+    if (Get-Command py -CommandType Application -ErrorAction SilentlyContinue) {
+        return ,@('py', '-3')
+    }
+    foreach ($exe in 'python', 'python3') {
+        if (Get-Command $exe -CommandType Application -ErrorAction SilentlyContinue) {
+            return ,@($exe)
         }
     }
     return $null
@@ -324,7 +326,6 @@ if ($DO_AGENTS) {
     Install-Skills (Join-Path $HOME '.agents\skills') 'agents'
     $py = Get-Python
     if ($py) {
-        $limit = 1024
         # Inline truncation script (ports the bash heredoc verbatim).
         $trunc = @"
 import os, re, sys
@@ -357,7 +358,7 @@ for name in sorted(os.listdir(root)):
         $truncFile = Join-Path $env:TEMP 'cbh_trunc.py'
         Write-HuntFile $truncFile $trunc
         $pyExe = $py[0]
-        $pyRest = @($py[1..($py.Length - 1)]) + @($truncFile, (Join-Path $HOME '.agents\skills'), "$(if ($NORMALIZE) { '1' } else { '0' })")
+        $pyRest = @($py | Select-Object -Skip 1) + @($truncFile, (Join-Path $HOME '.agents\skills'), "$(if ($NORMALIZE) { '1' } else { '0' })")
         & $pyExe $pyRest
         Remove-Item -LiteralPath $truncFile -Force -ErrorAction SilentlyContinue
     }
@@ -385,7 +386,7 @@ if ($DO_MCP) {
         if ($py) {
             $setupPy = Join-Path $RepoDir 'scripts\setup_harness_mcp.py'
             $pyExe = $py[0]
-            $pyRest = @($py[1..($py.Length - 1)]) + @($setupPy) + $mcpTargets
+            $pyRest = @($py | Select-Object -Skip 1) + @($setupPy) + $mcpTargets
             try {
                 & $pyExe $pyRest
             } catch {
