@@ -315,9 +315,9 @@ class Engine:
     # ---------------- validate ----------------
     def validate(self):
         self.eng.set_phase("validate")
-        pending = [c for c in self.eng.state["candidates"]
-                   if not any(cf.get("url") == c["url"] and cf.get("vuln_class") == c["vuln_class"]
-                              for cf in self.eng.state["confirmed"])]
+        confirmed_keys = {self.eng._key(finding) for finding in self.eng.state["confirmed"]}
+        pending = [candidate for candidate in self.eng.state["candidates"]
+                   if self.eng._key(candidate) not in confirmed_keys]
         self.eng.log(f"validate: {len(pending)} candidate(s) to adversarially verify, {self.parallel} at a time")
         for c, v in self._run_parallel(self._validate_agent, pending):
             if v and v.get("real"):
