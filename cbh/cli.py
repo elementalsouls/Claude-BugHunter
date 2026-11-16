@@ -201,17 +201,26 @@ def recon_subdomains_via_crtsh(target: str) -> set[str]:
         return set()
     try:
         rows = json.loads(body)
-    except Exception:
-        print("[warning] crt.sh returned unparseable JSON — subdomain results may be INCOMPLETE.",
+    except json.JSONDecodeError:
+        rows = None
+    if not isinstance(rows, list):
+        print("[warning] crt.sh returned an unexpected response — subdomain results may be INCOMPLETE.",
               file=sys.stderr, flush=True)
         return set()
     subs = set()
-    for r in rows:
-        nv = (r.get("name_value") or "").lower()
-        for line in nv.split("\n"):
-            line = line.strip()
-            if line and "*" not in line:
-                subs.add(line)
+    malformed = False
+    for row in rows:
+        names = row.get("name_value") if isinstance(row, dict) else None
+        if not isinstance(names, str):
+            malformed = True
+            continue
+        for name in names.lower().splitlines():
+            name = name.strip()
+            if name and "*" not in name:
+                subs.add(name)
+    if malformed:
+        print("[warning] crt.sh returned malformed entries — subdomain results may be INCOMPLETE.",
+              file=sys.stderr, flush=True)
     return subs
 
 
