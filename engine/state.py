@@ -74,9 +74,12 @@ class Engagement:
     def _key(s):
         return f"{s['url']}|{s.get('param','')}|{s.get('vuln_class','')}"
 
-    def mark_tested(self, item):
+    def mark_tested(self, item, candidate=None):
         k = self._key(item)
         if k not in self.state["tested"]:
+            if candidate is not None:
+                candidate["ts"] = _now()
+                self.state["candidates"].append(candidate)
             self.state["tested"].append(k)
             self.save()
 
