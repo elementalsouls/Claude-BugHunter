@@ -281,8 +281,23 @@ def configure_proxy_from_args(args: argparse.Namespace) -> None:
         say(color(f"  Tip: requests will appear in Burp Proxy → HTTP history.", "dim"))
 
 
+def _recon_hostname(value: str) -> str | None:
+    try:
+        hostname = value.encode("idna").decode("ascii").lower().removesuffix(".")
+    except UnicodeError:
+        return None
+    label = r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+    if len(hostname) > 253 or not re.fullmatch(rf"{label}(?:\.{label})*", hostname):
+        return None
+    return hostname
+
+
 def cmd_recon(args: argparse.Namespace) -> int:
-    target = args.target
+    target = _recon_hostname(args.target)
+    if target is None:
+        print("[error] recon target must be a hostname without a scheme, port, or path",
+              file=sys.stderr)
+        return 1
     # Clone mode writes under the repo; installed mode writes under the CWD
     # (never into site-packages). Override with --out.
     recon_root = Path(args.out).resolve() if getattr(args, "out", None) \
@@ -312,8 +327,11 @@ def cmd_recon(args: argparse.Namespace) -> int:
         say(f"  subfinder: {len(sf)} candidates (new: {len(subs) - before})")
     else:
         say(f"  subfinder: {color('not installed', 'dim')}")
-    if not subs:
-        subs.add(target)
+    # A certificate can include SANs from unrelated domains. Treat both
+    # passive sources as untrusted before resolving or probing candidates.
+    candidates = {_recon_hostname(candidate) for candidate in subs}
+    subs = {host for host in candidates
+            if host is not None and (host == target or host.endswith("." + target))}
     subs.add(target)
     (out_dir / "subdomains.txt").write_text("\n".join(sorted(subs)) + "\n")
     say(f"  Total unique: {color(str(len(subs)), 'bold')}")
