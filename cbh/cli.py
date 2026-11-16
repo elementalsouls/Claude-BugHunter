@@ -673,16 +673,18 @@ def parse_finding_metadata(text: str) -> dict:
                 k, _, v = line.partition(":")
                 md[k.strip().lower()] = v.strip().strip('"').strip("'")
         body = m.group(2)
-    # Section grabbers
-    for key, pat in [
-        ("summary", r"##\s*(?:summary|description)\s*\n(.+?)(?=\n##|\Z)"),
-        ("steps", r"##\s*(?:steps|reproduction|reproduce|poc)\s*\n(.+?)(?=\n##|\Z)"),
-        ("impact", r"##\s*impact\s*\n(.+?)(?=\n##|\Z)"),
-        ("remediation", r"##\s*(?:remediation|fix|mitigation)\s*\n(.+?)(?=\n##|\Z)"),
-    ]:
-        m = re.search(pat, body, re.I | re.S)
-        if m and not md.get(key):
-            md[key] = m.group(1).strip()
+    # Parse peer headings and keep nested Markdown inside each section.
+    sections = {
+        "summary": ("summary", "description"),
+        "steps": ("steps", "reproduction", "reproduce", "poc"),
+        "impact": ("impact",),
+        "remediation": ("remediation", "fix", "mitigation"),
+    }
+    for key, headings in sections.items():
+        pattern = r"^##[ \t]*(?:" + "|".join(headings) + r")[ \t]*\n(.*?)(?=^#{1,2}(?!#)|\Z)"
+        match = re.search(pattern, body, re.I | re.M | re.S)
+        if match and not md.get(key):
+            md[key] = match.group(1).strip()
     # First line as title if missing
     if not md["title"]:
         for line in body.splitlines():
