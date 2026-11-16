@@ -65,15 +65,25 @@ def toml_str(s):
     return json.dumps(s, ensure_ascii=False).replace("\x7f", "\\u007f")
 
 
+def read_json_config(path, harness, server_key):
+    if not os.path.isfile(path):
+        return {}
+    try:
+        with open(path, encoding="utf-8") as config:
+            cfg = json.load(config)
+        if not isinstance(cfg, dict) or not isinstance(cfg.get(server_key, {}), dict):
+            raise ValueError(f"expected a JSON object with an object-valued {server_key} section")
+    except (OSError, ValueError) as exc:
+        print(f"  ✗ {harness}: cannot update {path}: {exc}")
+        return None
+    return cfg
+
+
 def write_opencode(cmd, args, env, dry):
     path = os.path.expanduser("~/.config/opencode/opencode.json")
-    cfg = {}
-    if os.path.isfile(path):
-        try:
-            cfg = json.load(open(path, encoding="utf-8"))
-        except Exception:
-            print(f"  ✗ OpenCode: {path} is not valid JSON — skipping (fix it or edit manually).")
-            return
+    cfg = read_json_config(path, "OpenCode", "mcp")
+    if cfg is None:
+        return False
     cfg.setdefault("$schema", "https://opencode.ai/config.json")
     mcp = cfg.setdefault("mcp", {})
     entry = {"type": "local", "command": [cmd] + args, "enabled": True}
@@ -158,13 +168,9 @@ def write_hermes(cmd, args, env, dry):
 
 def write_antigravity(cmd, args, env, dry):
     path = os.path.expanduser("~/.gemini/config/mcp_config.json")
-    cfg = {}
-    if os.path.isfile(path):
-        try:
-            cfg = json.load(open(path, encoding="utf-8"))
-        except Exception:
-            print(f"  ✗ AntiGravity: {path} is not valid JSON — skipping (fix it or edit manually).")
-            return
+    cfg = read_json_config(path, "AntiGravity", "mcpServers")
+    if cfg is None:
+        return False
     servers = cfg.setdefault("mcpServers", {})
     entry = {"command": cmd, "args": args}
     if env:
@@ -210,15 +216,16 @@ def main():
     if not (a.opencode or a.codex or a.hermes or a.antigravity):
         print("Nothing to do — pass --opencode / --codex / --hermes / --antigravity.")
         return 0
+    failed = False
     if a.opencode:
-        write_opencode(cmd, args, env, a.dry_run)
+        failed = write_opencode(cmd, args, env, a.dry_run) is False
     if a.codex:
         write_codex(cmd, args, env, a.dry_run)
     if a.hermes:
         write_hermes(cmd, args, env, a.dry_run)
     if a.antigravity:
-        write_antigravity(cmd, args, env, a.dry_run)
-    return 0
+        failed = (write_antigravity(cmd, args, env, a.dry_run) is False) or failed
+    return int(failed)
 
 
 if __name__ == "__main__":
