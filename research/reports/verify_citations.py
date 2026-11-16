@@ -22,6 +22,7 @@ Usage: python3 research/reports/verify_citations.py            # verify all
 Stdlib only.
 """
 import argparse, glob, json, os, sys, time
+from collections import defaultdict
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import classify_reports as C
 import harvest_h1 as H
@@ -31,7 +32,9 @@ DR = os.path.join(ROOT, "docs", "disclosed-reports")
 RAW = os.path.join(os.path.dirname(os.path.abspath(__file__)), "raw")
 
 # citing-skill regex map (reuse the classifier's own rules, keyed by skill)
-SKILL_RX = {s: rx for s, rx in C.COMPILED}
+SKILL_RX = defaultdict(list)
+for skill, pattern in C.COMPILED:
+    SKILL_RX[skill].append(pattern)
 
 
 def citations():
@@ -84,8 +87,7 @@ def main(argv):
         for citing in sorted(cites[rid]):
             if a.skill and citing != a.skill:
                 continue
-            rx = SKILL_RX.get(citing)
-            self_match = bool(rx and rx.search(haystack))
+            self_match = any(rx.search(haystack) for rx in SKILL_RX.get(citing, ()))
             if not (title or summary):
                 verdict = "WEAK"; weak += 1
             elif self_match or content_skill == citing:
