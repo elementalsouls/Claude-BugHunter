@@ -52,6 +52,19 @@ def main():
         assert mod.main([leak]) == 1, "expected hit (exit 1) on planted identifier"
         # 2. clean file passes
         assert mod.main([clean]) == 0, "expected clean (exit 0) on benign file"
+        # The staged snapshot can differ from the current working tree.
+        subprocess.run(["git", "init", "-q", tmp], check=True)
+        subprocess.run(["git", "-C", tmp, "add", "--", leak], check=True)
+        with open(leak, "w", encoding="utf-8") as fh:
+            fh.write("Working copy is clean.\n")
+        assert mod.main([]) == 0, "working-tree scan should see the clean file"
+        assert mod.main(["--staged"]) == 1, "staged scan must detect the staged identifier"
+
+        subprocess.run(["git", "-C", tmp, "add", "--", leak], check=True)
+        with open(leak, "w", encoding="utf-8") as fh:
+            fh.write("AcmeCorp only in the working copy.\n")
+        assert mod.main(["--staged"]) == 0, "unstaged identifiers must not block a clean commit"
+
         # 3. case-insensitive: "ACMECORP" also caught
         loud = os.path.join(tmp, "loud.md")
         with open(loud, "w") as fh:

@@ -21,9 +21,11 @@ Stdlib only — no pip install needed in CI.
 
 Usage:
     python3 scripts/scan_identifiers.py            # scan all tracked text files
-    python3 scripts/scan_identifiers.py a.md b.md  # scan specific files (pre-commit hook)
+    python3 scripts/scan_identifiers.py a.md b.md  # scan specific working-tree files
+    python3 scripts/scan_identifiers.py --staged   # scan changed Git index blobs
 """
 import hashlib
+import io
 import os
 import re
 import subprocess
@@ -94,20 +96,46 @@ def tracked_text_files():
         yield rel
 
 
+def staged_text_files():
+    """Yield paths and immutable blob IDs for staged additions/modifications."""
+    out = subprocess.check_output([
+        "git", "-C", REPO, "diff", "--cached", "--raw", "-z",
+        "--no-abbrev", "--no-renames", "--diff-filter=AMT",
+    ])
+    records = iter(out.split(b"\0"))
+    for metadata, raw_path in zip(records, records):
+        _, mode, _, oid, _ = metadata.split()
+        rel = os.fsdecode(raw_path)
+        if mode not in (b"100644", b"100755"):
+            continue
+        if os.path.splitext(rel)[1].lower() in BINARY_EXT or rel.endswith(".identifier-denylist.sha256"):
+            continue
+        yield rel, oid.decode("ascii")
+
+
 def scan_file(rel, denylist):
     """Return list of (lineno, shingle) hits. Per-line so we can report locations;
     real client names always sit on a single line."""
-    hits = []
     path = os.path.join(REPO, rel)
     try:
         with open(path, encoding="utf-8", errors="ignore") as fh:
-            for lineno, line in enumerate(fh, 1):
-                for sh in shingles(line):
-                    if hashlib.sha256(sh.encode()).hexdigest() in denylist:
-                        hits.append((lineno, sh))
+            return scan_lines(fh, denylist)
     except (OSError, UnicodeError):
-        pass
-    return hits
+        return []
+
+
+def scan_lines(lines, denylist):
+    return [
+        (lineno, shingle)
+        for lineno, line in enumerate(lines, 1)
+        for shingle in shingles(line)
+        if hashlib.sha256(shingle.encode()).hexdigest() in denylist
+    ]
+
+
+def scan_staged_blob(oid, denylist):
+    blob = subprocess.check_output(["git", "-C", REPO, "cat-file", "blob", oid])
+    return scan_lines(io.StringIO(blob.decode("utf-8", errors="ignore"), newline=None), denylist)
 
 
 def main(argv):
@@ -119,18 +147,26 @@ def main(argv):
         print(f"::error:: {msg}" if os.environ.get("GITHUB_ACTIONS") else f"ERROR {msg}")
         return 2
 
-    if argv:
-        files = [a[len(REPO) + 1:] if a.startswith(REPO + os.sep) else a for a in argv]
-    else:
-        files = list(tracked_text_files())
+    staged = argv == ["--staged"]
+    try:
+        if staged:
+            files = list(staged_text_files())
+        elif argv:
+            files = [(a[len(REPO) + 1:] if a.startswith(REPO + os.sep) else a, None) for a in argv]
+        else:
+            files = [(path, None) for path in tracked_text_files()]
 
-    total = 0
-    for rel in files:
-        for lineno, sh in scan_file(rel, denylist):
-            total += 1
-            m = (f"{rel}:{lineno}: CLIENT-IDENTIFIER MATCH — banned shingle "
-                 f"(hash matched). Remove client/engagement identifiers before committing.")
-            print(f"::error:: {m}" if os.environ.get("GITHUB_ACTIONS") else f"ERROR {m}")
+        total = 0
+        for rel, oid in files:
+            hits = scan_staged_blob(oid, denylist) if staged else scan_file(rel, denylist)
+            for lineno, _ in hits:
+                m = (f"{rel}:{lineno}: CLIENT-IDENTIFIER MATCH — banned shingle "
+                     f"(hash matched). Remove client/engagement identifiers before committing.")
+                print(f"::error:: {m}" if os.environ.get("GITHUB_ACTIONS") else f"ERROR {m}")
+                total += 1
+    except subprocess.CalledProcessError:
+        print("ERROR scan_identifiers: failed to read the staged snapshot.", file=sys.stderr)
+        return 2
 
     print(f"\nscan_identifiers: scanned {len(files)} file(s), {total} match(es), "
           f"{len(denylist)} denylist entr(ies).")
