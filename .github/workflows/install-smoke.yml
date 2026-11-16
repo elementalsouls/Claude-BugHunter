@@ -10,6 +10,7 @@ on:
       - "scripts/install*.sh"
       - "scripts/install*.ps1"
       - "scripts/hunt.sh"
+      - "scripts/hunt.ps1"
       - ".github/workflows/install-smoke.yml"
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - "scripts/install*.sh"
       - "scripts/install*.ps1"
       - "scripts/hunt.sh"
+      - "scripts/hunt.ps1"
   workflow_dispatch:
 
 permissions:
@@ -72,6 +74,23 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Seed a PowerShell scaffold from a synthetic manifest
+        shell: pwsh
+        run: |
+          $scratch = Join-Path $env:RUNNER_TEMP "cbh-hunt-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $scratch | Out-Null
+          $env:HUNT_BASE = Join-Path $scratch 'targets'
+          $fixture = Join-Path $scratch 'manifest.json'
+          '{"assets":[{"host":"example.invalid","url":"https://example.invalid"}],"ranked_surface":[{"priority":"P1","url":"https://example.invalid/graphql","bug_classes":["hunt-graphql"]}]}' |
+            Set-Content -LiteralPath $fixture -Encoding utf8
+          . ./scripts/hunt.ps1
+          hunt synthetic-case -Manifest $fixture
+          if (-not (Select-String -LiteralPath (Join-Path $env:HUNT_BASE 'synthetic-case/scope.md') -Pattern '- example.invalid' -SimpleMatch)) {
+            throw "Live host missing from scaffold"
+          }
+          if (-not (Select-String -LiteralPath (Join-Path $env:HUNT_BASE 'synthetic-case/notes.md') -Pattern '- [P1] https://example.invalid/graphql - hunt-graphql' -SimpleMatch)) {
+            throw "Ranked route missing from scaffold"
+          }
       - name: parse .ps1 installers
         shell: pwsh
         run: |

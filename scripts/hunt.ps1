@@ -270,29 +270,26 @@ Thumbs.db
         }
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($manifestPath) -and (Test-Path -LiteralPath $manifestPath) -and (Get-Command python -ErrorAction SilentlyContinue)) {
-        $py = @'
-import json, sys
-try:
-    m = json.load(open(sys.argv[1], encoding="utf-8"))
-except Exception as e:
-    print(f"  (recon manifest present but unreadable: {e})"); sys.exit(0)
-d = sys.argv[2]
-hosts = [a["host"] for a in m.get("assets", []) if a.get("url")]
-ranked = m.get("ranked_surface", [])
-with open(d + "/scope.md", "a", encoding="utf-8") as f:
-    f.write("\n## Recon-seeded live hosts (from cbh manifest — VERIFY in-scope before testing)\n\n")
-    for h in hosts:
-        f.write(f"- {h}\n")
-with open(d + "/notes.md", "a", encoding="utf-8") as f:
-    f.write("\n## Ranked surface (from recon manifest)\n\n")
-    for r in ranked:
-        cls = ", ".join(r.get("bug_classes", [])) or "no class match"
-        f.write(f"- [{r.get('priority','?')}] {r.get('url') or r.get('host')} - {cls}\n")
-print(f"  ✓ Ingested recon manifest: {len(hosts)} live hosts -> scope.md, {len(ranked)} ranked -> notes.md")
-'@
+    if (-not [string]::IsNullOrWhiteSpace($manifestPath)) {
         try {
-            $py | python - $manifestPath $dir
+            $recon = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 -ErrorAction Stop |
+                ConvertFrom-Json -ErrorAction Stop
+            if ($recon -isnot [pscustomobject]) { throw "Expected a JSON object" }
+
+            $hosts = @($recon.assets | Where-Object { $_.url -and $_.host })
+            $ranked = @($recon.ranked_surface | Where-Object { $_.url -or $_.host })
+            $scopeLines = @('', '', '## Recon-seeded live hosts (from cbh manifest — VERIFY in-scope before testing)', '')
+            $scopeLines += $hosts | ForEach-Object { "- $($_.host)" }
+            $noteLines = @('', '', '## Ranked surface (from recon manifest)', '')
+            $noteLines += foreach ($item in $ranked) {
+                $class = if ($item.bug_classes) { $item.bug_classes -join ', ' } else { 'no class match' }
+                $priority = if ($item.priority) { $item.priority } else { '?' }
+                $address = if ($item.url) { $item.url } else { $item.host }
+                "- [$priority] $address - $class"
+            }
+            [System.IO.File]::AppendAllText((Join-Path $dir 'scope.md'), (($scopeLines -join "`n") + "`n"))
+            [System.IO.File]::AppendAllText((Join-Path $dir 'notes.md'), (($noteLines -join "`n") + "`n"))
+            Write-Host "  + Ingested recon manifest: $($hosts.Count) live hosts -> scope.md, $($ranked.Count) ranked -> notes.md"
         } catch {
             Write-Host "  (recon manifest present but ingestion failed: $($_.Exception.Message))"
         }
