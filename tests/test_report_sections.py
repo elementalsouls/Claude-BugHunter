@@ -27,3 +27,31 @@ Synthetic impact.
     def test_inline_heading_like_text_is_not_a_section(self):
         metadata = cli.parse_finding_metadata("Intro mentions ## Impact\nThis is prose.\n")
         self.assertEqual(metadata["impact"], "")
+
+    def test_headings_inside_fences_remain_evidence(self):
+        notes = """~~~markdown
+# Fake title
+## Summary
+Fake summary.
+~~~
+
+# Actual finding
+## Summary
+Actual summary.
+## Steps
+````markdown
+```markdown
+## Impact
+Fake impact.
+```
+````
+After the sample.
+## Impact
+Actual impact.
+"""
+        metadata = cli.parse_finding_metadata(notes)
+        self.assertEqual(metadata["title"], "Actual finding")
+        self.assertEqual(metadata["summary"], "Actual summary.")
+        self.assertEqual(metadata["impact"], "Actual impact.")
+        self.assertIn("## Impact\nFake impact.", metadata["steps"])
+        self.assertTrue(metadata["steps"].endswith("After the sample."))
