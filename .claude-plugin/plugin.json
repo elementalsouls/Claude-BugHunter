@@ -8,5 +8,30 @@
   },
   "homepage": "https://elementalsouls.github.io/Claude-BugHunter",
   "repository": "https://github.com/elementalsouls/Claude-BugHunter",
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "hackerone_api_username": {
+      "type": "string",
+      "title": "HackerOne API username",
+      "description": "Optional. With the token, turns on the HackerOne MCP's logged-in tools (your programs, private scope, your reports).",
+      "required": false
+    },
+    "hackerone_api_token": {
+      "type": "string",
+      "title": "HackerOne API token",
+      "description": "Optional. Create it under HackerOne Settings > API Token. Kept in secure storage.",
+      "sensitive": true,
+      "required": false
+    }
+  },
+  "mcpServers": {
+    "hackerone": {
+      "command": "python",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/hackerone/server.py"],
+      "env": {
+        "HACKERONE_API_USERNAME": "${user_config.hackerone_api_username}",
+        "HACKERONE_API_TOKEN": "${user_config.hackerone_api_token}"
+      }
+    }
+  }
 }

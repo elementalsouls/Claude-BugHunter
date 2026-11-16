@@ -21,7 +21,15 @@ HackerOne **Settings → API Token**.
 
 ## Connect it
 
-Claude Code:
+Installed as the Claude Code plugin, the server comes with it: it starts only while the plugin is enabled, runs
+from the plugin's installed copy, and takes the optional username and token as plugin options (the token is kept
+in secure storage):
+
+```bash
+echo '{"hackerone_api_username":"<your username>","hackerone_api_token":"<your token>"}' | claude plugin configure claude-bughunter@elementalsouls --values-stdin
+```
+
+Without the plugin, register it by hand. Claude Code:
 
 ```bash
 claude mcp add --scope user hackerone -- python3 /path/to/Claude-BugHunter/mcp/hackerone/server.py
