@@ -27,6 +27,7 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
+from urllib.parse import urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_eval as RE                       # noqa: E402  (shared agent runner + build_task)
@@ -35,6 +36,26 @@ from oracle_portswigger import ps_solved    # noqa: E402
 EVAL = os.path.dirname(os.path.abspath(__file__))
 TARGET_DESC = ("a PortSwigger Web Security Academy lab instance — an authorized, "
                "deliberately-vulnerable training lab tied to the tester's own account.")
+
+
+def check_unique_instances(labs, conditions):
+    """Each requested run must use a different Academy lab hostname."""
+    owners = {}
+    for lab in labs:
+        for condition in conditions:
+            url = (lab.get("instances") or {}).get(condition, "").strip()
+            if not url:
+                continue
+            owner = f"{lab['key']} / {condition}"
+            host = urlsplit(url).hostname
+            if not host:
+                raise ValueError(f"{owner} needs a valid lab instance URL")
+            host = host.rstrip(".")
+            if host in owners:
+                raise ValueError(
+                    f"{owners[host]} and {owner} reuse one lab instance. Launch a fresh instance per run."
+                )
+            owners[host] = owner
 
 
 def main():
@@ -48,8 +69,13 @@ def main():
     ap.add_argument("--out", default=os.path.join(EVAL, "results", "ps_run.jsonl"))
     a = ap.parse_args()
 
-    labs = json.load(open(a.labs))
+    with open(a.labs, encoding="utf-8") as config:
+        labs = json.load(config)
     conditions = [c.strip() for c in a.conditions.split(",") if c.strip()]
+    try:
+        check_unique_instances(labs, conditions)
+    except ValueError as error:
+        ap.error(str(error))
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     out = open(a.out, "a")
     rows = []
