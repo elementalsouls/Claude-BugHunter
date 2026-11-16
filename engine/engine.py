@@ -266,18 +266,18 @@ class Engine:
                 self.eng.log(f"hunt: ⚠ NOT tested ({reason}) — left on worklist: "
                              f"{it.get('vuln_class')}@{it.get('url')}")
                 continue
-            self.eng.mark_tested(it)
             if f.get("vulnerable"):
                 oos = self._scope_audit(f)
                 cand = {"url": it["url"], "param": it.get("param", ""), "vuln_class": it.get("vuln_class"),
                         "severity": f.get("severity", "unknown"), "evidence": f.get("evidence", ""),
                         "request": f.get("request", ""), "proof_note": f.get("proof_note", ""),
                         "scope_warning": oos or None}
-                self.eng.add_candidate(cand)
+                self.eng.mark_tested(it, candidate=cand)
                 self.eng.log((f"hunt: ⚠ CANDIDATE {cand['vuln_class']} @ {it['url']} — PoC touched OUT-OF-SCOPE "
                               f"host(s): {', '.join(oos)} (flagged)") if oos
                              else f"hunt: CANDIDATE {cand['vuln_class']} @ {it['url']}")
             else:
+                self.eng.mark_tested(it)
                 self.eng.log(f"hunt: nothing on {it.get('vuln_class')}@{it['url']}")
 
     def _hunt_agent(self, it):
