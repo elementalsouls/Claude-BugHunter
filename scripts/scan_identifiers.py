@@ -77,13 +77,14 @@ def shingles(text):
 def tracked_text_files():
     """Yield repo-relative paths of tracked, likely-text files."""
     out = subprocess.run(
-        ["git", "-C", REPO, "ls-files"], capture_output=True, text=True
+        ["git", "-C", REPO, "ls-files", "-z"], capture_output=True
     )
     if out.returncode != 0:
-        sys.exit(f"error: `git ls-files` failed: {out.stderr.strip()}")
-    for rel in out.stdout.splitlines():
-        if not rel.strip():
+        sys.exit(f"error: `git ls-files` failed: {os.fsdecode(out.stderr).strip()}")
+    for raw_path in out.stdout.split(b"\0"):
+        if not raw_path:
             continue
+        rel = os.fsdecode(raw_path)
         ext = os.path.splitext(rel)[1].lower()
         if ext in BINARY_EXT:
             continue
