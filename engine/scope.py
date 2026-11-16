@@ -31,14 +31,15 @@ def _host_of(target):
 
 
 def _match(pattern, host):
-    p = pattern.strip().lower()
+    p = pattern.strip()
     if not p or not host:
         return False
-    if p.startswith("re:"):
+    if p[:3].lower() == "re:":
         try:
-            return re.search(p[3:], host) is not None
+            return re.search(p[3:], host, re.IGNORECASE) is not None
         except re.error:
             return False
+    p = p.lower()
     if "/" in p and p.replace(".", "").replace("/", "").isdigit():  # CIDR
         try:
             return ipaddress.ip_address(host) in ipaddress.ip_network(p, strict=False)
