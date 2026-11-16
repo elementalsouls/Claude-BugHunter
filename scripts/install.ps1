@@ -54,8 +54,7 @@ $ErrorActionPreference = 'Stop'
 
 # --- repo + paths -------------------------------------------------------
 $RepoDir    = Split-Path -Parent $PSScriptRoot            # parent of scripts\
-$Timestamp  = (Get-Date).ToString('yyyyMMdd-HHmmss')
-$BackupDest = Join-Path $HOME ".claude\install-backups\$Timestamp"
+$BackupDest = $null
 
 $BundleName   = 'claude-bughunter'
 $ManifestDir  = Join-Path $HOME '.claude\.skill-manifests'
@@ -139,6 +138,17 @@ function Test-FilesEqual([string] $A, [string] $B) {
     return $ha -eq $hb
 }
 
+function Get-BackupDir([string] $Label) {
+    if (-not $script:BackupDest) {
+        $timestamp = (Get-Date).ToString('yyyyMMdd-HHmmss')
+        $suffix = [guid]::NewGuid().ToString('N')
+        $script:BackupDest = Join-Path $HOME ".claude\install-backups\$timestamp-$suffix"
+    }
+    $dir = Join-Path $script:BackupDest $Label
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    return $dir
+}
+
 # Copy a skill dir, backing up an existing same-name dir OUTSIDE the loading path.
 function Install-Skills([string] $Dest, [string] $Label) {
     if (-not (Test-Path -LiteralPath $Dest)) { New-Item -ItemType Directory -Force -Path $Dest | Out-Null }
@@ -149,8 +159,7 @@ function Install-Skills([string] $Dest, [string] $Label) {
         $target = Join-Path $Dest $name
         if (Test-Path -LiteralPath $target -PathType Container) {
             if (Test-DirsEqual $sd.FullName $target) { continue }   # identical -> skip
-            $bk = Join-Path $BackupDest $Label
-            New-Item -ItemType Directory -Force -Path $bk | Out-Null
+            $bk = Get-BackupDir $Label
             Move-Item -LiteralPath $target (Join-Path $bk $name) -Force
         }
         Copy-Item -LiteralPath $sd.FullName -Destination $target -Recurse -Force
@@ -275,8 +284,7 @@ if (Test-Path -LiteralPath $CommandsSrc) {
         $dst = Join-Path $cmdDest $f.Name
         if (Test-Path -LiteralPath $dst) {
             if (Test-FilesEqual $f.FullName $dst) { continue }
-            $bk = Join-Path $BackupDest 'commands'
-            New-Item -ItemType Directory -Force -Path $bk | Out-Null
+            $bk = Get-BackupDir 'commands'
             Move-Item -LiteralPath $dst (Join-Path $bk $f.Name) -Force
         }
         Copy-Item -LiteralPath $f.FullName -Destination $dst -Force
@@ -442,7 +450,7 @@ Write-Host "Claude Code:        $(Join-Path $HOME '.claude\skills')  (+ commands
 if ($DO_AGENTS)      { Write-Host "Codex+OpenCode:     $(Join-Path $HOME '.agents\skills')" }
 if ($DO_HERMES)      { Write-Host "Hermes Agent:       $(Join-Path $HOME '.hermes\skills')" }
 if ($DO_ANTIGRAVITY) { Write-Host "Google AntiGravity: $(Join-Path $HOME '.gemini\config\skills')" }
-if (Test-Path -LiteralPath $BackupDest) { Write-Host "Backups:            $BackupDest  (outside loading paths)" }
+if ($BackupDest -and (Test-Path -LiteralPath $BackupDest)) { Write-Host "Backups:            $BackupDest  (outside loading paths)" }
 Write-Host ''
 if (-not $DETECT -and -not $DO_AGENTS -and -not $DO_HERMES -and -not $DO_ANTIGRAVITY) {
     Write-Host "Other harnesses?  pwsh ./scripts/install.ps1 -All   (auto-detects Codex / OpenCode / Hermes / AntiGravity)"

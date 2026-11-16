@@ -43,7 +43,7 @@ set -e
 # CRLF compound statement before any guard could run) — normalize it once with
 #   git add --renormalize . && git checkout .   (or re-clone).
 REPO_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
-BACKUP_DEST="$HOME/.claude/install-backups/$(date +%Y%m%d-%H%M%S)"
+BACKUP_DEST=""
 
 # Footprint tracking: each bundle records what it placed in ~/.claude here, so
 # uninstall removes only its own files and KEEPS skills a sibling bundle (e.g.
@@ -153,6 +153,16 @@ fi
 
 SKILL_COUNT="$(find "$REPO_DIR/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
 
+# Allocate a unique directory only when there is something to back up.
+prepare_backup_dir() {
+  if [ -z "$BACKUP_DEST" ]; then
+    local backup_root="$HOME/.claude/install-backups"
+    mkdir -p "$backup_root"
+    BACKUP_DEST="$(mktemp -d "$backup_root/$(date +%Y%m%d-%H%M%S)-XXXXXX")"
+  fi
+  mkdir -p "$BACKUP_DEST/$1"
+}
+
 # Copy every skill folder into <dest>, backing up any existing same-name dir
 # OUTSIDE the loading path. $2 is a label used for the backup subfolder + logging.
 install_skills() {
@@ -167,7 +177,7 @@ install_skills() {
       if diff -rq --exclude=__pycache__ "$skill_dir" "$dest/$name" >/dev/null 2>&1; then
         continue
       fi
-      mkdir -p "$BACKUP_DEST/$label"
+      prepare_backup_dir "$label"
       mv "$dest/$name" "$BACKUP_DEST/$label/$name"
     fi
     cp -r "$skill_dir" "$dest/$name"
@@ -192,7 +202,7 @@ if [ -d "$REPO_DIR/commands" ]; then
     cmd_name="$(basename "$cmd_file")"
     if [ -f "$COMMANDS_DEST/$cmd_name" ] && [ ! -L "$COMMANDS_DEST/$cmd_name" ]; then
       if cmp -s "$cmd_file" "$COMMANDS_DEST/$cmd_name"; then continue; fi
-      mkdir -p "$BACKUP_DEST/commands"
+      prepare_backup_dir commands
       mv "$COMMANDS_DEST/$cmd_name" "$BACKUP_DEST/commands/$cmd_name"
     fi
     cp "$cmd_file" "$COMMANDS_DEST/$cmd_name"
