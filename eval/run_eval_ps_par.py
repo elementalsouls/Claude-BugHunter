@@ -30,8 +30,8 @@ def do_run(lab, url, cond, model, max_turns, timeout):
     r = RE.run_agent(RE.build_task(lab["objective"], url, AUTO.TARGET_DESC),
                      cond == "skills", model, max_turns, timeout)
     time.sleep(2)
-    post, _ = ps_solved(url)
-    return {**base, "solved": bool(post), **r}
+    post, post_ok = ps_solved(url)
+    return {**base, "solved": post if post_ok else None, "oracle_ok": post_ok, **r}
 
 
 def main():
@@ -106,15 +106,23 @@ def main():
     runs = [r for r in rows if r.get("solved") is not None]
     for c in conds:
         rs = [r for r in runs if r["condition"] == c]
-        if rs:
+        attempts = [r for r in rows if r["condition"] == c and not r.get("skipped")]
+        if attempts:
             print(f"  {c:9s}: solved {sum(1 for r in rs if r['solved'])}/{len(rs)}   "
-                  f"${sum((r.get('cost_usd') or 0) for r in rs):.2f}")
+                  f"${sum((r.get('cost_usd') or 0) for r in attempts):.2f}   "
+                  f"{len(attempts) - len(rs)} oracle-unreadable")
     print("\n  per-lab (baseline → skills):")
     for lab, _ in launched:
         lr = {r["condition"]: r for r in rows if r["lab"] == lab["key"]}
         def cell(c):
             r = lr.get(c)
-            return "-" if not r else ("(skip)" if r.get("skipped") else ("✓" if r["solved"] else "✗"))
+            if not r:
+                return "-"
+            if r.get("skipped"):
+                return "(skip)"
+            if r["solved"] is None:
+                return "?"
+            return "✓" if r["solved"] else "✗"
         print(f"    {lab['key']:26s} {lab.get('class',''):14s} base={cell('baseline'):>6s}  skills={cell('skills')}")
     delta = [k for k in base if base[k].get("solved") is False
              and any(r["lab"] == k and r["condition"] == "skills" and r.get("solved") for r in rows)]

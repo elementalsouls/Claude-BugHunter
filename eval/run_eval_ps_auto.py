@@ -108,13 +108,13 @@ def run_one(lab, url, conditions, model, max_turns, timeout):
         print(f"    {cond}: running agent...", flush=True)
         r = RE.run_agent(base_task, cond == "skills", model, max_turns, timeout)
         time.sleep(3)
-        post, _ = ps_solved(url)
-        solved = bool(post)
+        post, post_ok = ps_solved(url)
+        solved = post if post_ok else None
         if solved:
             solved_already = True
         print(f"      -> solved={solved} turns={r.get('num_turns')} cost=${r.get('cost_usd')} {r.get('duration_s')}s"
               f"{'  [' + r['agent_error'] + ']' if r.get('agent_error') else ''}")
-        recs.append({"condition": cond, "solved": solved, **r})
+        recs.append({"condition": cond, "solved": solved, "oracle_ok": post_ok, **r})
     return recs
 
 
@@ -166,10 +166,13 @@ def main():
     runs = [r for r in rows if r.get("solved") is not None and not r.get("skipped")]
     for cond in conditions:
         rs = [r for r in runs if r["condition"] == cond]
-        if rs:
+        attempts = [r for r in rows if r["condition"] == cond and not r.get("skipped")]
+        if attempts:
             s = sum(1 for r in rs if r["solved"])
-            cost = sum((r.get("cost_usd") or 0) for r in rs)
-            print(f"  {cond:9s}: solved {s}/{len(rs)}   ${cost:.2f}")
+            cost = sum((r.get("cost_usd") or 0) for r in attempts)
+            unreadable = len(attempts) - len(rs)
+            print(f"  {cond:9s}: solved {s}/{len(rs)}   ${cost:.2f}   "
+                  f"{unreadable} oracle-unreadable")
     # the money table: per lab, baseline vs skills
     print("\n  per-lab (baseline → skills):")
     for lab in labs:
@@ -178,6 +181,7 @@ def main():
             r = lr.get(c)
             if not r: return "-"
             if r.get("skipped"): return "(skip:base-solved)"
+            if r["solved"] is None: return "?"
             return "✓" if r["solved"] else "✗"
         print(f"    {lab['key']:24s} {lab.get('class',''):14s} base={cell('baseline'):>4s}  skills={cell('skills')}")
     # skill delta = labs where baseline failed but skills solved
