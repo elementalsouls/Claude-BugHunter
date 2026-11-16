@@ -250,19 +250,28 @@ if [ "$DO_AGENTS" = "1" ]; then
   # ~/.hermes keep full descriptions. Optional --normalize-frontmatter also strips
   # non-standard keys (sources/report_count). Python3 only; skipped if absent.
   if command -v python3 >/dev/null 2>&1; then
-    python3 - "$HOME/.agents/skills" "$NORMALIZE" <<'PY'
+    python3 - "$HOME/.agents/skills" "$NORMALIZE" "$REPO_DIR/skills" <<'PY'
 import os, re, sys
 root, strip_extra = sys.argv[1], sys.argv[2] == "1"
 LIMIT = 1024
-for name in sorted(os.listdir(root)):
+# Limit edits to copies from this bundle. The destination may contain
+# independently installed skills and symlinks.
+for name in sorted(os.listdir(sys.argv[3])):
+    if not os.path.isdir(os.path.join(sys.argv[3], name)):
+        continue
     p = os.path.join(root, name, "SKILL.md")
-    if not os.path.isfile(p):
+    if os.path.islink(os.path.dirname(p)) or os.path.islink(p) or not os.path.isfile(p):
         continue
     lines = open(p, encoding="utf-8").read().split("\n")
+    if not lines or lines[0] != '---':
+        continue
+    try:
+        end = lines.index('---', 1)
+    except ValueError:
+        continue
     out, changed = [], False
     for i, line in enumerate(lines):
-        # frontmatter sits at the very top; only touch the first ~12 lines
-        m = re.match(r'^description:\s*(.*)$', line) if i < 12 else None
+        m = re.match(r'^description:\s*(.*)$', line) if 0 < i < end else None
         if m:
             val = m.group(1)
             quoted = len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'"
@@ -272,7 +281,7 @@ for name in sorted(os.listdir(root)):
                 line = 'description: "' + cut + '…"'
                 changed = True
                 print(f"    ✂ truncated {name} description {len(inner)}→{len(cut)+1} (Codex 1024 limit)")
-        if strip_extra and i < 12 and re.match(r'^(sources|report_count):\s', line):
+        if strip_extra and 0 < i < end and re.match(r'^(sources|report_count):\s', line):
             changed = True
             continue
         out.append(line)
