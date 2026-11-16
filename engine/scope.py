@@ -23,8 +23,11 @@ def _host_of(target):
     t = target.strip()
     if "://" not in t:
         t = "//" + t
-    host = (urlparse(t).hostname or "").lower().rstrip(".")
-    return host
+    try:
+        parsed = urlparse(t)
+        return (parsed.hostname or "").lower().rstrip(".")
+    except ValueError:
+        return ""
 
 
 def _match(pattern, host):
