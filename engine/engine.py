@@ -146,7 +146,7 @@ class Engine:
         for t in tech:
             self.eng.log(f"recon: service {t.get('host')} [{t.get('status')}] · {', '.join(t.get('tech', [])) or 'tech?'}")
         plat = R.platform_recon(self.scope, log=self.eng.log)        # .well-known / Firebase / OAuth / robots
-        api = R.openapi_recon(self.scope, log=self.eng.log)          # OpenAPI schema -> categorized + auth-sweep
+        api = R.openapi_recon(self.scope, log=self.eng.log, allow_intrusive=self.allow_intrusive)          # OpenAPI schema -> categorized + auth-sweep
         endpoints, oos = R.spa_recon(self.scope, log=self.eng.log)   # current API endpoints + JS secrets
         params = R.gather_params(self.scope, log=self.eng.log)       # all input parameters (gau historical)
         # categorize every (endpoint | param) into its applicable attack classes, expand to work units

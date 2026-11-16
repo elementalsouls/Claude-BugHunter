@@ -456,22 +456,26 @@ def classes_for_openapi(path, method, op, secured):
     return cls[:3]
 
 
-def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-00000"):
-    """Probe each DECLARED-secured op unauthenticated; flag any that don't reject (the #1 API risk:
-    declared != enforced). SAFE: junk path-ids (destructive ops hit non-existent resources), empty
-    bodies (writes hit validation, not execution). 2xx/422 unauth = NOT enforced. Returns broken items."""
+def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-00000",
+                           *, allow_intrusive=False):
+    """Probe declared-secured operations unauthenticated. By default, probe only GET.
+    Report responses that reach the handler or request validation without authentication.
+    """
     import urllib.request
     import urllib.error
     import time
     # A global `security: []` means "no auth for the whole API" — treat as NOT secured
     # (mirror the op-level `!= []` check below), else public ops are wrongly swept as broken-auth.
     glob = spec.get("security") not in (None, [])
-    broken, n = [], 0
+    broken, n, skipped_writes = [], 0, 0
     for path, methods in spec.get("paths", {}).items():
         for m, op in methods.items():
             if m not in ("get", "post", "put", "patch", "delete"):
                 continue
             if not (("security" in op and op["security"] != []) or ("security" not in op and glob)):
+                continue
+            if m != "get" and not allow_intrusive:
+                skipped_writes += 1
                 continue
             url = base + path
             for pp in op.get("parameters", []):
@@ -496,6 +500,8 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
                 broken.append({"url": url, "param": "", "vuln_class": "auth-bypass", "source": "auth-sweep",
                                "note": f"{m.upper()} {path} -> {code} UNAUTH (declared-secured, NOT enforced)"})
             time.sleep(0.03)
+    if skipped_writes:
+        log(f"auth-sweep: skipped {skipped_writes} declared-secured write operation(s) in read-only mode")
     if broken:
         log(f"auth-sweep: ⚠ {len(broken)}/{n} declared-secured op(s) NOT auth-enforced (BROKEN function-level auth)")
     else:
@@ -559,7 +565,7 @@ def platform_recon(scope, log=print):
     return items
 
 
-def openapi_recon(scope, log=print):
+def openapi_recon(scope, log=print, *, allow_intrusive=False):
     """If the target exposes an OpenAPI schema, parse it into categorized (path,method,class) work
     units — the ideal deterministic recon for an API host. Returns already-expanded surface items."""
     import json as _json
@@ -596,7 +602,7 @@ def openapi_recon(scope, log=print):
                                       "note": f"{m.upper()} {p} [{'AUTH' if secured else 'NO-AUTH'}]"})
             log(f"openapi: {host}{op_path} -> '{title}', {len(paths)} path(s) "
                 f"({noauth} no-auth op(s)) -> {len(items)} categorized unit(s)")
-            items += auth_enforcement_sweep(spec, host, log)   # verify declared-secured ops actually enforce
+            items += auth_enforcement_sweep(spec, host, log, allow_intrusive=allow_intrusive)
             break
     return items
 
