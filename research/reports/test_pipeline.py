@@ -2,12 +2,15 @@
 """Network-free sanity check for the report pipeline's pure logic.
 Run: python3 research/reports/test_pipeline.py  (exit 0 = pass). Stdlib only."""
 import os, sys
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest.mock import patch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import classify_reports as C
 import report_coverage as RC
 import draft_patterns as D
 import harvest_h1 as H
+import verify_citations as V
 
 
 def main():
@@ -73,6 +76,15 @@ def main():
     with patch.object(H, "_post", return_value={"data": {"search": {"nodes": []}}}):
         if list(H.enumerate_reports("votes", max_pages=1)) != []:
             fails.append("harvest emitted records for an empty results page")
+
+    # A more specific platform match doesn't invalidate another supported citing skill.
+    citation_text = ("Node.js wallet GraphQL balance", "Synthetic public summary", "")
+    with patch.object(V, "citations", return_value={"42": {"hunt-fintech-graphql"}}), \
+            patch.object(V, "cached_title", return_value=citation_text), \
+            redirect_stdout(StringIO()) as output:
+        V.main([])
+    if "1 OK, 0 WEAK, 0 MISMATCH" not in output.getvalue():
+        fails.append(f"citation verifier dropped a valid alternate skill rule: {output.getvalue()}")
 
     for f in fails:
         print("ERROR", f)
