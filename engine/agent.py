@@ -65,13 +65,14 @@ def extract_json(text):
     """Pull the last valid JSON array/object out of an agent reply."""
     if not text:
         return None
-    blocks = re.findall(r"```json\s*(.*?)```", text, re.S)
-    blocks += re.findall(r"```\s*(\[.*?\]|\{.*?\})\s*```", text, re.S)
-    for b in reversed(blocks):
+    blocks = re.findall(r"```(?:json\s*|\s*)(.*?)```", text, re.S)
+    for block in reversed(blocks):
         try:
-            return json.loads(b.strip())
-        except Exception:
-            pass
+            value = json.loads(block.strip())
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, (dict, list)):
+            return value
     for b in reversed(re.findall(r"(\[.*\]|\{.*\})", text, re.S)):
         try:
             return json.loads(b)
