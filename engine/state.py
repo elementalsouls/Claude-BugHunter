@@ -29,11 +29,16 @@ class Engagement:
         self.log_path = os.path.join(self.dir, "engine.log")
         self.state = self._load()
 
+    DEFAULTS = {"targets": [], "surface": [], "tested": [], "candidates": [], "confirmed": [],
+                "coverage": {}}   # coverage: (host|vuln_class) -> verdict, read by closure.py
+
     def _load(self):
         if os.path.isfile(self.state_path):
-            return json.load(open(self.state_path))
-        return {"name": self.name, "created": _now(), "phase": "init",
-                "targets": [], "surface": [], "tested": [], "candidates": [], "confirmed": []}
+            s = json.load(open(self.state_path))
+            for k, v in self.DEFAULTS.items():   # forward-compat with pre-ledger engagements
+                s.setdefault(k, dict(v) if isinstance(v, dict) else list(v))
+            return s
+        return {"name": self.name, "created": _now(), "phase": "init", **self.DEFAULTS}
 
     def save(self):
         tmp = self.state_path + ".tmp"
@@ -92,6 +97,17 @@ class Engagement:
     def confirm(self, finding, verdict):
         finding = {**finding, "verdict": verdict, "confirmed_ts": _now()}
         self.state["confirmed"].append(finding)
+        self.save()
+
+    # ---- coverage ledger (writer: hunt) ----
+    # A count of tested items cannot answer "which classes were never tried on
+    # host X". This can, and the report renders its caveats from it.
+    def record_coverage(self, host, vuln_class, verdict, note=""):
+        from closure import VERDICTS  # noqa: PLC0415 — keeps state.py import-light
+        if verdict not in VERDICTS:
+            raise ValueError(f"unknown coverage verdict {verdict!r}; expected one of {sorted(VERDICTS)}")
+        self.state["coverage"][f"{host}|{vuln_class}"] = {
+            "verdict": verdict, "note": note, "ts": _now()}
         self.save()
 
     def evidence_path(self, fname):
