@@ -852,6 +852,16 @@ def cmd_surface(args: argparse.Namespace) -> int:
         print(f"[error] could not parse {mpath}: {e}", file=sys.stderr)
         return 1
 
+    if not isinstance(m, dict):
+        print(f"[error] invalid recon manifest at {mpath}: expected a JSON object", file=sys.stderr)
+        return 1
+    if not isinstance(m.get("counts", {}), dict) or not isinstance(m.get("ranked_surface", []), list):
+        print(f"[error] invalid recon manifest at {mpath}: invalid counts or ranked_surface", file=sys.stderr)
+        return 1
+    if any(not isinstance(row, dict) for row in m.get("ranked_surface", [])):
+        print(f"[error] invalid recon manifest at {mpath}: ranked_surface entries must be objects", file=sys.stderr)
+        return 1
+
     section(f"surface — {m.get('target', target)}")
     c = m.get("counts", {})
     say(f"  {c.get('live', '?')} live / {c.get('resolved', '?')} resolved / "
