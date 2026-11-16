@@ -426,7 +426,6 @@ The validation engagement that produced this stack illustrated all three: the or
 - **`offensive-osint` is large**, even after refactor. The 15 reference files load on demand, but the SKILL.md still consumes context on every trigger. Future work: split into smaller sub-skills if context becomes a bottleneck.
 - **Per-class `hunt-*` skills overlap on borderline classes.** A finding that's both IDOR and business-logic may trigger two skills. Manageable, but worth knowing.
 - **`public-skills-builder` is rough.** The script needs Python 3.10+, has hardcoded `master` branch references, and requires `--program` for H1 queries. Patches documented in INSTALL.md.
-- **No HackerOne MCP yet.** Burp MCP works; H1 MCP is in shuvonsec's repo but not configured here. Worth adding when you start hunting H1 programs.
 - **No engagement-coordinator skill.** Cross-finding tracking and submission ID management is currently manual via `submissions.txt`. Future skill candidate.
 
 ---
@@ -443,7 +442,7 @@ If you keep using this and want to extend it:
    - `/autopilot` maps modes to it: `--paranoid` (default) / `--normal` → memory **off** (full coverage); `--quick` / `--yolo` → memory **on** (token-saving skips).
    - A class never hunted on a stack is never skipped, and every skip is logged — coverage is never silently reduced. Manage the store with `/memory-gc`; review a target's history with `/pickup <host>`.
    - Benefit scales with repeat targets / recurring stacks; expect little effect on a cold start (new or one-off stack).
-2. **HackerOne MCP integration** — wire up the H1 MCP in shuvonsec's repo for live duplicate-search and program intel during reports.
+2. **HackerOne MCP integration — ✅ now shipped (`mcp/hackerone/`).** Live duplicate search over disclosed reports, program stats and structured scope during reports; with `HACKERONE_API_USERNAME` / `HACKERONE_API_TOKEN` set it also reads private programs and your own reports. Setup in [`mcp/hackerone/README.md`](mcp/hackerone/README.md).
 3. **Specialized `hunt-*` skills** for high-payout niches you focus on (e.g., `hunt-fintech-graphql`, `hunt-healthcare-fhir`).
 4. **A `program-rules-parser` skill** that takes program text and produces a structured `scope.md` automatically.
 5. **Engagement-coordinator skill** that auto-updates `submissions.txt` and surfaces chain candidates.
