@@ -41,6 +41,17 @@ def main():
     if "hackerone.com/reports/1" not in D.genericize("https://hackerone.com/reports/1"):
         fails.append("genericize wrongly rewrote the hackerone source URL")
 
+    cases = [
+        ("https://example.customer.test/path", "https://target.com/path"),
+        ("https://target.com.customer.test/path", "https://target.com/path"),
+        ("http://user@192.0.2.10:8443/path", "http://target.com/path"),
+        ("https://[2001:db8::1]:8443/path", "https://target.com/path"),
+        ("https://example.org/known", "https://example.org/known"),
+    ]
+    for raw, want in cases:
+        if D.genericize(raw) != want:
+            fails.append(f"genericize incorrectly handled synthetic URL {raw!r}")
+
     # skeleton: has Source + TODO markers, target genericized
     sk = D.skeleton({"title": "IDOR on https://acme.com/api/user/5", "url": "https://hackerone.com/reports/9",
                      "reporter": "x", "program": "p", "severity": "High", "bounty": 500,

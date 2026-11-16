@@ -19,6 +19,7 @@ import glob
 import os
 import re
 import sys
+from urllib.parse import urlsplit
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DRAFTS = os.path.join(HERE, "drafts")
@@ -26,14 +27,33 @@ sys.path.insert(0, HERE)
 import classify_reports as C          # noqa: E402
 import report_coverage as RC          # noqa: E402
 
-# Genericize any real hostname to target.com (keep path shape). Skip example/H1 hosts.
-HOST_RE = re.compile(r"https?://(?!(?:target\.com|example\.|hackerone\.com))[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+# Match the authority only so paths, queries, and fragments keep their shape.
+URL_AUTHORITY = re.compile(
+    r"""https?://(?:\[[^\]\s]+\]|[^\s/?#<>"'`()\[\]{}])+""", re.I
+)
+PUBLIC_HOSTS = {
+    "hackerone.com", "target.com", "example.com", "example.net", "example.org",
+    "example.invalid", "example.test",
+}
 
 
 def genericize(text):
     if not text:
         return text
-    return HOST_RE.sub("https://target.com", text)
+
+    def replace(match):
+        full = match.group()
+        authority = full.rstrip(".,;:")
+        try:
+            url = urlsplit(authority)
+            if url.netloc.lower() in PUBLIC_HOSTS:
+                return full
+        except ValueError:
+            pass
+        scheme = authority.split("://", 1)[0]
+        return f"{scheme}://target.com" + full[len(authority):]
+
+    return URL_AUTHORITY.sub(replace, text)
 
 
 def skeleton(rec):
