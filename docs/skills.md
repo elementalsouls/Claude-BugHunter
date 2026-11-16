@@ -93,7 +93,7 @@ All **83 skills** in the bundle, grouped by domain. Each auto-loads when your pr
 | Skill | What it does | Reports |
 |---|---|---|
 | `offensive-osint` | Operational arsenal for authorized external red-team and bug-bounty recon. | — |
-| `osint-methodology` | Comprehensive OSINT methodology for external red-team operations and authorized attack-surface assessments. | — |
+| `osint-methodology` | Plan and run OSINT for authorized red-team reconnaissance and external attack-surface assessments. | — |
 | `recon-scope-triage` | Triage ASM/recon output for ownership before testing — separate the target's real assets from namespace-collision noise. | 1 |
 | `security-arsenal` | Security payloads, bypass tables, wordlists, gf pattern names, always-rejected bug list, and conditionally-valid-with-chain table. | — |
 | `web2-recon` | Web2 recon pipeline — subdomain enumeration (subfinder, Chaos API, assetfinder), live host discovery (dnsx, httpx), URL crawling (katana, waybackurls, gau), directory fuzzing (ffuf), JS analysis (LinkFinder, SecretFinder), continuous… | — |
@@ -102,9 +102,9 @@ All **83 skills** in the bundle, grouped by domain. Each auto-loads when your pr
 
 | Skill | What it does | Reports |
 |---|---|---|
-| `bb-local-toolkit` | Local-tooling companion to the bug-bounty orchestrator — carries the SAME complete bug-bounty workflow, but reach for THIS variant when you also need to resolve where tools, wordlists, and clones are installed on the local machine… | — |
+| `bb-local-toolkit` | Use the full bug bounty workflow when you also need the local path of a tool, wordlist, or clone (SecLists, jhaddix, ffuf, dalfox, ghauri, trufflehog). | — |
 | `bb-methodology` | Use at the START of any bug bounty hunting session, when switching targets, or when feeling lost about what to do next. | — |
-| `bug-bounty` | Complete bug bounty workflow — recon (subdomain enumeration, asset discovery, fingerprinting, HackerOne scope, source code audit), pre-hunt learning (disclosed reports, tech stack research, mind maps, threat modeling), vulnerability… | — |
+| `bug-bounty` | Guide a bug bounty task from recon and HackerOne scope through research, vulnerability testing, finding validation, and reporting. | — |
 | `redteam-mindset` | Red-team operator discipline — the mindset corrections that separate offensive testing from defensive WAPT. | 1 |
 
 ## Reporting & validation (6)
