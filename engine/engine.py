@@ -53,7 +53,8 @@ class Engine:
     def __init__(self, scope_path, base, model, max_hunts, max_turns, timeout, mock=False,
                  allow_intrusive=False, parallel=3, expand=False, use_memory=False):
         self.scope = Scope.load(scope_path)
-        self.eng = Engagement(base, self.scope.name)
+        state_base = os.path.join(base, ".mock") if mock else base
+        self.eng = Engagement(state_base, self.scope.name)
         self.model, self.max_hunts = model, max_hunts
         self.max_turns, self.timeout, self.mock = max_turns, timeout, mock
         self.allow_intrusive = allow_intrusive
