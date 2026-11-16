@@ -321,9 +321,9 @@ class Engine:
             return {"vulnerable": False, "errored": True, "error": r["error"],
                     "rate_limited": r["error"] == "rate-limited"}
         verdict = A.extract_json(r["result"])
-        if verdict is None:
-            # Agent ran but produced no parseable verdict — inconclusive, not a real negative.
-            self.eng.log(f"hunt: no parseable verdict for {it['url']} — inconclusive, left for retry")
+        if not isinstance(verdict, dict) or not isinstance(verdict.get("vulnerable"), bool):
+            # Agent ran but produced no usable verdict — inconclusive, not a real negative.
+            self.eng.log(f"hunt: no usable verdict for {it['url']} — inconclusive, left for retry")
             return {"vulnerable": False, "errored": True, "error": "no-verdict"}
         return verdict
 
@@ -335,7 +335,10 @@ class Engine:
                    if self.eng._key(candidate) not in confirmed_keys]
         self.eng.log(f"validate: {len(pending)} candidate(s) to adversarially verify, {self.parallel} at a time")
         for c, v in self._run_parallel(self._validate_agent, pending):
-            if v and v.get("real"):
+            if not v or v.get("errored"):
+                self.eng.log(f"validate: inconclusive {c['vuln_class']} @ {c['url']} — "
+                             f"{(v or {}).get('reason', 'worker error')}")
+            elif v.get("real"):
                 if v.get("severity"):
                     c["severity"] = v["severity"]  # use the validator's CALIBRATED severity, not the hunt's
                 self.eng.confirm(c, v)
@@ -364,8 +367,11 @@ class Engine:
         r = A.run_agent(task, model=self.model, max_turns=self.max_turns, timeout=self.timeout)
         if r.get("error"):
             self.eng.log(f"validate agent error: {r['error']}")
-            return {"real": False, "reason": f"verify error: {r['error']}"}
-        return A.extract_json(r["result"]) or {"real": False, "reason": "no verdict"}
+            return {"real": False, "reason": f"verify error: {r['error']}", "errored": True}
+        verdict = A.extract_json(r["result"])
+        if not isinstance(verdict, dict) or not isinstance(verdict.get("real"), bool):
+            return {"real": False, "reason": "no usable verdict", "errored": True}
+        return verdict
 
     # ---------------- report ----------------
     def report(self):
