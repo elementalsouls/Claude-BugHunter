@@ -46,9 +46,12 @@ def oracle(base, name):
             data = json.load(r)["data"]
     except Exception:
         return None, False
-    for c in data:
-        if c["name"] == name:
-            return bool(c["solved"]), True
+    if not isinstance(data, list):
+        return None, False
+    for challenge in data:
+        if isinstance(challenge, dict) and challenge.get("name") == name:
+            solved = challenge.get("solved")
+            return (solved, True) if isinstance(solved, bool) else (None, False)
     return None, False
 
 
@@ -155,7 +158,8 @@ def main():
     ap.add_argument("--out", default=os.path.join(EVAL, "results", "run.jsonl"))
     a = ap.parse_args()
 
-    challenges = json.load(open(a.challenges))
+    with open(a.challenges, encoding="utf-8") as config:
+        challenges = json.load(config)
     if a.limit:
         challenges = challenges[:a.limit]
     conditions = [c.strip() for c in a.conditions.split(",") if c.strip()]
@@ -178,11 +182,10 @@ def main():
             print(f"  running agent (max_turns={a.max_turns}, timeout={a.timeout}s)...", flush=True)
             r = run_agent(build_task(ch["objective"], a.base, JUICE_DESC), skills_on, a.model, a.max_turns, a.timeout)
             time.sleep(2)
-            post, _ = oracle(a.base, ch["oracle_name"])
-            solved = bool(post)
+            solved, oracle_ok = oracle(a.base, ch["oracle_name"])
             rec = {"ts": datetime.now(timezone.utc).isoformat(), "challenge": ch["key"],
                    "category": ch["category"], "skill_hint": ch.get("skill_hint"),
-                   "condition": cond, "solved": solved, **r}
+                   "condition": cond, "solved": solved, "oracle_ok": oracle_ok, **r}
             rows.append(rec)
             out.write(json.dumps(rec) + "\n"); out.flush()
             print(f"  -> solved={solved}  turns={r.get('num_turns')}  "
@@ -196,16 +199,24 @@ def main():
     for r in rows:
         by_cond.setdefault(r["condition"], []).append(r)
     for cond, rs in by_cond.items():
-        s = sum(1 for r in rs if r["solved"])
+        scored = [r for r in rs if r["oracle_ok"]]
+        s = sum(1 for r in scored if r["solved"])
         cost = sum((r.get("cost_usd") or 0) for r in rs)
-        print(f"  {cond:9s}: solved {s}/{len(rs)}   total ${cost:.2f}")
+        unreadable = len(rs) - len(scored)
+        note = f"  ({unreadable} oracle-unreadable, excluded)" if unreadable else ""
+        print(f"  {cond:9s}: solved {s}/{len(scored)}   total ${cost:.2f}{note}")
     print("\n  per-challenge:")
     print(f"    {'challenge':24s} " + " ".join(f"{c:>9s}" for c in conditions))
     for ch in challenges:
         cells = []
         for cond in conditions:
             m = [r for r in rows if r["challenge"] == ch["key"] and r["condition"] == cond]
-            cells.append("✓" if (m and m[0]["solved"]) else ("✗" if m else "-"))
+            if not m:
+                cells.append("-")
+            elif not m[0]["oracle_ok"]:
+                cells.append("?")
+            else:
+                cells.append("✓" if m[0]["solved"] else "✗")
         print(f"    {ch['key']:24s} " + " ".join(f"{c:>9s}" for c in cells))
     print(f"\n  raw: {a.out}")
 
