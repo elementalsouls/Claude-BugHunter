@@ -92,9 +92,11 @@ def _read(path):
             if not ln:
                 continue
             try:
-                out.append(json.loads(ln))
+                record = json.loads(ln)
             except json.JSONDecodeError:
                 continue
+            if isinstance(record, dict):
+                out.append(record)
     return out
 
 
