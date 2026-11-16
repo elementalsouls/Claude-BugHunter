@@ -16,6 +16,7 @@ import argparse
 import glob
 import os
 import sys
+from urllib.parse import urlsplit
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -23,7 +24,7 @@ DISCLOSED = os.path.join(REPO, "docs", "disclosed-reports")
 
 sys.path.insert(0, HERE)
 import classify_reports as C  # noqa: E402
-from harvest_h1 import report_ids  # noqa: E402
+from harvest_h1 import HACKERONE_REPORT_URL, report_ids  # noqa: E402
 
 
 def already_cited_ids():
@@ -39,6 +40,20 @@ def already_cited_ids():
     return ids
 
 
+def hackerone_id(record):
+    """Return the HackerOne identity for explicitly sourced or legacy records."""
+    source = record.get("source")
+    if source:
+        return str(record.get("id")) if source == "hackerone" else None
+    try:
+        url = urlsplit(record.get("url") or "")
+    except (TypeError, ValueError):
+        return None
+    canonical = f"{url.scheme}://{url.netloc}{url.path.rstrip('/')}"
+    match = HACKERONE_REPORT_URL.fullmatch(canonical)
+    return match.group(1) if match else None
+
+
 signal = C.signal
 
 
@@ -51,7 +66,7 @@ def main(argv):
     cited = already_cited_ids()
     per_skill, unmapped = {}, []
     for r in recs:
-        if str(r.get("id")) in cited:
+        if hackerone_id(r) in cited:
             continue                      # already curated in
         skill = C.classify_one(r)
         (per_skill.setdefault(skill, []) if skill else unmapped).append(r)
@@ -75,7 +90,8 @@ def main(argv):
                          f"{(r.get('title') or '')[:70]} — {r.get('url')}")
         lines.append("")
 
-    open(a.out, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+    with open(a.out, "w", encoding="utf-8") as stream:
+        stream.write("\n".join(lines) + "\n")
     print(f"report_coverage: {len(recs)} report(s) — {total_gaps} skill-mapped gap(s), "
           f"{len(unmapped)} new-technique candidate(s). Wrote {a.out}")
     return 1 if (total_gaps or unmapped) else 0
