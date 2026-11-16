@@ -333,8 +333,15 @@ class Engine:
         confirmed_keys = {self.eng._key(finding) for finding in self.eng.state["confirmed"]}
         pending = [candidate for candidate in self.eng.state["candidates"]
                    if self.eng._key(candidate) not in confirmed_keys]
-        self.eng.log(f"validate: {len(pending)} candidate(s) to adversarially verify, {self.parallel} at a time")
-        for c, v in self._run_parallel(self._validate_agent, pending):
+        in_scope = []
+        for candidate in pending:
+            reason = self.scope.reject_reason(candidate["url"])
+            if reason is not None:
+                self.eng.log(f"validate: REFUSING {candidate['url']} ({reason})")
+                continue
+            in_scope.append(candidate)
+        self.eng.log(f"validate: {len(in_scope)} candidate(s) to adversarially verify, {self.parallel} at a time")
+        for c, v in self._run_parallel(self._validate_agent, in_scope):
             if not v or v.get("errored"):
                 self.eng.log(f"validate: inconclusive {c['vuln_class']} @ {c['url']} — "
                              f"{(v or {}).get('reason', 'worker error')}")
