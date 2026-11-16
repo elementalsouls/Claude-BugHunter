@@ -35,6 +35,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import socket
 import subprocess
 import sys
@@ -94,7 +95,7 @@ def section(title: str):
 
 
 def has_cmd(name: str) -> bool:
-    return subprocess.call(["which", name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+    return shutil.which(name) is not None
 
 
 def run_cmd(cmd: list[str], timeout: int = 30) -> tuple[int, str, str]:
