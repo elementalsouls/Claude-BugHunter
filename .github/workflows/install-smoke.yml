@@ -64,13 +64,22 @@ jobs:
           [ "$ag" -ge 80 ] || { echo "FAIL: --antigravity did not land skills in ~/.gemini/config/skills"; exit 1; }
           [ ! -d "$T/.gemini/antigravity/skills" ] || { echo "FAIL: skills landed in the wrong (antigravity/skills) path"; exit 1; }
           # Codex normalization only edits bundle skills and their frontmatter.
-          mkdir -p "$T/.agents/skills/unrelated"
-          printf '%s\n' '---' 'description: external' 'sources: custom' '---' > "$T/unrelated.md"
-          cp "$T/unrelated.md" "$T/.agents/skills/unrelated/SKILL.md"
-          HOME="$T" bash scripts/install.sh --agents --normalize-frontmatter --no-shell
-          cmp "$T/unrelated.md" "$T/.agents/skills/unrelated/SKILL.md"
-          # uninstall removes the footprint
+          # Runs in its own HOME so it does not make $T/.agents a tracked harness
+          # (which would break the untracked-copy preservation check below).
+          N="$(mktemp -d)"
+          mkdir -p "$N/.agents/skills/unrelated"
+          printf '%s\n' '---' 'description: external' 'sources: custom' '---' > "$N/unrelated.md"
+          cp "$N/unrelated.md" "$N/.agents/skills/unrelated/SKILL.md"
+          HOME="$N" bash scripts/install.sh --agents --normalize-frontmatter --no-shell
+          cmp "$N/unrelated.md" "$N/.agents/skills/unrelated/SKILL.md"
+          rm -rf "$N"
+          # Create a separate Codex copy in a harness this install did not target.
+          mkdir -p "$T/.agents/skills/bug-bounty"
+          printf '%s\n' 'custom Codex copy' > "$T/.agents/skills/bug-bounty/SKILL.md"
+          # Uninstall removes the tracked footprint and preserves the Codex copy.
           HOME="$T" bash scripts/install.sh --uninstall >/dev/null
+          test ! -e "$T/.gemini/config/skills/bug-bounty"
+          grep -qxF 'custom Codex copy' "$T/.agents/skills/bug-bounty/SKILL.md"
           left=$(find "$T/.claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
           echo "claude skills after uninstall: $left"
           rm -rf "$T"
