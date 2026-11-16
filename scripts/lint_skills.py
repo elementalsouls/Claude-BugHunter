@@ -11,6 +11,8 @@ Checks per skills/<name>/SKILL.md:
     - `name` present, matches ^[a-z0-9-]+$, and equals the directory name
     - `description` present and <= 1024 chars
     - body (everything after frontmatter) <= 500 lines
+    - no literal control characters (0x00-0x1f except tab/newline): they make the
+      file binary to ripgrep/`file`, so repo-wide searches silently skip the skill
   SAFETY (errors)
     - client-identifier denylist: hashes every 1- and 2-word shingle of the file
       and compares against scripts/.identifier-denylist.sha256 (+ optional
@@ -144,6 +146,24 @@ def yaml_safety_errors(name, raw):
     return errs
 
 
+def control_char_errors(name, raw):
+    """Literal C0 control bytes (other than tab/newline) make the file binary to
+    grep/ripgrep and `file`, so a repo-wide search silently skips the skill even
+    though the loader itself is fine. The realistic case is a NUL: a writer that
+    interprets `\x00` instead of emitting it as two visible characters."""
+    errs = []
+    for idx, ch in enumerate(raw):
+        if ch in "\n\t":
+            continue
+        if ord(ch) < 32 or ord(ch) == 127:
+            line = raw.count("\n", 0, idx) + 1
+            errs.append(f"{name}:{line}: literal control character 0x{ord(ch):02x} — "
+                        "write it as visible text (backslash-x-0-0) instead of the raw byte")
+            if len(errs) >= 5:
+                break
+    return errs
+
+
 def lint_skill(skill_dir, denylist):
     errors, warnings = [], []
     name = os.path.basename(skill_dir.rstrip("/"))
@@ -157,6 +177,7 @@ def lint_skill(skill_dir, denylist):
     if fm_err:
         errors.append(f"{name}: {fm_err}")
     errors += yaml_safety_errors(name, raw)
+    errors += control_char_errors(name, raw)
     # name
     fn = fm.get("name", "")
     if not fn:
