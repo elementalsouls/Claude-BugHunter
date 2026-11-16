@@ -332,8 +332,9 @@ class Engine:
     def validate(self):
         self.eng.set_phase("validate")
         confirmed_keys = {self.eng._key(finding) for finding in self.eng.state["confirmed"]}
+        finished_keys = confirmed_keys | set(self.eng.state["rejected"])
         pending = [candidate for candidate in self.eng.state["candidates"]
-                   if self.eng._key(candidate) not in confirmed_keys]
+                   if self.eng._key(candidate) not in finished_keys]
         in_scope = []
         for candidate in pending:
             reason = self.scope.reject_reason(candidate["url"])
@@ -358,6 +359,8 @@ class Engine:
                 self.eng.log(f"validate: CONFIRMED {c['vuln_class']} @ {c['url']} ({v.get('severity','')})"
                              + (f" ⚠ scope-flagged: {', '.join(c['scope_warning'])}" if c.get('scope_warning') else ''))
             else:
+                self.eng.state["rejected"].append(self.eng._key(c))
+                self.eng.save()
                 self.eng.log(f"validate: rejected (false positive) {c['vuln_class']} @ {c['url']} — "
                              f"{(v or {}).get('reason', 'no verdict')}")
 

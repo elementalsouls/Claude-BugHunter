@@ -28,6 +28,7 @@ class Engagement:
         self.state_path = os.path.join(self.dir, "state.json")
         self.log_path = os.path.join(self.dir, "engine.log")
         self.state = self._load()
+        self.state.setdefault("rejected", [])
 
     DEFAULTS = {"targets": [], "surface": [], "tested": [], "candidates": [], "confirmed": [],
                 "coverage": {}}   # coverage: (host|vuln_class) -> verdict, read by closure.py
