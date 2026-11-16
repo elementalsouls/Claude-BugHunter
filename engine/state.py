@@ -31,7 +31,7 @@ class Engagement:
         self.state.setdefault("rejected", [])
 
     DEFAULTS = {"targets": [], "surface": [], "tested": [], "candidates": [], "confirmed": [],
-                "coverage": {}}   # coverage: (host|vuln_class) -> verdict, read by closure.py
+                "coverage": {}, "coverage_by_item": {}}
 
     def _fresh_defaults(self):
         # Fresh copies — never alias the mutable class-level DEFAULTS into instance state.
@@ -84,13 +84,15 @@ class Engagement:
     def _key(s):
         return f"{s['url']}|{s.get('param','')}|{s.get('vuln_class','')}"
 
-    def mark_tested(self, item, candidate=None):
+    def mark_tested(self, item, candidate=None, coverage=None, note=""):
         k = self._key(item)
         if k not in self.state["tested"]:
             if candidate is not None:
                 candidate["ts"] = _now()
                 self.state["candidates"].append(candidate)
             self.state["tested"].append(k)
+            if coverage is not None:
+                self._set_item_coverage(item, coverage, note)
             self.save()
 
     # ---- findings ----
@@ -107,12 +109,15 @@ class Engagement:
     # ---- coverage ledger (writer: hunt) ----
     # A count of tested items cannot answer "which classes were never tried on
     # host X". This can, and the report renders its caveats from it.
-    def record_coverage(self, host, vuln_class, verdict, note=""):
-        from closure import VERDICTS  # noqa: PLC0415 — keeps state.py import-light
+    def _set_item_coverage(self, item, verdict, note):
+        from closure import VERDICTS
         if verdict not in VERDICTS:
             raise ValueError(f"unknown coverage verdict {verdict!r}; expected one of {sorted(VERDICTS)}")
-        self.state["coverage"][f"{host}|{vuln_class}"] = {
+        self.state["coverage_by_item"][self._key(item)] = {
             "verdict": verdict, "note": note, "ts": _now()}
+
+    def record_coverage(self, item, verdict, note=""):
+        self._set_item_coverage(item, verdict, note)
         self.save()
 
     def evidence_path(self, fname):
