@@ -32,13 +32,17 @@ class Engagement:
     DEFAULTS = {"targets": [], "surface": [], "tested": [], "candidates": [], "confirmed": [],
                 "coverage": {}}   # coverage: (host|vuln_class) -> verdict, read by closure.py
 
+    def _fresh_defaults(self):
+        # Fresh copies — never alias the mutable class-level DEFAULTS into instance state.
+        return {k: (dict(v) if isinstance(v, dict) else list(v)) for k, v in self.DEFAULTS.items()}
+
     def _load(self):
         if os.path.isfile(self.state_path):
             s = json.load(open(self.state_path))
-            for k, v in self.DEFAULTS.items():   # forward-compat with pre-ledger engagements
-                s.setdefault(k, dict(v) if isinstance(v, dict) else list(v))
+            for k, v in self._fresh_defaults().items():   # forward-compat with pre-ledger engagements
+                s.setdefault(k, v)
             return s
-        return {"name": self.name, "created": _now(), "phase": "init", **self.DEFAULTS}
+        return {"name": self.name, "created": _now(), "phase": "init", **self._fresh_defaults()}
 
     def save(self):
         tmp = self.state_path + ".tmp"
