@@ -671,6 +671,29 @@ def cmd_triage(args: argparse.Namespace) -> int:
 # ============================================================
 # report — emit a report draft based on finding metadata
 # ============================================================
+def _mask_report_fences(body: str) -> str:
+    """Hide fenced code from heading matching while retaining source offsets."""
+    masked = []
+    opener = None
+    for line in body.splitlines(keepends=True):
+        fence = re.match(r"^ {0,3}(`{3,}|~{3,})([^\n]*)", line)
+        if opener is not None:
+            masked.append(re.sub(r"[^\n]", " ", line))
+            if fence:
+                marker, rest = fence.groups()
+                if marker.startswith(opener) and not rest.strip():
+                    opener = None
+            continue
+        if fence:
+            marker, rest = fence.groups()
+            if marker.startswith("~") or "`" not in rest:
+                opener = marker
+                masked.append(re.sub(r"[^\n]", " ", line))
+                continue
+        masked.append(line)
+    return "".join(masked)
+
+
 def parse_finding_metadata(text: str) -> dict:
     """Best-effort parse of YAML-ish frontmatter + section content."""
     md = {"title": "", "severity": "Medium", "asset": "", "endpoint": "",
@@ -684,7 +707,8 @@ def parse_finding_metadata(text: str) -> dict:
                 k, _, v = line.partition(":")
                 md[k.strip().lower()] = v.strip().strip('"').strip("'")
         body = m.group(2)
-    # Parse peer headings and keep nested Markdown inside each section.
+    # Match headings outside fenced code, then copy the original section text.
+    headings_only = _mask_report_fences(body)
     sections = {
         "summary": ("summary", "description"),
         "steps": ("steps", "reproduction", "reproduce", "poc"),
@@ -693,12 +717,13 @@ def parse_finding_metadata(text: str) -> dict:
     }
     for key, headings in sections.items():
         pattern = r"^##[ \t]*(?:" + "|".join(headings) + r")[ \t]*\n(.*?)(?=^#{1,2}(?!#)|\Z)"
-        match = re.search(pattern, body, re.I | re.M | re.S)
+        match = re.search(pattern, headings_only, re.I | re.M | re.S)
         if match and not md.get(key):
-            md[key] = match.group(1).strip()
+            start, end = match.span(1)
+            md[key] = body[start:end].strip()
     # First line as title if missing
     if not md["title"]:
-        for line in body.splitlines():
+        for line in headings_only.splitlines():
             line = line.strip()
             if line.startswith("# "):
                 md["title"] = line[2:].strip()
