@@ -245,13 +245,30 @@ GITIGNORE
   if [ -n "$manifest" ] && [ -f "$manifest" ] && command -v python3 >/dev/null 2>&1; then
     python3 - "$manifest" "$dir" <<'PYIN'
 import json, sys
+
 try:
-    m = json.load(open(sys.argv[1], encoding="utf-8"))
-except Exception as e:
-    print(f"  (recon manifest present but unreadable: {e})"); sys.exit(0)
+    with open(sys.argv[1], encoding="utf-8-sig") as manifest:
+        m = json.load(manifest)
+    if not isinstance(m, dict):
+        raise ValueError("expected a JSON object")
+    assets = m.get("assets", [])
+    ranked = m.get("ranked_surface", [])
+    if not isinstance(assets, list) or not isinstance(ranked, list):
+        raise ValueError("assets and ranked_surface must be lists")
+except (OSError, ValueError) as e:
+    print(f"  (recon manifest present but unreadable: {e})")
+    sys.exit(0)
+
 d = sys.argv[2]
-hosts = [a["host"] for a in m.get("assets", []) if a.get("url")]
-ranked = m.get("ranked_surface", [])
+hosts = [
+    item["host"] for item in assets
+    if isinstance(item, dict) and item.get("url")
+    and isinstance(item.get("host"), str) and item["host"]
+]
+ranked = [
+    item for item in ranked if isinstance(item, dict)
+    and any(isinstance(item.get(key), str) and item[key] for key in ("url", "host"))
+]
 with open(d + "/scope.md", "a", encoding="utf-8") as f:
     f.write("\n## Recon-seeded live hosts (from cbh manifest — VERIFY in-scope before testing)\n\n")
     for h in hosts:
@@ -259,8 +276,11 @@ with open(d + "/scope.md", "a", encoding="utf-8") as f:
 with open(d + "/notes.md", "a", encoding="utf-8") as f:
     f.write("\n## Ranked surface (from recon manifest)\n\n")
     for r in ranked:
-        cls = ", ".join(r.get("bug_classes", [])) or "no class match"
-        f.write(f"- [{r.get('priority','?')}] {r.get('url') or r.get('host')} - {cls}\n")
+        classes = r.get("bug_classes")
+        cls = ", ".join(c for c in classes if isinstance(c, str)) if isinstance(classes, list) else ""
+        url = r.get("url")
+        target = url if isinstance(url, str) and url else r["host"]
+        f.write(f"- [{r.get('priority','?')}] {target} - {cls or 'no class match'}\n")
 print(f"  ✓ Ingested recon manifest: {len(hosts)} live hosts -> scope.md, {len(ranked)} ranked -> notes.md")
 PYIN
   fi
