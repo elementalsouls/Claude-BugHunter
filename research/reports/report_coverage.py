@@ -31,7 +31,8 @@ def already_cited_ids():
     ids = set()
     for f in glob.glob(os.path.join(DISCLOSED, "*.md")):
         try:
-            txt = open(f, encoding="utf-8").read()
+            with open(f, encoding="utf-8") as stream:
+                txt = stream.read()
         except OSError:
             continue
         ids.update(report_ids(txt))
