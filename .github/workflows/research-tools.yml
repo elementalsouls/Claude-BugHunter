@@ -31,3 +31,5 @@ jobs:
         run: python3 -m py_compile research/reports/*.py
       - name: pipeline logic self-test
         run: python3 research/reports/test_pipeline.py
+      - name: Check citation platform identity
+        run: python3 research/reports/test_citation_identity.py
