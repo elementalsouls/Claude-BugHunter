@@ -174,7 +174,8 @@ def record_run(engagement, tech_stack, tested, confirmed):
     for host, cls in tested_hc:
         if cls and (host, cls) not in confirmed_hc:
             _append(neg, {"schema_version": SCHEMA_VERSION, "ts": _now(),
-                          "host": host, "stack_sig": sig, "vuln_class": cls})
+                          "host": host, "stack_sig": sig, "vuln_class": cls,
+                          "engagement": engagement})
     for host in {h for h, _ in tested_hc} | {h for h, _ in confirmed_hc}:
         if host:
             _write_rollup(host, tech_stack, tested, confirmed)
@@ -195,8 +196,13 @@ def skip_decision(host, tech_stack, item):
             return {"skip": True, "reason": "known-confirmed", "carry": carry}
     # 2) dead-class: >= threshold negatives for (stack_sig, cls) AND zero confirmations for it
     sig = _stack_sig(tech_stack)
-    negs = sum(1 for e in _read(os.path.join(root, "negatives.jsonl"))
-               if e.get("stack_sig") == sig and e.get("vuln_class") == cls)
+    negatives = _read(os.path.join(root, "negatives.jsonl"))
+    distinct = {
+        (entry.get("engagement") or index, entry.get("host"))
+        for index, entry in enumerate(negatives)
+        if entry.get("stack_sig") == sig and entry.get("vuln_class") == cls
+    }
+    negs = len(distinct)
     if negs >= DEAD_CLASS_THRESHOLD:
         confirmed_here = any(_stack_sig(e.get("tech_stack", [])) == sig and e.get("vuln_class") == cls
                              for e in _read(os.path.join(root, "findings.jsonl")))
@@ -252,8 +258,8 @@ def _selftest():
         # unseen class is never skipped
         assert skip_decision("a.com", ["nextjs"], {"url": "http://a.com/x", "param": "id", "vuln_class": "rce"})["skip"] is False
         # dead-class only after >= threshold negatives with zero confirmations
-        for _ in range(DEAD_CLASS_THRESHOLD):
-            record_run("e", ["django"], ["http://b.com/z|q|csrf"], [])
+        for index in range(DEAD_CLASS_THRESHOLD):
+            record_run(f"e-{index}", ["django"], ["http://b.com/z|q|csrf"], [])
         assert skip_decision("b.com", ["django"], {"url": "http://b.com/z", "param": "q", "vuln_class": "csrf"})["skip"] is True
         # a confirmation on that (stack,class) revives it (not dead)
         record_finding("e", "b.com", ["django"], {"url": "http://b.com/z", "param": "q", "vuln_class": "csrf", "severity": "low"}, {"reason": "x"})
