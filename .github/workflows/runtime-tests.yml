@@ -49,8 +49,8 @@ jobs:
           scratch="$(mktemp -d)"
           BUGHUNTER_MEMORY_DIR="$scratch/memory" python engine/engine.py \
             --scope engine/engagement.example.json --base "$scratch" --mock --hunt
-          test -s "$scratch/demo-local/arsenal.md"
-          test -s "$scratch/demo-local/report.md"
+          test -s "$scratch/.mock/demo-local/arsenal.md"
+          test -s "$scratch/.mock/demo-local/report.md"
           python scripts/cbh.py --help
       - name: Discover runtime regression tests
         env:

@@ -31,7 +31,7 @@ def _run(base, phases):
                         "--base", base, "--mock", "--phases", phases],
                        capture_output=True, text=True)
     assert r.returncode == 0, f"engine failed:\n{r.stdout}\n{r.stderr}"
-    d = os.path.join(base, "demo-local")
+    d = os.path.join(base, ".mock", "demo-local")
     return json.load(open(os.path.join(d, "state.json"))), open(os.path.join(d, "report.md")).read()
 
 
@@ -50,7 +50,7 @@ def test_gap_reaches_the_report_file():
     """The deliverable on disk must carry the caveat — not just the in-memory verdict."""
     with tempfile.TemporaryDirectory() as t:
         _run(t, "recon,rank,map,hunt,validate,report")
-        d = os.path.join(t, "demo-local")
+        d = os.path.join(t, ".mock", "demo-local")
         st = json.load(open(os.path.join(d, "state.json")))
         # mark one genuinely-discovered pair blocked, then re-report
         host, cls = sorted(closure.expected_coverage(st))[0]
