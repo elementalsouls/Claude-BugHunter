@@ -60,7 +60,9 @@ def backup(path):
 
 
 def toml_str(s):
-    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    # JSON's escapes are valid in TOML basic strings. Leave Unicode characters
+    # literal and explicitly escape DEL, which JSON permits but TOML forbids.
+    return json.dumps(s, ensure_ascii=False).replace("\x7f", "\\u007f")
 
 
 def write_opencode(cmd, args, env, dry):
@@ -104,7 +106,7 @@ def write_codex(cmd, args, env, dry):
         lines.append("")
         lines.append("[mcp_servers.burp.env]")
         for k, v in env.items():
-            lines.append(f"{k} = {toml_str(str(v))}")
+            lines.append(f"{toml_str(k)} = {toml_str(str(v))}")
     block = "\n".join(lines) + "\n"
     print(f"  → Codex: append [mcp_servers.burp] to {path}")
     if dry:
