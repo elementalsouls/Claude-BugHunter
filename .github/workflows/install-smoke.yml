@@ -9,6 +9,7 @@ on:
     paths:
       - "scripts/install*.sh"
       - "scripts/install*.ps1"
+      - "scripts/setup_harness_mcp.py"
       - "scripts/hunt.sh"
       - "scripts/hunt.ps1"
       - ".github/workflows/install-smoke.yml"
@@ -17,6 +18,7 @@ on:
     paths:
       - "scripts/install*.sh"
       - "scripts/install*.ps1"
+      - "scripts/setup_harness_mcp.py"
       - "scripts/hunt.sh"
       - "scripts/hunt.ps1"
   workflow_dispatch:
@@ -94,8 +96,8 @@ jobs:
           HOME="$T" ZDOTDIR="$T" bash scripts/install.sh --uninstall
           cmp "$T/expected" "$T/.bashrc"
 
-  powershell-parse:
-    name: PowerShell syntax parse (no execution)
+  powershell-smoke:
+    name: PowerShell parse and installer smoke
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -131,3 +133,27 @@ jobs:
             }
           }
           if ($failed) { exit 1 }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run installer Python paths in a disposable profile
+        shell: pwsh
+        run: |
+          $tempProfile = Join-Path $env:RUNNER_TEMP "cbh-smoke-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $tempProfile | Out-Null
+          Set-Variable -Name HOME -Scope Global -Value $tempProfile -Force
+          $env:USERPROFILE = $tempProfile
+          $env:TEMP = $tempProfile
+          '{"mcpServers":{"burp":{"command":"synthetic-mcp","args":["argument with spaces"]}}}' |
+            Set-Content -LiteralPath (Join-Path $HOME '.claude.json') -Encoding utf8
+          & ./scripts/install.ps1 -Agents -NormalizeFrontmatter -BurpMcp -NoProfile
+          $skill = Join-Path $HOME '.agents/skills/hunt-fintech-graphql/SKILL.md'
+          if ((Get-Content -LiteralPath $skill | Select-Object -First 6) -match '^(sources|report_count):') {
+            throw "Codex copy still has non-standard frontmatter"
+          }
+          $config = Get-Content -LiteralPath (Join-Path $HOME '.config/opencode/opencode.json') -Raw |
+            ConvertFrom-Json
+          if ($config.mcp.burp.command[0] -ne 'synthetic-mcp' -or
+              $config.mcp.burp.command[1] -ne 'argument with spaces') {
+            throw "Burp MCP command was not copied"
+          }
