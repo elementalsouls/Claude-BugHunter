@@ -26,6 +26,7 @@ from scope import Scope            # noqa: E402
 from state import Engagement       # noqa: E402
 import agent as A                  # noqa: E402
 import memory                     # noqa: E402  (autopilot ledger; import-isolated)
+import closure                    # noqa: E402  (coverage ledger / closure gate)
 
 # deterministic priority by class (impact-ish); used by rank. Keep in sync with
 # skill_map.CLASS_SKILL so every routed class gets a sensible (non-default) weight.
@@ -217,7 +218,12 @@ class Engine:
         state writes, so there's no race on state.json."""
         if self.parallel <= 1 or len(items) <= 1:
             for it in items:
-                yield it, fn(it)
+                try:
+                    result = fn(it)
+                except Exception as e:
+                    self.eng.log(f"  worker error on {it.get('url')}: {e}")
+                    result = {}
+                yield it, result
             return
         from concurrent.futures import ThreadPoolExecutor, as_completed
         with ThreadPoolExecutor(max_workers=self.parallel) as ex:
@@ -244,6 +250,8 @@ class Engine:
             if not self.scope.in_scope_host(it["url"]):     # belt-and-suspenders scope gate
                 self.eng.log(f"hunt: REFUSING out-of-scope {it['url']} ({self.scope.reject_reason(it['url'])})")
                 self.eng.mark_tested(it)
+                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""),
+                                         "out_of_scope", self.scope.reject_reason(it["url"]))
                 continue
             if self.use_memory:
                 d = memory.skip_decision(memory._host(it["url"]), tech, it)
@@ -253,6 +261,8 @@ class Engine:
                     if d["carry"]:
                         self.eng.confirm(d["carry"], d["carry"]["verdict"])
                     self.eng.mark_tested(it)
+                    self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""),
+                                             "finding" if d["carry"] else "clean")
                     continue
             todo.append(it)
         self.eng.log(f"hunt: testing {len(todo)} item(s), {self.parallel} at a time")
@@ -265,19 +275,24 @@ class Engine:
                 reason = (f or {}).get("error", "worker-exception")
                 self.eng.log(f"hunt: ⚠ NOT tested ({reason}) — left on worklist: "
                              f"{it.get('vuln_class')}@{it.get('url')}")
+                # blocked is NOT covered — it ships as a caveat until it is retried
+                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""),
+                                         "blocked", reason)
                 continue
-            self.eng.mark_tested(it)
             if f.get("vulnerable"):
                 oos = self._scope_audit(f)
                 cand = {"url": it["url"], "param": it.get("param", ""), "vuln_class": it.get("vuln_class"),
                         "severity": f.get("severity", "unknown"), "evidence": f.get("evidence", ""),
                         "request": f.get("request", ""), "proof_note": f.get("proof_note", ""),
                         "scope_warning": oos or None}
-                self.eng.add_candidate(cand)
+                self.eng.mark_tested(it, candidate=cand)
+                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""), "finding")
                 self.eng.log((f"hunt: ⚠ CANDIDATE {cand['vuln_class']} @ {it['url']} — PoC touched OUT-OF-SCOPE "
                               f"host(s): {', '.join(oos)} (flagged)") if oos
                              else f"hunt: CANDIDATE {cand['vuln_class']} @ {it['url']}")
             else:
+                self.eng.mark_tested(it)
+                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""), "clean")
                 self.eng.log(f"hunt: nothing on {it.get('vuln_class')}@{it['url']}")
 
     def _hunt_agent(self, it):
@@ -315,9 +330,9 @@ class Engine:
     # ---------------- validate ----------------
     def validate(self):
         self.eng.set_phase("validate")
-        pending = [c for c in self.eng.state["candidates"]
-                   if not any(cf.get("url") == c["url"] and cf.get("vuln_class") == c["vuln_class"]
-                              for cf in self.eng.state["confirmed"])]
+        confirmed_keys = {self.eng._key(finding) for finding in self.eng.state["confirmed"]}
+        pending = [candidate for candidate in self.eng.state["candidates"]
+                   if self.eng._key(candidate) not in confirmed_keys]
         self.eng.log(f"validate: {len(pending)} candidate(s) to adversarially verify, {self.parallel} at a time")
         for c, v in self._run_parallel(self._validate_agent, pending):
             if v and v.get("real"):
@@ -357,10 +372,12 @@ class Engine:
         self.eng.set_phase("report")
         c = self.eng.state["confirmed"]
         s = self.eng.summary()
+        cov = closure.evaluate(self.eng.state)
         lines = [f"# Engagement report — {self.scope.name}", "",
                  f"In scope: `{'`, `'.join(self.scope.in_scope)}`  ",
                  f"Surface mapped: {s['surface']} · tested: {s['tested']} · "
-                 f"candidates: {s['candidates']} · **confirmed: {s['confirmed']}**", ""]
+                 f"candidates: {s['candidates']} · **confirmed: {s['confirmed']}**  ",
+                 f"Coverage: **{'complete' if cov['clean'] else 'INCOMPLETE'}** — {cov['reason']}", ""]
         if not c:
             lines += ["No confirmed findings.", ""]
         flagged = [f for f in c if f.get("scope_warning")]
@@ -379,6 +396,8 @@ class Engine:
                       f"- **Request:** `{f.get('request','')}`",
                       f"- **Verifier:** {f.get('verdict',{}).get('reason','')}", ""]
             lines += block
+        # Coverage caveats are generated from the ledger, never hand-written.
+        lines += ["", closure.render_caveats(self.eng.state, cov)]
         path = os.path.join(self.eng.dir, "report.md")
         open(path, "w").write("\n".join(lines))
         self.eng.log(f"report: wrote {len(c)} confirmed finding(s) -> {path}")
@@ -439,8 +458,12 @@ def main():
                     help="OPT-IN: skip provably-wasteful agent calls (known-confirmed / dead-class) "
                          "using the autopilot ledger. Default OFF = full coverage.")
     a = ap.parse_args()
-    if a.phases:
+    if a.phases is not None:
         phases = [p.strip() for p in a.phases.split(",") if p.strip()]
+        unknown = sorted(set(phases) - set(ALL_PHASES))
+        if unknown or not phases:
+            reason = f"unknown phase(s): {', '.join(unknown)}" if unknown else "no phases supplied"
+            ap.error(f"--phases: {reason}; choose from {', '.join(ALL_PHASES)}")
     elif a.hunt:
         phases = ALL_PHASES                       # full: map then auto-test
     else:

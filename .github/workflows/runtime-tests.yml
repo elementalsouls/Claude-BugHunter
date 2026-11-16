@@ -1,0 +1,63 @@
+name: runtime-tests
+
+on:
+  pull_request:
+    paths:
+      - "engine/**"
+      - "cbh/**"
+      - "scripts/cbh.py"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/runtime-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "engine/**"
+      - "cbh/**"
+      - "scripts/cbh.py"
+      - "tests/**"
+      - "pyproject.toml"
+      - ".github/workflows/runtime-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    name: Offline runtime checks (Python ${{ matrix.python }})
+    runs-on: ubuntu-22.04   # pin: 3.9 is not in the ubuntu-24.04/26.04 toolcache
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run deterministic engine self-tests
+        run: |
+          python engine/agent.py
+          python engine/recon.py
+          python engine/scope.py --selftest
+          python engine/state.py
+          python engine/memory.py
+      - name: Run mock orchestration and CLI entry point
+        run: |
+          scratch="$(mktemp -d)"
+          BUGHUNTER_MEMORY_DIR="$scratch/memory" python engine/engine.py \
+            --scope engine/engagement.example.json --base "$scratch" --mock --hunt
+          test -s "$scratch/demo-local/arsenal.md"
+          test -s "$scratch/demo-local/report.md"
+          python scripts/cbh.py --help
+      - name: Discover runtime regression tests
+        env:
+          PYTHONPATH: ".:engine"
+        run: |
+          for directory in engine tests; do
+            if [ -d "$directory" ] && [ -n "$(find "$directory" -name 'test*.py' -print -quit)" ]; then
+              python -m unittest discover -s "$directory"
+            fi
+          done

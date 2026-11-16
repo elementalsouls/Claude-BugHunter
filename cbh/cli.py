@@ -35,6 +35,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import socket
 import subprocess
 import sys
@@ -94,7 +95,7 @@ def section(title: str):
 
 
 def has_cmd(name: str) -> bool:
-    return subprocess.call(["which", name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+    return shutil.which(name) is not None
 
 
 def run_cmd(cmd: list[str], timeout: int = 30) -> tuple[int, str, str]:
@@ -201,17 +202,26 @@ def recon_subdomains_via_crtsh(target: str) -> set[str]:
         return set()
     try:
         rows = json.loads(body)
-    except Exception:
-        print("[warning] crt.sh returned unparseable JSON — subdomain results may be INCOMPLETE.",
+    except json.JSONDecodeError:
+        rows = None
+    if not isinstance(rows, list):
+        print("[warning] crt.sh returned an unexpected response — subdomain results may be INCOMPLETE.",
               file=sys.stderr, flush=True)
         return set()
     subs = set()
-    for r in rows:
-        nv = (r.get("name_value") or "").lower()
-        for line in nv.split("\n"):
-            line = line.strip()
-            if line and "*" not in line:
-                subs.add(line)
+    malformed = False
+    for row in rows:
+        names = row.get("name_value") if isinstance(row, dict) else None
+        if not isinstance(names, str):
+            malformed = True
+            continue
+        for name in names.lower().splitlines():
+            name = name.strip()
+            if name and "*" not in name:
+                subs.add(name)
+    if malformed:
+        print("[warning] crt.sh returned malformed entries — subdomain results may be INCOMPLETE.",
+              file=sys.stderr, flush=True)
     return subs
 
 
@@ -240,6 +250,7 @@ def recon_http_probe(host: str) -> dict | None:
         code, headers, body = http_get(url, timeout=4)
         if code == 0:
             continue
+        headers = {key.lower(): value for key, value in headers.items()}
         title = ""
         m = re.search(r"<title[^>]*>([^<]*)</title>", body[:8192], re.I)
         if m:
@@ -247,10 +258,10 @@ def recon_http_probe(host: str) -> dict | None:
         return {
             "url": url,
             "code": code,
-            "server": headers.get("Server", ""),
+            "server": headers.get("server", ""),
             "title": title,
-            "powered_by": headers.get("X-Powered-By", ""),
-            "drupal_cache": headers.get("X-Drupal-Cache", ""),
+            "powered_by": headers.get("x-powered-by", ""),
+            "drupal_cache": headers.get("x-drupal-cache", ""),
         }
     return None
 
@@ -839,6 +850,16 @@ def cmd_surface(args: argparse.Namespace) -> int:
         m = json.loads(mpath.read_text(encoding="utf-8"))
     except Exception as e:
         print(f"[error] could not parse {mpath}: {e}", file=sys.stderr)
+        return 1
+
+    if not isinstance(m, dict):
+        print(f"[error] invalid recon manifest at {mpath}: expected a JSON object", file=sys.stderr)
+        return 1
+    if not isinstance(m.get("counts", {}), dict) or not isinstance(m.get("ranked_surface", []), list):
+        print(f"[error] invalid recon manifest at {mpath}: invalid counts or ranked_surface", file=sys.stderr)
+        return 1
+    if any(not isinstance(row, dict) for row in m.get("ranked_surface", [])):
+        print(f"[error] invalid recon manifest at {mpath}: ranked_surface entries must be objects", file=sys.stderr)
         return 1
 
     section(f"surface — {m.get('target', target)}")

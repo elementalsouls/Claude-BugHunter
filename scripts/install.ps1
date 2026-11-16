@@ -196,20 +196,19 @@ function Uninstall-Bundle {
     Remove-Item -LiteralPath $Manifest -Force -ErrorAction SilentlyContinue
     Write-Host "  + removed $removed item(s); kept $kept still owned by another bundle"
 
-    # Strip the hunt.ps1 dot-source line from any PowerShell profile(s).
+    # Clean only the installer stanza in the current user's profiles.
+    $dotLine = '. "$HOME\.claude\scripts\hunt.ps1"'
+    $installerComment = '# Bug-bounty engagement scaffolding (Claude-BugHunter)'
     $profiles = @(
         $PROFILE.CurrentUserCurrentHost,
-        $PROFILE.CurrentUserAllHosts,
-        $PROFILE.AllUsersCurrentHost,
-        $PROFILE.AllUsersAllHosts
+        $PROFILE.CurrentUserAllHosts
     ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
     foreach ($p in $profiles) {
-        $content = Get-Content -Raw -LiteralPath $p
-        if ($content -match 'scripts[\\/]hunt\.ps1') {
+        $lines = (Get-Content -Raw -LiteralPath $p) -split "`r?`n"
+        if ($lines -ccontains $dotLine) {
             $bak = "$p.bak"
             Copy-Item -LiteralPath $p -Destination $bak -Force
-            $filtered = $content -split "`r?`n" |
-                Where-Object { $_ -notmatch 'scripts[\\/]hunt\.ps1' -and $_ -notmatch 'Bug-bounty engagement scaffolding' }
+            $filtered = $lines | Where-Object { $_ -cne $dotLine -and $_ -cne $installerComment }
             Write-HuntFile $p ($filtered -join "`r`n")
             Write-Host "  + removed hunt.ps1 source line from $p (backup: $bak)"
         }
@@ -331,14 +330,24 @@ if ($DO_AGENTS) {
 import os, re, sys
 root, strip_extra = sys.argv[1], sys.argv[2] == '1'
 LIMIT = 1024
-for name in sorted(os.listdir(root)):
+# Limit edits to copies from this bundle. The destination may contain
+# independently installed skills and symlinks.
+for name in sorted(os.listdir(sys.argv[3])):
+    if not os.path.isdir(os.path.join(sys.argv[3], name)):
+        continue
     p = os.path.join(root, name, 'SKILL.md')
-    if not os.path.isfile(p):
+    if os.path.islink(os.path.dirname(p)) or os.path.islink(p) or not os.path.isfile(p):
         continue
     lines = open(p, encoding='utf-8').read().split('\n')
+    if not lines or lines[0] != '---':
+        continue
+    try:
+        end = lines.index('---', 1)
+    except ValueError:
+        continue
     out, changed = [], False
     for i, line in enumerate(lines):
-        m = re.match(r'^description:\s*(.*)$', line) if i < 12 else None
+        m = re.match(r'^description:\s*(.*)$', line) if 0 < i < end else None
         if m:
             val = m.group(1)
             quoted = len(val) >= 2 and val[0] == val[-1] and val[0] in '"'"'"'"'
@@ -348,7 +357,7 @@ for name in sorted(os.listdir(root)):
                 line = 'description: "' + cut + '..."'
                 changed = True
                 print('    truncated ' + name + ' description ' + str(len(inner)) + '->' + str(len(cut)+1) + ' (Codex 1024 limit)')
-        if strip_extra and i < 12 and re.match(r'^(sources|report_count):\s', line):
+        if strip_extra and 0 < i < end and re.match(r'^(sources|report_count):\s', line):
             changed = True
             continue
         out.append(line)
@@ -358,7 +367,7 @@ for name in sorted(os.listdir(root)):
         $truncFile = Join-Path $env:TEMP 'cbh_trunc.py'
         Write-HuntFile $truncFile $trunc
         $pyExe = $py[0]
-        $pyRest = @($py | Select-Object -Skip 1) + @($truncFile, (Join-Path $HOME '.agents\skills'), "$(if ($NORMALIZE) { '1' } else { '0' })")
+        $pyRest = @($py | Select-Object -Skip 1) + @($truncFile, (Join-Path $HOME '.agents\skills'), "$(if ($NORMALIZE) { '1' } else { '0' })", $SkillsSource)
         & $pyExe $pyRest
         Remove-Item -LiteralPath $truncFile -Force -ErrorAction SilentlyContinue
     }

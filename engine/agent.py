@@ -46,8 +46,13 @@ def run_agent(task, skills_on=False, model="claude-sonnet-4-6", max_turns=40, ti
         # usage-limit / API errors come back as a short result with no real work
         if "usage limit" in res.lower() or "session limit" in res.lower():
             return {"result": res, "error": "rate-limited", "duration_s": round(time.time() - t0, 1)}
+        error = None
+        if d.get("is_error"):
+            error = d.get("subtype") or "agent-error"
+        elif p.returncode:
+            error = f"exit:{p.returncode}"
         return {"result": res, "cost_usd": d.get("total_cost_usd"),
-                "num_turns": d.get("num_turns"), "error": None,
+                "num_turns": d.get("num_turns"), "error": error,
                 "duration_s": round(time.time() - t0, 1)}
     except Exception as e:
         return {"result": p.stdout[:300], "error": f"parse:{e}", "duration_s": round(time.time() - t0, 1)}
