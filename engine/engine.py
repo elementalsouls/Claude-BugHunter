@@ -444,8 +444,12 @@ def main():
                     help="OPT-IN: skip provably-wasteful agent calls (known-confirmed / dead-class) "
                          "using the autopilot ledger. Default OFF = full coverage.")
     a = ap.parse_args()
-    if a.phases:
+    if a.phases is not None:
         phases = [p.strip() for p in a.phases.split(",") if p.strip()]
+        unknown = sorted(set(phases) - set(ALL_PHASES))
+        if unknown or not phases:
+            reason = f"unknown phase(s): {', '.join(unknown)}" if unknown else "no phases supplied"
+            ap.error(f"--phases: {reason}; choose from {', '.join(ALL_PHASES)}")
     elif a.hunt:
         phases = ALL_PHASES                       # full: map then auto-test
     else:
