@@ -25,3 +25,25 @@ class ValidationResumeTests(unittest.TestCase):
             runner.validate()
 
             runner._validate_agent.assert_called_once_with(second)
+
+    def test_resume_retries_inconclusive_but_not_rejected_candidates(self):
+        with tempfile.TemporaryDirectory() as base:
+            runner = engine.Engine.__new__(engine.Engine)
+            runner.eng = Engagement(base, "synthetic")
+            rejected = {"url": "https://example.test/a", "vuln_class": "xss"}
+            inconclusive = {**rejected, "url": "https://example.test/b"}
+            runner.eng.add_candidate(rejected)
+            runner.eng.add_candidate(inconclusive)
+            runner.scope = Scope(["example.test"])
+            runner.parallel = 1
+            runner._validate_agent = Mock(side_effect=[
+                {"real": False, "reason": "unexploitable"},
+                {"real": False, "errored": True, "reason": "timeout"},
+            ])
+            runner.validate()
+
+            runner.eng = Engagement(base, "synthetic")
+            runner._validate_agent = Mock(return_value={"errored": True})
+            runner.validate()
+
+            runner._validate_agent.assert_called_once_with(inconclusive)
