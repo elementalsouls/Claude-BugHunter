@@ -48,6 +48,13 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
 HEADERS = {"User-Agent": UA, "Content-Type": "application/json",
            "Origin": "https://hackerone.com", "Referer": "https://hackerone.com/hacktivity"}
 PAGE_SIZE = 50
+HACKERONE_REPORT_URL = re.compile(
+    r"\bhttps?://(?:www\.)?hackerone\.com/reports/(\d+)(?![\w-])", re.IGNORECASE
+)
+
+
+def report_ids(text):
+    return HACKERONE_REPORT_URL.findall(text)
 
 # Same node fields h1_reference.py requests — metadata only, no body (body is null
 # unauthenticated). Kept identical to inherit the documented crash-safe combo.
