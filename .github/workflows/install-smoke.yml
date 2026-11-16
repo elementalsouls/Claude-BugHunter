@@ -61,6 +61,12 @@ jobs:
           echo "antigravity skills: $ag"
           [ "$ag" -ge 80 ] || { echo "FAIL: --antigravity did not land skills in ~/.gemini/config/skills"; exit 1; }
           [ ! -d "$T/.gemini/antigravity/skills" ] || { echo "FAIL: skills landed in the wrong (antigravity/skills) path"; exit 1; }
+          # Codex normalization only edits bundle skills and their frontmatter.
+          mkdir -p "$T/.agents/skills/unrelated"
+          printf '%s\n' '---' 'description: external' 'sources: custom' '---' > "$T/unrelated.md"
+          cp "$T/unrelated.md" "$T/.agents/skills/unrelated/SKILL.md"
+          HOME="$T" bash scripts/install.sh --agents --normalize-frontmatter --no-shell
+          cmp "$T/unrelated.md" "$T/.agents/skills/unrelated/SKILL.md"
           # uninstall removes the footprint
           HOME="$T" bash scripts/install.sh --uninstall >/dev/null
           left=$(find "$T/.claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
