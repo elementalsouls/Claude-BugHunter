@@ -14,19 +14,22 @@ import time
 
 ENGINE = os.path.dirname(os.path.abspath(__file__))
 MCP_CONFIG = os.path.join(ENGINE, "burp-mcp.json")
-ALLOWED_TOOLS = " ".join([
+BURP_TOOLS = [
     "mcp__burp__send_http1_request", "mcp__burp__send_http2_request",
     "mcp__burp__get_collaborator_interactions", "mcp__burp__generate_collaborator_payload",
-    "Bash(curl:*)", "Bash(python3:*)", "Bash(jq:*)", "Bash(openssl:*)", "Bash(base64:*)",
-])
+]
+SHELL_TOOLS = ["Bash(curl:*)", "Bash(python3:*)", "Bash(jq:*)", "Bash(openssl:*)", "Bash(base64:*)"]
 
 
 def run_agent(task, skills_on=False, model="claude-sonnet-4-6", max_turns=40, timeout=600):
     # skills OFF by default: the eval showed they add ~0 capability but cost ~12-15k tokens/agent.
+    has_burp = os.path.exists(MCP_CONFIG)
+    config = MCP_CONFIG if has_burp else '{"mcpServers":{}}'
+    allowed_tools = SHELL_TOOLS + (BURP_TOOLS if has_burp else [])
     cmd = ["claude", "-p", task,
-           "--mcp-config", MCP_CONFIG, "--strict-mcp-config",
+           "--mcp-config", config, "--strict-mcp-config",
            "--permission-mode", "bypassPermissions",
-           "--allowedTools", ALLOWED_TOOLS,
+           "--allowedTools", " ".join(allowed_tools),
            "--max-turns", str(max_turns), "--model", model,
            "--output-format", "json"]
     if not skills_on:
