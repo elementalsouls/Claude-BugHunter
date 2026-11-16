@@ -87,7 +87,8 @@ def main():
     except Exception:
         sys.exit(f"trap app not reachable at {a.base} — start it: python3 eval/fp_app.py 3002 &")
 
-    cases = json.load(open(a.cases))
+    with open(a.cases, encoding="utf-8") as stream:
+        cases = json.load(stream)
     conds = [c.strip() for c in a.conditions.split(",") if c.strip()]
     # Validate up front: an unknown/typo'd condition (e.g. "skils") would silently run as
     # baseline under the wrong label and quietly invalidate the ablation.
