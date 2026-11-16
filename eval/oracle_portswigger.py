@@ -16,6 +16,7 @@ implementation: canhieu2412/BSCPscan pwnbscp/recon.py _detect_lab_solved.)
 """
 import sys
 import urllib.request
+from html.parser import HTMLParser
 
 
 def ps_solved(instance_url, timeout=12):
@@ -30,18 +31,25 @@ def ps_solved(instance_url, timeout=12):
     return _classify(html)
 
 
+class LabStatusParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.states = set()
+
+    def handle_starttag(self, tag, attrs):
+        classes = set((dict(attrs).get("class") or "").split())
+        if "widgetcontainer-lab-status" in classes:
+            self.states.update(classes & {"is-solved", "is-notsolved"})
+
+
 def _classify(html):
-    # primary: the widget class is authoritative
-    if "widgetcontainer-lab-status is-solved" in html:
+    parser = LabStatusParser()
+    parser.feed(html)
+    if parser.states == {"is-solved"}:
         return True, True
-    if "widgetcontainer-lab-status is-notsolved" in html:
+    if parser.states == {"is-notsolved"}:
         return False, True
-    # secondary: bare class / status text (handles minor markup variation)
-    if "is-notsolved" in html or "Not solved" in html:
-        return False, True
-    if "is-solved" in html or ">Solved<" in html:
-        return True, True
-    return None, False  # widget not present — probably not a live lab instance
+    return None, False
 
 
 def _selftest():
@@ -53,7 +61,13 @@ def _selftest():
     assert _classify(NOTSOLVED) == (False, True), "not-solved widget"
     assert _classify(DQ_SOLVED) == (True, True), "double-quoted solved"
     assert _classify(NEITHER) == (None, False), "no widget"
-    print("oracle_portswigger parser self-test: PASS (4/4)")
+    reordered = '<div class="is-solved extra widgetcontainer-lab-status"></div>'
+    assert _classify(reordered) == (True, True), "class order is not significant"
+    assert _classify("<main><p>Solved</p></main>") == (None, False), "unrelated label"
+    decoy = "<script>const x = 'widgetcontainer-lab-status is-solved';</script>"
+    assert _classify(decoy + NOTSOLVED) == (False, True), "only the widget counts"
+    assert _classify(SOLVED + NOTSOLVED) == (None, False), "conflicting widget states"
+    print("oracle_portswigger parser self-test: PASS (8/8)")
 
 
 if __name__ == "__main__":
