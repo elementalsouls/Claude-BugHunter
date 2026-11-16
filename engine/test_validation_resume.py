@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import Mock
 
 import engine
+from scope import Scope
 from state import Engagement
 
 
@@ -18,6 +19,7 @@ class ValidationResumeTests(unittest.TestCase):
 
             runner = engine.Engine.__new__(engine.Engine)
             runner.eng = Engagement(base, "synthetic")
+            runner.scope = Scope(["example.test"])
             runner.parallel = 1
             runner._validate_agent = Mock(return_value={"real": False, "reason": "synthetic"})
             runner.validate()
