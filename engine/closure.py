@@ -8,7 +8,7 @@ pentest deliverable can have. `tested: 47` cannot answer "which classes were
 never tried on host X" — this can, and the report renders its caveats from it
 rather than from hand-written prose.
 
-    CLOSE CLEAN when  every discovered (host, vuln_class) pair has a verdict
+    CLOSE CLEAN when  every discovered (URL, parameter, vuln_class) item has a verdict
     otherwise         MARKED, and the gaps ship as caveats
 
 `coverage_complete` is a HARD gate. An engagement with one geo-blocked host
@@ -20,7 +20,11 @@ Pure functions over the state dict, testable without running agents.
 Run `python3 engine/closure.py` for the self-check.
 """
 
-# A (host, vuln_class) pair is only "covered" by one of these verdicts.
+from collections import defaultdict
+
+from state import Engagement
+
+# A work item is only "covered" by one of these verdicts.
 # BLOCKED is deliberately absent — it is a gap, and gaps become caveats.
 COVERED = {"clean", "finding", "not_applicable", "out_of_scope"}
 VERDICTS = COVERED | {"blocked"}
@@ -44,16 +48,28 @@ def expected_coverage(state):
 
 def coverage_gaps(state):
     """Pairs with no verdict, or an explicitly blocked one. Sorted for stable reports."""
-    cov = state.get("coverage", {})
+    legacy = state.get("coverage", {})
+    by_item = state.get("coverage_by_item", {})
+    pairs = defaultdict(list)
+    for item in state.get("surface", []):
+        if item.get("vuln_class"):
+            pairs[(_host(item["url"]), item["vuln_class"])].append(item)
+
     gaps = []
-    for host, cls in expected_coverage(state):
-        rec = cov.get(f"{host}|{cls}")
-        if rec is None:
-            gaps.append({"host": host, "vuln_class": cls, "state": "never_tested", "note": ""})
-        elif rec.get("verdict") == "blocked":
-            gaps.append({"host": host, "vuln_class": cls, "state": "blocked",
-                         "note": rec.get("note", "")})
-    return sorted(gaps, key=lambda g: (g["host"], g["vuln_class"]))
+    for (host, cls), items in sorted(pairs.items()):
+        for item in items:
+            rec = by_item.get(Engagement._key(item))
+            if rec is None and len(items) == 1:
+                rec = legacy.get(f"{host}|{cls}")
+            rec = rec or {}
+            verdict = rec.get("verdict")
+            if verdict not in COVERED:
+                gap = {"host": host, "vuln_class": cls, "url": item["url"],
+                       "param": item.get("param", ""), "state": "never_tested", "note": ""}
+                if verdict == "blocked":
+                    gap.update(state="blocked", note=rec.get("note", ""))
+                gaps.append(gap)
+    return gaps
 
 
 def coverage_complete(state):
@@ -65,7 +81,7 @@ def evaluate(state):
     gaps = coverage_gaps(state)
     if not gaps:
         return {"clean": True, "gaps": [],
-                "reason": "every discovered (host, vulnerability class) pair reached a verdict"}
+                "reason": "every discovered work item reached a verdict"}
     blocked = sum(1 for g in gaps if g["state"] == "blocked")
     never = len(gaps) - blocked
     bits = ([f"{blocked} blocked"] if blocked else []) + ([f"{never} never tested"] if never else [])
@@ -77,7 +93,7 @@ def render_caveats(state, decision=None):
     """The 'not tested' section, generated from the ledger rather than written by hand."""
     d = decision or evaluate(state)
     if d["clean"]:
-        return ("## Coverage\n\nEvery discovered (host, vulnerability class) pair reached a "
+        return ("## Coverage\n\nEvery discovered work item reached a "
                 "verdict. No coverage caveats apply.\n")
 
     gaps = d["gaps"]
@@ -86,14 +102,18 @@ def render_caveats(state, decision=None):
     out = ["## Not tested — do not read as passing\n",
            "**This engagement did not reach full coverage.** The surface below was discovered "
            "and never cleared.\n"]
+    def describe(gap):
+        param = f" (parameter `{gap['param']}`)" if gap["param"] else ""
+        return f"- `{gap['host']}` · {gap['vuln_class']} · `{gap['url']}`{param}"
+
     if blocked:
         out.append("\n**Blocked — reachable surface that could not be assessed:**\n")
         for g in blocked:
-            out.append(f"- `{g['host']}` · {g['vuln_class']}" + (f" — {g['note']}" if g["note"] else ""))
+            out.append(describe(g) + (f" — {g['note']}" if g["note"] else ""))
     if never:
         out.append("\n**Never tested — discovered but never reached:**\n")
         for g in never:
-            out.append(f"- `{g['host']}` · {g['vuln_class']}")
+            out.append(describe(g))
     out.append("\nAbsence of a finding above is not evidence of absence of a vulnerability.\n")
     return "\n".join(out)
 

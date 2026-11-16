@@ -17,6 +17,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -54,7 +55,9 @@ def test_gap_reaches_the_report_file():
         st = json.load(open(os.path.join(d, "state.json")))
         # mark one genuinely-discovered pair blocked, then re-report
         host, cls = sorted(closure.expected_coverage(st))[0]
-        st["coverage"][f"{host}|{cls}"] = {"verdict": "blocked", "note": "edge 403 — needs allowlisted IP"}
+        item = next(it for it in st["surface"]
+                    if closure._host(it["url"]) == host and it["vuln_class"] == cls)
+        st["coverage_by_item"][Engagement._key(item)] = {"verdict": "blocked", "note": "edge 403 — needs allowlisted IP"}
         json.dump(st, open(os.path.join(d, "state.json"), "w"))
         _, rep = _run(t, "report")
         assert "Coverage: **INCOMPLETE**" in rep
@@ -78,7 +81,7 @@ def test_unknown_verdict_rejected():
     with tempfile.TemporaryDirectory() as t:
         e = Engagement(t, "x")
         try:
-            e.record_coverage("h.test", "idor", "probably-fine")
+            e.record_coverage({"url": "https://h.test", "vuln_class": "idor"}, "probably-fine")
         except ValueError:
             print("  ok  an unknown verdict is rejected at write time")
             return
@@ -103,3 +106,30 @@ if __name__ == "__main__":
                test_legacy_state_upgrades):
         fn()
     print("all coverage-ledger assertions pass")
+
+class CoverageWorkItemTests(unittest.TestCase):
+    def test_one_verdict_cannot_cover_an_untried_endpoint(self):
+        first = {"url": "https://a.test/first", "vuln_class": "idor", "param": "a"}
+        second = {"url": "https://a.test/second", "vuln_class": "idor", "param": "b"}
+        with tempfile.TemporaryDirectory() as base:
+            engagement = Engagement(base, "synthetic")
+            engagement.add_surface([first, second])
+            engagement.mark_tested(first, coverage="clean")
+            resumed = Engagement(base, "synthetic")
+            self.assertEqual(resumed.worklist(), [second])
+            self.assertEqual([g["url"] for g in closure.coverage_gaps(resumed.state)],
+                             [second["url"]])
+            resumed.record_coverage(second, "blocked", "timeout")
+            self.assertIn("parameter `b`", closure.render_caveats(resumed.state))
+            resumed.mark_tested(second, coverage="clean")
+            self.assertTrue(closure.coverage_complete(resumed.state))
+
+    def test_legacy_pair_does_not_prove_coverage_of_multiple_items(self):
+        state = {
+            "surface": [
+                {"url": "https://a.test/first", "vuln_class": "idor"},
+                {"url": "https://a.test/second", "vuln_class": "idor"},
+            ],
+            "coverage": {"a.test|idor": {"verdict": "clean"}},
+        }
+        self.assertEqual(len(closure.coverage_gaps(state)), 2)

@@ -249,9 +249,8 @@ class Engine:
         for it in wl:
             if not self.scope.in_scope_host(it["url"]):     # belt-and-suspenders scope gate
                 self.eng.log(f"hunt: REFUSING out-of-scope {it['url']} ({self.scope.reject_reason(it['url'])})")
-                self.eng.mark_tested(it)
-                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""),
-                                         "out_of_scope", self.scope.reject_reason(it["url"]))
+                self.eng.mark_tested(it, coverage="out_of_scope",
+                                     note=self.scope.reject_reason(it["url"]))
                 continue
             if self.use_memory:
                 d = memory.skip_decision(memory._host(it["url"]), tech, it)
@@ -260,9 +259,7 @@ class Engine:
                                  f"{it.get('vuln_class')}@{it['url']}")
                     if d["carry"]:
                         self.eng.confirm(d["carry"], d["carry"]["verdict"])
-                    self.eng.mark_tested(it)
-                    self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""),
-                                             "finding" if d["carry"] else "clean")
+                    self.eng.mark_tested(it, coverage="finding" if d["carry"] else "clean")
                     continue
             todo.append(it)
         self.eng.log(f"hunt: testing {len(todo)} item(s), {self.parallel} at a time")
@@ -276,8 +273,7 @@ class Engine:
                 self.eng.log(f"hunt: ⚠ NOT tested ({reason}) — left on worklist: "
                              f"{it.get('vuln_class')}@{it.get('url')}")
                 # blocked is NOT covered — it ships as a caveat until it is retried
-                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""),
-                                         "blocked", reason)
+                self.eng.record_coverage(it, "blocked", reason)
                 continue
             if f.get("vulnerable"):
                 oos = self._scope_audit(f)
@@ -285,14 +281,12 @@ class Engine:
                         "severity": f.get("severity", "unknown"), "evidence": f.get("evidence", ""),
                         "request": f.get("request", ""), "proof_note": f.get("proof_note", ""),
                         "scope_warning": oos or None}
-                self.eng.mark_tested(it, candidate=cand)
-                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""), "finding")
+                self.eng.mark_tested(it, candidate=cand, coverage="finding")
                 self.eng.log((f"hunt: ⚠ CANDIDATE {cand['vuln_class']} @ {it['url']} — PoC touched OUT-OF-SCOPE "
                               f"host(s): {', '.join(oos)} (flagged)") if oos
                              else f"hunt: CANDIDATE {cand['vuln_class']} @ {it['url']}")
             else:
-                self.eng.mark_tested(it)
-                self.eng.record_coverage(closure._host(it["url"]), it.get("vuln_class", ""), "clean")
+                self.eng.mark_tested(it, coverage="clean")
                 self.eng.log(f"hunt: nothing on {it.get('vuln_class')}@{it['url']}")
 
     def _hunt_agent(self, it):
