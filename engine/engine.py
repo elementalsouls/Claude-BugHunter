@@ -318,8 +318,15 @@ class Engine:
         pending = [c for c in self.eng.state["candidates"]
                    if not any(cf.get("url") == c["url"] and cf.get("vuln_class") == c["vuln_class"]
                               for cf in self.eng.state["confirmed"])]
-        self.eng.log(f"validate: {len(pending)} candidate(s) to adversarially verify, {self.parallel} at a time")
-        for c, v in self._run_parallel(self._validate_agent, pending):
+        in_scope = []
+        for candidate in pending:
+            reason = self.scope.reject_reason(candidate["url"])
+            if reason is not None:
+                self.eng.log(f"validate: REFUSING {candidate['url']} ({reason})")
+                continue
+            in_scope.append(candidate)
+        self.eng.log(f"validate: {len(in_scope)} candidate(s) to adversarially verify, {self.parallel} at a time")
+        for c, v in self._run_parallel(self._validate_agent, in_scope):
             if v and v.get("real"):
                 if v.get("severity"):
                     c["severity"] = v["severity"]  # use the validator's CALIBRATED severity, not the hunt's
