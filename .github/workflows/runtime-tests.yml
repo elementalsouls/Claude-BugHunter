@@ -26,7 +26,7 @@ permissions:
 jobs:
   offline:
     name: Offline runtime checks (Python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04   # pin: 3.9 is not in the ubuntu-24.04/26.04 toolcache
     timeout-minutes: 5
     strategy:
       fail-fast: false
