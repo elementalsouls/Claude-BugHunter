@@ -52,16 +52,16 @@ def _stack_sig(tech_stack):
     return "|".join(sorted({t.lower() for t in (tech_stack or []) if t}))
 
 
-def _rotate_if_needed(path):
+def _rotate_if_needed(path, max_bytes=MAX_BYTES, keep=KEEP):
     try:
-        if os.path.getsize(path) < MAX_BYTES:
+        if os.path.getsize(path) < max_bytes:
             return
     except FileNotFoundError:
         return
-    oldest = f"{path}.{KEEP}"
+    oldest = f"{path}.{keep}"
     if os.path.exists(oldest):
         os.remove(oldest)
-    for i in range(KEEP - 1, 0, -1):
+    for i in range(keep - 1, 0, -1):
         s, d = f"{path}.{i}", f"{path}.{i + 1}"
         if os.path.exists(s):
             os.replace(s, d)
@@ -225,7 +225,7 @@ def gc(action="report", max_mb=10, keep=KEEP, root=None):
             live_sz = os.path.getsize(live) if os.path.exists(live) else 0
             total = live_sz + sum(os.path.getsize(b) for b in backups)
             if action == "rotate" and live_sz >= max_mb * 1024 * 1024:
-                _rotate_if_needed(live)
+                _rotate_if_needed(live, max_bytes=max_mb * 1024 * 1024, keep=keep)
             if action == "purge-backups":
                 for b in backups:
                     os.remove(b)
