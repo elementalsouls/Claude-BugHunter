@@ -15,6 +15,8 @@ import json
 import re
 import subprocess
 from shutil import which
+from tempfile import TemporaryDirectory
+from pathlib import Path
 from urllib.parse import urlparse
 
 
@@ -68,24 +70,26 @@ def _fingerprint(headers, body):
 
 def probe(host, timeout=12):
     """Probe https then http; return target dict or None if dead."""
-    for scheme in ("https", "http"):
-        url = f"{scheme}://{host}/"
-        out = _run(["curl", "-s", "-m", str(timeout), "-L", "-D", "-", "-o", "/tmp/_osint_body", url], timeout + 6)
-        codes = re.findall(r'^HTTP/\S+\s+(\d{3})', out, re.M)
-        if not codes:
-            continue
-        headers = {}
-        for line in out.splitlines():
-            m = re.match(r'^([A-Za-z0-9\-]+):\s*(.*?)\s*$', line)
-            if m:
-                headers[m.group(1).lower()] = m.group(2)
-        try:
-            body = open("/tmp/_osint_body", encoding="utf-8", errors="replace").read()
-        except Exception:
-            body = ""
-        title = (re.search(r'<title[^>]*>([^<]*)', body, re.I) or [None, ""])[1].strip()
-        return {"host": host, "url": f"{scheme}://{host}/", "status": int(codes[-1]),
-                "server": headers.get("server", ""), "title": title[:70], "tech": _fingerprint(headers, body)}
+    with TemporaryDirectory(prefix="cbh-osint-") as scratch:
+        for scheme in ("https", "http"):
+            url = f"{scheme}://{host}/"
+            body_path = Path(scratch) / scheme
+            out = _run(["curl", "-s", "-m", str(timeout), "-L", "-D", "-", "-o", str(body_path), url], timeout + 6)
+            codes = re.findall(r'^HTTP/\S+\s+(\d{3})', out, re.M)
+            if not codes:
+                continue
+            headers = {}
+            for line in out.splitlines():
+                m = re.match(r'^([A-Za-z0-9\-]+):\s*(.*?)\s*$', line)
+                if m:
+                    headers[m.group(1).lower()] = m.group(2)
+            try:
+                body = body_path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                body = ""
+            title = (re.search(r'<title[^>]*>([^<]*)', body, re.I) or [None, ""])[1].strip()
+            return {"host": host, "url": f"{scheme}://{host}/", "status": int(codes[-1]),
+                    "server": headers.get("server", ""), "title": title[:70], "tech": _fingerprint(headers, body)}
     return None
 
 
