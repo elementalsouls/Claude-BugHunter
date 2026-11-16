@@ -252,7 +252,9 @@ pwsh ./scripts/install.ps1 -Uninstall
 ```
 
 This removes the bundle's skills, slash commands, the `hunt.sh`/`hunt.ps1` script, and its
-shell-rc source line. Skills you also installed from the **sister bundle**
+shell-rc source line. Extra harness copies are removed only when the installer
+recorded that it installed to the harness. If you installed extra harness copies
+with an older installer, remove those copies manually. Skills you also installed from the **sister bundle**
 [Claude-OSINT](https://github.com/elementalsouls/Claude-OSINT) — `offensive-osint`
 and `osint-methodology` — are **kept** if Claude-OSINT's manifest still claims them,
 so uninstalling one bundle never breaks the other. (Install backups under

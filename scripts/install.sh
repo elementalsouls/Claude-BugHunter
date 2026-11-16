@@ -51,6 +51,7 @@ BACKUP_DEST="$HOME/.claude/install-backups/$(date +%Y%m%d-%H%M%S)"
 BUNDLE_NAME="claude-bughunter"
 MANIFEST_DIR="$HOME/.claude/.skill-manifests"
 MANIFEST="$MANIFEST_DIR/$BUNDLE_NAME.txt"
+HARNESS_MANIFEST_DIR="$MANIFEST_DIR/$BUNDLE_NAME-harnesses"
 
 usage() { sed -n '2,/^# ===/p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'; }
 
@@ -80,7 +81,7 @@ uninstall_bundle() {
     return 0
   fi
   echo "Uninstalling $BUNDLE_NAME using $MANIFEST"
-  local rel target other owned removed=0 kept=0
+  local rel target other owned removed=0 kept=0 label
   while IFS= read -r rel; do
     [ -z "$rel" ] && continue
     target="$HOME/.claude/$rel"
@@ -94,12 +95,15 @@ uninstall_bundle() {
       kept=$((kept + 1))                 # another bundle still owns it — keep
     else
       rm -rf "$target"
-      if [ -e "$HOME/.agents/$rel" ]; then rm -rf "$HOME/.agents/$rel"; fi
-      if [ -e "$HOME/.hermes/$rel" ]; then rm -rf "$HOME/.hermes/$rel"; fi
-      if [ -e "$HOME/.gemini/config/$rel" ]; then rm -rf "$HOME/.gemini/config/$rel"; fi
+      if [[ "$rel" == skills/* ]]; then
+        if [ -f "$HARNESS_MANIFEST_DIR/agents" ]; then rm -rf "$HOME/.agents/$rel"; fi
+        if [ -f "$HARNESS_MANIFEST_DIR/hermes" ]; then rm -rf "$HOME/.hermes/$rel"; fi
+        if [ -f "$HARNESS_MANIFEST_DIR/antigravity" ]; then rm -rf "$HOME/.gemini/config/$rel"; fi
+      fi
       removed=$((removed + 1))
     fi
   done < "$MANIFEST"
+  for label in agents hermes antigravity; do rm -f "$HARNESS_MANIFEST_DIR/$label"; done
   rm -f "$MANIFEST"
   echo "  ✓ removed $removed item(s); kept $kept still owned by another bundle"
   # The hunt.sh rc source line is ours alone — strip it from shell rc files.
@@ -243,8 +247,14 @@ echo "    Uninstall later with:  bash scripts/install.sh --uninstall"
 echo ""
 
 # === Extra harness targets (skills only) ===
+record_harness() {
+  mkdir -p "$HARNESS_MANIFEST_DIR"
+  touch "$HARNESS_MANIFEST_DIR/$1"
+}
+
 if [ "$DO_AGENTS" = "1" ]; then
   install_skills "$HOME/.agents/skills" "agents"
+  record_harness agents
   # Codex (which reads ~/.agents/skills) HARD-rejects descriptions > 1024 chars.
   # Auto-truncate over-length descriptions in THIS copy only — ~/.claude and
   # ~/.hermes keep full descriptions. Optional --normalize-frontmatter also strips
@@ -281,8 +291,14 @@ for name in sorted(os.listdir(root)):
 PY
   fi
 fi
-if [ "$DO_HERMES" = "1" ]; then install_skills "$HOME/.hermes/skills" "hermes"; fi
-if [ "$DO_ANTIGRAVITY" = "1" ]; then install_skills "$HOME/.gemini/config/skills" "antigravity"; fi
+if [ "$DO_HERMES" = "1" ]; then
+  install_skills "$HOME/.hermes/skills" "hermes"
+  record_harness hermes
+fi
+if [ "$DO_ANTIGRAVITY" = "1" ]; then
+  install_skills "$HOME/.gemini/config/skills" "antigravity"
+  record_harness antigravity
+fi
 
 # === Opt-in: wire the existing Burp MCP into the selected harnesses ===
 if [ "$DO_MCP" = "1" ]; then

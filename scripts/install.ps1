@@ -60,6 +60,7 @@ $BackupDest = Join-Path $HOME ".claude\install-backups\$Timestamp"
 $BundleName   = 'claude-bughunter'
 $ManifestDir  = Join-Path $HOME '.claude\.skill-manifests'
 $Manifest     = Join-Path $ManifestDir "$BundleName.txt"
+$HarnessManifestDir = Join-Path $ManifestDir "$BundleName-harnesses"
 $ScriptsDest  = Join-Path $HOME '.claude\scripts'
 $SkillsSource = Join-Path $RepoDir 'skills'
 $CommandsSrc  = Join-Path $RepoDir 'commands'
@@ -175,6 +176,14 @@ function Uninstall-Bundle {
     $otherSets = foreach ($o in $others) {
         ,(Get-Content -LiteralPath $o.FullName | Where-Object { $_ })
     }
+    $extraRoots = @{
+        agents = (Join-Path $HOME '.agents')
+        hermes = (Join-Path $HOME '.hermes')
+        antigravity = (Join-Path $HOME '.gemini\config')
+    }
+    $trackedHarnesses = @($extraRoots.Keys | Where-Object {
+        Test-Path -LiteralPath (Join-Path $HarnessManifestDir $_) -PathType Leaf
+    })
     $removed = 0; $kept = 0
     foreach ($rel in (Get-Content -LiteralPath $Manifest | Where-Object { $_ })) {
         $target = Join-Path $HOME ".claude\$rel"
@@ -182,14 +191,19 @@ function Uninstall-Bundle {
         foreach ($s in $otherSets) { if ($s -contains $rel) { $owned = $true; break } }
         if ($owned) { $kept++ } else {
             if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue }
-            $agentsTarget = Join-Path $HOME ".agents\$rel"
-            if (Test-Path -LiteralPath $agentsTarget) { Remove-Item -LiteralPath $agentsTarget -Recurse -Force -ErrorAction SilentlyContinue }
-            $hermesTarget = Join-Path $HOME ".hermes\$rel"
-            if (Test-Path -LiteralPath $hermesTarget) { Remove-Item -LiteralPath $hermesTarget -Recurse -Force -ErrorAction SilentlyContinue }
-            $antiGravityTarget = Join-Path $HOME ".gemini\config\$rel"
-            if (Test-Path -LiteralPath $antiGravityTarget) { Remove-Item -LiteralPath $antiGravityTarget -Recurse -Force -ErrorAction SilentlyContinue }
+            if ($rel -like 'skills/*') {
+                foreach ($label in $trackedHarnesses) {
+                    $extraTarget = Join-Path $extraRoots[$label] $rel
+                    if (Test-Path -LiteralPath $extraTarget) {
+                        Remove-Item -LiteralPath $extraTarget -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            }
             $removed++
         }
+    }
+    foreach ($label in $trackedHarnesses) {
+        Remove-Item -LiteralPath (Join-Path $HarnessManifestDir $label) -Force -ErrorAction SilentlyContinue
     }
     Remove-Item -LiteralPath $Manifest -Force -ErrorAction SilentlyContinue
     Write-Host "  + removed $removed item(s); kept $kept still owned by another bundle"
@@ -320,8 +334,13 @@ Write-Host "    Uninstall later with:  pwsh ./scripts/install.ps1 -Uninstall"
 Write-Host ''
 
 # --- extra harness targets (skills only) ------------------------------
+function Record-Harness([string] $Label) {
+    Write-HuntFile (Join-Path $HarnessManifestDir $Label) ''
+}
+
 if ($DO_AGENTS) {
     Install-Skills (Join-Path $HOME '.agents\skills') 'agents'
+    Record-Harness 'agents'
     $py = Get-Python
     if ($py) {
         $limit = 1024
@@ -362,8 +381,14 @@ for name in sorted(os.listdir(root)):
         Remove-Item -LiteralPath $truncFile -Force -ErrorAction SilentlyContinue
     }
 }
-if ($DO_HERMES) { Install-Skills (Join-Path $HOME '.hermes\skills') 'hermes' }
-if ($DO_ANTIGRAVITY) { Install-Skills (Join-Path $HOME '.gemini\config\skills') 'antigravity' }
+if ($DO_HERMES) {
+    Install-Skills (Join-Path $HOME '.hermes\skills') 'hermes'
+    Record-Harness 'hermes'
+}
+if ($DO_ANTIGRAVITY) {
+    Install-Skills (Join-Path $HOME '.gemini\config\skills') 'antigravity'
+    Record-Harness 'antigravity'
+}
 
 # --- opt-in Burp MCP wiring -------------------------------------------
 if ($DO_MCP) {

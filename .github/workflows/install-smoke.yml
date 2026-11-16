@@ -61,8 +61,13 @@ jobs:
           echo "antigravity skills: $ag"
           [ "$ag" -ge 80 ] || { echo "FAIL: --antigravity did not land skills in ~/.gemini/config/skills"; exit 1; }
           [ ! -d "$T/.gemini/antigravity/skills" ] || { echo "FAIL: skills landed in the wrong (antigravity/skills) path"; exit 1; }
-          # uninstall removes the footprint
+          # Create a separate Codex copy in a harness this install did not target.
+          mkdir -p "$T/.agents/skills/bug-bounty"
+          printf '%s\n' 'custom Codex copy' > "$T/.agents/skills/bug-bounty/SKILL.md"
+          # Uninstall removes the tracked footprint and preserves the Codex copy.
           HOME="$T" bash scripts/install.sh --uninstall >/dev/null
+          test ! -e "$T/.gemini/config/skills/bug-bounty"
+          grep -qxF 'custom Codex copy' "$T/.agents/skills/bug-bounty/SKILL.md"
           left=$(find "$T/.claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
           echo "claude skills after uninstall: $left"
           rm -rf "$T"
