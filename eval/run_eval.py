@@ -64,8 +64,12 @@ def wait_ready(base, tries=40):
 
 def reset_target(container, base):
     """Restart Juice Shop → clean (all-unsolved) state, so each run is isolated."""
-    subprocess.run(["docker", "restart", container], capture_output=True)
-    return wait_ready(base)
+    try:
+        result = subprocess.run(["docker", "restart", container], capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and wait_ready(base)
+
 
 
 JUICE_DESC = ("this is a local OWASP Juice Shop instance, a deliberately vulnerable "
@@ -154,7 +158,7 @@ def main():
             skills_on = (cond == "skills")
             print(f"\n[{ch['key']} | {cond}] resetting target...", flush=True)
             if not reset_target(a.container, a.base):
-                print("  ! target did not come back up — skipping"); continue
+                print("  ! target reset or readiness check failed — skipping"); continue
             pre, found = oracle(a.base, ch["oracle_name"])
             if not found:
                 print(f"  ! oracle challenge {ch['oracle_name']!r} not found — skipping"); continue
