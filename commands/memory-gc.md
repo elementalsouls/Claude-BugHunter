@@ -1,6 +1,6 @@
 ---
 name: memory-gc
-description: Inspect or rotate the autopilot ledger JSONL files (findings.jsonl, negatives.jsonl). Caps file size and keeps N rotated backups so memory does not grow unbounded.
+description: "Inspect or rotate the autopilot ledger JSONL files (findings.jsonl, negatives.jsonl). Caps file size and keeps N rotated backups so memory does not grow unbounded."
 ---
 
 # /memory-gc

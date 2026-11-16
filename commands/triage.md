@@ -1,6 +1,6 @@
 ---
 name: triage
-description: Quick 7-Question Gate triage on a finding before writing a report. Kills N/A submissions before they happen. Faster than /validate — for quick go/no-go decisions. Usage: /triage
+description: "Quick 7-Question Gate triage on a finding before writing a report. Kills N/A submissions before they happen. Faster than /validate — for quick go/no-go decisions. Usage: /triage"
 ---
 
 # /triage

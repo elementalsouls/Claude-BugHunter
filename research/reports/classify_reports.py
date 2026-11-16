@@ -16,6 +16,7 @@ import json
 import os
 import re
 import sys
+from decimal import Decimal, InvalidOperation
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RAW = os.path.join(HERE, "raw")
@@ -112,10 +113,23 @@ def load_raw():
     return recs
 
 
+def _score(value):
+    try:
+        score = Decimal(str(value))
+    except InvalidOperation:
+        return Decimal(0)
+    return score if score.is_finite() else Decimal(0)
+
+
+def signal(record):
+    """Sort by bounty, then votes, including numeric strings from exports."""
+    return _score(record.get("bounty")), _score(record.get("votes"))
+
+
 def main():
     recs = load_raw()
     per = {}
-    for r in sorted(recs, key=lambda r: -(r.get("bounty") or 0)):
+    for r in sorted(recs, key=signal, reverse=True):
         per.setdefault(classify_one(r), []).append(r)
     mapped = sum(len(v) for k, v in per.items() if k)
     print(f"classify: {len(recs)} report(s) — {mapped} mapped, {len(per.get(None, []))} unmapped.")

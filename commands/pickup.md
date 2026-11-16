@@ -1,6 +1,6 @@
 ---
 name: pickup
-description: Pick up a previous hunt on a target — shows hunt history and untested surface from the autopilot ledger. Usage: /pickup target.com
+description: "Pick up a previous hunt on a target — shows hunt history and untested surface from the autopilot ledger. Usage: /pickup target.com"
 ---
 
 # /pickup

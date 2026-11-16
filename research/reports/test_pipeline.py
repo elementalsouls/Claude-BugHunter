@@ -2,9 +2,12 @@
 """Network-free sanity check for the report pipeline's pure logic.
 Run: python3 research/reports/test_pipeline.py  (exit 0 = pass). Stdlib only."""
 import os, sys
+from unittest.mock import patch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import classify_reports as C
+import report_coverage as RC
 import draft_patterns as D
+import harvest_h1 as H
 
 
 def main():
@@ -20,6 +23,16 @@ def main():
         got = C.classify_one(rec)
         if got != want:
             fails.append(f"classify {rec['title']!r}: got {got!r} want {want!r}")
+
+    recs = [
+        {"id": "invalid", "bounty": "NaN", "votes": "missing"},
+        {"id": "middle", "bounty": 120.5, "votes": 9},
+        {"id": "top", "bounty": "120.50", "votes": "10"},
+        {"id": "lower", "bounty": "20", "votes": None},
+    ]
+    order = [rec["id"] for rec in sorted(recs, key=RC.signal, reverse=True)]
+    if order != ["top", "middle", "lower", "invalid"]:
+        fails.append(f"unexpected mixed-type report ranking: {order!r}")
 
     # genericize: real hostnames -> target.com; example/h1 hosts untouched
     if D.genericize("go to https://acme-bank.com/reset then https://evil.io") \
@@ -37,6 +50,18 @@ def main():
             fails.append(f"skeleton missing {must!r}")
     if "acme.com" in sk:
         fails.append("skeleton leaked a real hostname (acme.com not genericized)")
+
+    # A provider error must not look like successful feed exhaustion.
+    with patch.object(H, "_post", return_value={"errors": [{"message": "synthetic"}]}):
+        try:
+            list(H.enumerate_reports("votes", max_pages=1))
+        except RuntimeError:
+            pass
+        else:
+            fails.append("harvest silently accepted GraphQL error")
+    with patch.object(H, "_post", return_value={"data": {"search": {"nodes": []}}}):
+        if list(H.enumerate_reports("votes", max_pages=1)) != []:
+            fails.append("harvest emitted records for an empty results page")
 
     for f in fails:
         print("ERROR", f)

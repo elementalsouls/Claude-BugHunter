@@ -38,8 +38,7 @@ def already_cited_ids():
     return ids
 
 
-def signal(r):
-    return (r.get("bounty") or 0), (r.get("votes") or 0)
+signal = C.signal
 
 
 def main(argv):
