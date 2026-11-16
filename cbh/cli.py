@@ -240,6 +240,7 @@ def recon_http_probe(host: str) -> dict | None:
         code, headers, body = http_get(url, timeout=4)
         if code == 0:
             continue
+        headers = {key.lower(): value for key, value in headers.items()}
         title = ""
         m = re.search(r"<title[^>]*>([^<]*)</title>", body[:8192], re.I)
         if m:
@@ -247,10 +248,10 @@ def recon_http_probe(host: str) -> dict | None:
         return {
             "url": url,
             "code": code,
-            "server": headers.get("Server", ""),
+            "server": headers.get("server", ""),
             "title": title,
-            "powered_by": headers.get("X-Powered-By", ""),
-            "drupal_cache": headers.get("X-Drupal-Cache", ""),
+            "powered_by": headers.get("x-powered-by", ""),
+            "drupal_cache": headers.get("x-drupal-cache", ""),
         }
     return None
 
