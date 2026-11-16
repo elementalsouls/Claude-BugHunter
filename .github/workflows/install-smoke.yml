@@ -9,14 +9,18 @@ on:
     paths:
       - "scripts/install*.sh"
       - "scripts/install*.ps1"
+      - "scripts/setup_harness_mcp.py"
       - "scripts/hunt.sh"
+      - "scripts/hunt.ps1"
       - ".github/workflows/install-smoke.yml"
   push:
     branches: [main]
     paths:
       - "scripts/install*.sh"
       - "scripts/install*.ps1"
+      - "scripts/setup_harness_mcp.py"
       - "scripts/hunt.sh"
+      - "scripts/hunt.ps1"
   workflow_dispatch:
 
 permissions:
@@ -61,17 +65,59 @@ jobs:
           echo "antigravity skills: $ag"
           [ "$ag" -ge 80 ] || { echo "FAIL: --antigravity did not land skills in ~/.gemini/config/skills"; exit 1; }
           [ ! -d "$T/.gemini/antigravity/skills" ] || { echo "FAIL: skills landed in the wrong (antigravity/skills) path"; exit 1; }
-          # uninstall removes the footprint
+          # Codex normalization only edits bundle skills and their frontmatter.
+          # Runs in its own HOME so it does not make $T/.agents a tracked harness
+          # (which would break the untracked-copy preservation check below).
+          N="$(mktemp -d)"
+          mkdir -p "$N/.agents/skills/unrelated"
+          printf '%s\n' '---' 'description: external' 'sources: custom' '---' > "$N/unrelated.md"
+          cp "$N/unrelated.md" "$N/.agents/skills/unrelated/SKILL.md"
+          HOME="$N" bash scripts/install.sh --agents --normalize-frontmatter --no-shell
+          cmp "$N/unrelated.md" "$N/.agents/skills/unrelated/SKILL.md"
+          rm -rf "$N"
+          # Create a separate Codex copy in a harness this install did not target.
+          mkdir -p "$T/.agents/skills/bug-bounty"
+          printf '%s\n' 'custom Codex copy' > "$T/.agents/skills/bug-bounty/SKILL.md"
+          # Uninstall removes the tracked footprint and preserves the Codex copy.
           HOME="$T" bash scripts/install.sh --uninstall >/dev/null
+          test ! -e "$T/.gemini/config/skills/bug-bounty"
+          grep -qxF 'custom Codex copy' "$T/.agents/skills/bug-bounty/SKILL.md"
           left=$(find "$T/.claude/skills" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
           echo "claude skills after uninstall: $left"
           rm -rf "$T"
 
-  powershell-parse:
-    name: PowerShell syntax parse (no execution)
+      - name: Uninstall preserves unrelated shell configuration
+        run: |
+          T="$(mktemp -d)"
+          printf '%s\n' "echo 'reference: ~/.claude/scripts/hunt.sh'" '# Bug-bounty engagement scaffolding (local notes)' > "$T/.bashrc"
+          cp "$T/.bashrc" "$T/expected"
+          HOME="$T" ZDOTDIR="$T" bash scripts/install.sh --no-shell
+          printf '%s\n' '# Bug-bounty engagement scaffolding (bug-bounty-claude-skills)' 'source ~/.claude/scripts/hunt.sh' >> "$T/.bashrc"
+          HOME="$T" ZDOTDIR="$T" bash scripts/install.sh --uninstall
+          cmp "$T/expected" "$T/.bashrc"
+
+  powershell-smoke:
+    name: PowerShell parse and installer smoke
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Seed a PowerShell scaffold from a synthetic manifest
+        shell: pwsh
+        run: |
+          $scratch = Join-Path $env:RUNNER_TEMP "cbh-hunt-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $scratch | Out-Null
+          $env:HUNT_BASE = Join-Path $scratch 'targets'
+          $fixture = Join-Path $scratch 'manifest.json'
+          '{"assets":[{"host":"example.invalid","url":"https://example.invalid"}],"ranked_surface":[{"priority":"P1","url":"https://example.invalid/graphql","bug_classes":["hunt-graphql"]}]}' |
+            Set-Content -LiteralPath $fixture -Encoding utf8
+          . ./scripts/hunt.ps1
+          hunt synthetic-case -Manifest $fixture
+          if (-not (Select-String -LiteralPath (Join-Path $env:HUNT_BASE 'synthetic-case/scope.md') -Pattern '- example.invalid' -SimpleMatch)) {
+            throw "Live host missing from scaffold"
+          }
+          if (-not (Select-String -LiteralPath (Join-Path $env:HUNT_BASE 'synthetic-case/notes.md') -Pattern '- [P1] https://example.invalid/graphql - hunt-graphql' -SimpleMatch)) {
+            throw "Ranked route missing from scaffold"
+          }
       - name: parse .ps1 installers
         shell: pwsh
         run: |
@@ -87,3 +133,27 @@ jobs:
             }
           }
           if ($failed) { exit 1 }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run installer Python paths in a disposable profile
+        shell: pwsh
+        run: |
+          $tempProfile = Join-Path $env:RUNNER_TEMP "cbh-smoke-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path $tempProfile | Out-Null
+          Set-Variable -Name HOME -Scope Global -Value $tempProfile -Force
+          $env:USERPROFILE = $tempProfile
+          $env:TEMP = $tempProfile
+          '{"mcpServers":{"burp":{"command":"synthetic-mcp","args":["argument with spaces"]}}}' |
+            Set-Content -LiteralPath (Join-Path $HOME '.claude.json') -Encoding utf8
+          & ./scripts/install.ps1 -Agents -NormalizeFrontmatter -BurpMcp -NoProfile
+          $skill = Join-Path $HOME '.agents/skills/hunt-fintech-graphql/SKILL.md'
+          if ((Get-Content -LiteralPath $skill | Select-Object -First 6) -match '^(sources|report_count):') {
+            throw "Codex copy still has non-standard frontmatter"
+          }
+          $config = Get-Content -LiteralPath (Join-Path $HOME '.config/opencode/opencode.json') -Raw |
+            ConvertFrom-Json
+          if ($config.mcp.burp.command[0] -ne 'synthetic-mcp' -or
+              $config.mcp.burp.command[1] -ne 'argument with spaces') {
+            throw "Burp MCP command was not copied"
+          }

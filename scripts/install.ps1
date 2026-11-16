@@ -60,6 +60,7 @@ $BackupDest = Join-Path $HOME ".claude\install-backups\$Timestamp"
 $BundleName   = 'claude-bughunter'
 $ManifestDir  = Join-Path $HOME '.claude\.skill-manifests'
 $Manifest     = Join-Path $ManifestDir "$BundleName.txt"
+$HarnessManifestDir = Join-Path $ManifestDir "$BundleName-harnesses"
 $ScriptsDest  = Join-Path $HOME '.claude\scripts'
 $SkillsSource = Join-Path $RepoDir 'skills'
 $CommandsSrc  = Join-Path $RepoDir 'commands'
@@ -85,10 +86,12 @@ if ($Help) {
 # the Windows convention (only `python.exe` / `py.exe` ship on Windows). Probe
 # py launcher -> python -> python3 in that order.
 function Get-Python {
-    foreach ($c in @(@( 'py', '-3' ), 'python', 'python3')) {
-        $exe = $c[0]
-        if (Get-Command $exe -ErrorAction SilentlyContinue) {
-            return , $c   # array of arg(s)
+    if (Get-Command py -CommandType Application -ErrorAction SilentlyContinue) {
+        return ,@('py', '-3')
+    }
+    foreach ($exe in 'python', 'python3') {
+        if (Get-Command $exe -CommandType Application -ErrorAction SilentlyContinue) {
+            return ,@($exe)
         }
     }
     return $null
@@ -175,6 +178,14 @@ function Uninstall-Bundle {
     $otherSets = foreach ($o in $others) {
         ,(Get-Content -LiteralPath $o.FullName | Where-Object { $_ })
     }
+    $extraRoots = @{
+        agents = (Join-Path $HOME '.agents')
+        hermes = (Join-Path $HOME '.hermes')
+        antigravity = (Join-Path $HOME '.gemini\config')
+    }
+    $trackedHarnesses = @($extraRoots.Keys | Where-Object {
+        Test-Path -LiteralPath (Join-Path $HarnessManifestDir $_) -PathType Leaf
+    })
     $removed = 0; $kept = 0
     foreach ($rel in (Get-Content -LiteralPath $Manifest | Where-Object { $_ })) {
         $target = Join-Path $HOME ".claude\$rel"
@@ -182,32 +193,36 @@ function Uninstall-Bundle {
         foreach ($s in $otherSets) { if ($s -contains $rel) { $owned = $true; break } }
         if ($owned) { $kept++ } else {
             if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue }
-            $agentsTarget = Join-Path $HOME ".agents\$rel"
-            if (Test-Path -LiteralPath $agentsTarget) { Remove-Item -LiteralPath $agentsTarget -Recurse -Force -ErrorAction SilentlyContinue }
-            $hermesTarget = Join-Path $HOME ".hermes\$rel"
-            if (Test-Path -LiteralPath $hermesTarget) { Remove-Item -LiteralPath $hermesTarget -Recurse -Force -ErrorAction SilentlyContinue }
-            $antiGravityTarget = Join-Path $HOME ".gemini\config\$rel"
-            if (Test-Path -LiteralPath $antiGravityTarget) { Remove-Item -LiteralPath $antiGravityTarget -Recurse -Force -ErrorAction SilentlyContinue }
+            if ($rel -like 'skills/*') {
+                foreach ($label in $trackedHarnesses) {
+                    $extraTarget = Join-Path $extraRoots[$label] $rel
+                    if (Test-Path -LiteralPath $extraTarget) {
+                        Remove-Item -LiteralPath $extraTarget -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            }
             $removed++
         }
+    }
+    foreach ($label in $trackedHarnesses) {
+        Remove-Item -LiteralPath (Join-Path $HarnessManifestDir $label) -Force -ErrorAction SilentlyContinue
     }
     Remove-Item -LiteralPath $Manifest -Force -ErrorAction SilentlyContinue
     Write-Host "  + removed $removed item(s); kept $kept still owned by another bundle"
 
-    # Strip the hunt.ps1 dot-source line from any PowerShell profile(s).
+    # Clean only the installer stanza in the current user's profiles.
+    $dotLine = '. "$HOME\.claude\scripts\hunt.ps1"'
+    $installerComment = '# Bug-bounty engagement scaffolding (Claude-BugHunter)'
     $profiles = @(
         $PROFILE.CurrentUserCurrentHost,
-        $PROFILE.CurrentUserAllHosts,
-        $PROFILE.AllUsersCurrentHost,
-        $PROFILE.AllUsersAllHosts
+        $PROFILE.CurrentUserAllHosts
     ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
     foreach ($p in $profiles) {
-        $content = Get-Content -Raw -LiteralPath $p
-        if ($content -match 'scripts[\\/]hunt\.ps1') {
+        $lines = (Get-Content -Raw -LiteralPath $p) -split "`r?`n"
+        if ($lines -ccontains $dotLine) {
             $bak = "$p.bak"
             Copy-Item -LiteralPath $p -Destination $bak -Force
-            $filtered = $content -split "`r?`n" |
-                Where-Object { $_ -notmatch 'scripts[\\/]hunt\.ps1' -and $_ -notmatch 'Bug-bounty engagement scaffolding' }
+            $filtered = $lines | Where-Object { $_ -cne $dotLine -and $_ -cne $installerComment }
             Write-HuntFile $p ($filtered -join "`r`n")
             Write-Host "  + removed hunt.ps1 source line from $p (backup: $bak)"
         }
@@ -320,24 +335,38 @@ Write-Host "    Uninstall later with:  pwsh ./scripts/install.ps1 -Uninstall"
 Write-Host ''
 
 # --- extra harness targets (skills only) ------------------------------
+function Record-Harness([string] $Label) {
+    Write-HuntFile (Join-Path $HarnessManifestDir $Label) ''
+}
+
 if ($DO_AGENTS) {
     Install-Skills (Join-Path $HOME '.agents\skills') 'agents'
+    Record-Harness 'agents'
     $py = Get-Python
     if ($py) {
-        $limit = 1024
         # Inline truncation script (ports the bash heredoc verbatim).
         $trunc = @"
 import os, re, sys
 root, strip_extra = sys.argv[1], sys.argv[2] == '1'
 LIMIT = 1024
-for name in sorted(os.listdir(root)):
+# Limit edits to copies from this bundle. The destination may contain
+# independently installed skills and symlinks.
+for name in sorted(os.listdir(sys.argv[3])):
+    if not os.path.isdir(os.path.join(sys.argv[3], name)):
+        continue
     p = os.path.join(root, name, 'SKILL.md')
-    if not os.path.isfile(p):
+    if os.path.islink(os.path.dirname(p)) or os.path.islink(p) or not os.path.isfile(p):
         continue
     lines = open(p, encoding='utf-8').read().split('\n')
+    if not lines or lines[0] != '---':
+        continue
+    try:
+        end = lines.index('---', 1)
+    except ValueError:
+        continue
     out, changed = [], False
     for i, line in enumerate(lines):
-        m = re.match(r'^description:\s*(.*)$', line) if i < 12 else None
+        m = re.match(r'^description:\s*(.*)$', line) if 0 < i < end else None
         if m:
             val = m.group(1)
             quoted = len(val) >= 2 and val[0] == val[-1] and val[0] in '"'"'"'"'
@@ -347,7 +376,7 @@ for name in sorted(os.listdir(root)):
                 line = 'description: "' + cut + '..."'
                 changed = True
                 print('    truncated ' + name + ' description ' + str(len(inner)) + '->' + str(len(cut)+1) + ' (Codex 1024 limit)')
-        if strip_extra and i < 12 and re.match(r'^(sources|report_count):\s', line):
+        if strip_extra and 0 < i < end and re.match(r'^(sources|report_count):\s', line):
             changed = True
             continue
         out.append(line)
@@ -357,13 +386,19 @@ for name in sorted(os.listdir(root)):
         $truncFile = Join-Path $env:TEMP 'cbh_trunc.py'
         Write-HuntFile $truncFile $trunc
         $pyExe = $py[0]
-        $pyRest = @($py[1..($py.Length - 1)]) + @($truncFile, (Join-Path $HOME '.agents\skills'), "$(if ($NORMALIZE) { '1' } else { '0' })")
+        $pyRest = @($py | Select-Object -Skip 1) + @($truncFile, (Join-Path $HOME '.agents\skills'), "$(if ($NORMALIZE) { '1' } else { '0' })", $SkillsSource)
         & $pyExe $pyRest
         Remove-Item -LiteralPath $truncFile -Force -ErrorAction SilentlyContinue
     }
 }
-if ($DO_HERMES) { Install-Skills (Join-Path $HOME '.hermes\skills') 'hermes' }
-if ($DO_ANTIGRAVITY) { Install-Skills (Join-Path $HOME '.gemini\config\skills') 'antigravity' }
+if ($DO_HERMES) {
+    Install-Skills (Join-Path $HOME '.hermes\skills') 'hermes'
+    Record-Harness 'hermes'
+}
+if ($DO_ANTIGRAVITY) {
+    Install-Skills (Join-Path $HOME '.gemini\config\skills') 'antigravity'
+    Record-Harness 'antigravity'
+}
 
 # --- opt-in Burp MCP wiring -------------------------------------------
 if ($DO_MCP) {
@@ -385,7 +420,7 @@ if ($DO_MCP) {
         if ($py) {
             $setupPy = Join-Path $RepoDir 'scripts\setup_harness_mcp.py'
             $pyExe = $py[0]
-            $pyRest = @($py[1..($py.Length - 1)]) + @($setupPy) + $mcpTargets
+            $pyRest = @($py | Select-Object -Skip 1) + @($setupPy) + $mcpTargets
             try {
                 & $pyExe $pyRest
             } catch {

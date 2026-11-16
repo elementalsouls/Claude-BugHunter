@@ -64,8 +64,12 @@ def wait_ready(base, tries=40):
 
 def reset_target(container, base):
     """Restart Juice Shop → clean (all-unsolved) state, so each run is isolated."""
-    subprocess.run(["docker", "restart", container], capture_output=True)
-    return wait_ready(base)
+    try:
+        result = subprocess.run(["docker", "restart", container], capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and wait_ready(base)
+
 
 
 JUICE_DESC = ("this is a local OWASP Juice Shop instance, a deliberately vulnerable "
@@ -105,11 +109,15 @@ def run_agent(task, skills_on, model, max_turns, timeout):
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return {"agent_error": "timeout", "duration_s": round(time.time() - t0, 1)}
+    except OSError as e:
+        return {"agent_error": f"launch:{type(e).__name__}", "duration_s": round(time.time() - t0, 1)}
     dur = round(time.time() - t0, 1)
     try:
         d = json.loads(p.stdout)
+        if not isinstance(d, dict):
+            raise ValueError("expected a JSON result object")
         u = d.get("usage", {}) or {}
-        return {
+        outcome = {
             # full result — verdict parsers (FP benchmark) need the final VERDICT line,
             # which lives at the very end of the agent's response.
             "result": (d.get("result") or ""),
@@ -120,7 +128,14 @@ def run_agent(task, skills_on, model, max_turns, timeout):
             "out_tok": u.get("output_tokens"),
             "duration_s": dur,
         }
-    except Exception as e:
+        if p.returncode:
+            outcome["agent_error"] = f"exit:{p.returncode}"
+        elif d.get("is_error") is True:
+            outcome["agent_error"] = "error response"
+        if "agent_error" in outcome:
+            outcome["result"] = ""
+        return outcome
+    except (ValueError, AttributeError) as e:
         return {"agent_error": f"parse:{e}", "stdout": p.stdout[:300],
                 "stderr": p.stderr[:300], "duration_s": dur}
 
@@ -154,7 +169,7 @@ def main():
             skills_on = (cond == "skills")
             print(f"\n[{ch['key']} | {cond}] resetting target...", flush=True)
             if not reset_target(a.container, a.base):
-                print("  ! target did not come back up — skipping"); continue
+                print("  ! target reset or readiness check failed — skipping"); continue
             pre, found = oracle(a.base, ch["oracle_name"])
             if not found:
                 print(f"  ! oracle challenge {ch['oracle_name']!r} not found — skipping"); continue

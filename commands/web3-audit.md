@@ -1,6 +1,6 @@
 ---
 name: web3-audit
-description: Smart contract security audit — runs through 10 bug class checklist (accounting desync, access control, incomplete path, off-by-one, oracle errors, ERC4626, reentrancy, flash loan, signature replay, proxy/upgrade). Applies pre-dive kill signals first. Generates Foundry PoC template for confirmed findings. Usage: /web3-audit <contract.sol>
+description: "Smart contract security audit — runs through 10 bug class checklist (accounting desync, access control, incomplete path, off-by-one, oracle errors, ERC4626, reentrancy, flash loan, signature replay, proxy/upgrade). Applies pre-dive kill signals first. Generates Foundry PoC template for confirmed findings. Usage: /web3-audit <contract.sol>"
 ---
 
 # /web3-audit

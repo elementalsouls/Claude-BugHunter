@@ -52,16 +52,16 @@ def _stack_sig(tech_stack):
     return "|".join(sorted({t.lower() for t in (tech_stack or []) if t}))
 
 
-def _rotate_if_needed(path):
+def _rotate_if_needed(path, max_bytes=MAX_BYTES, keep=KEEP):
     try:
-        if os.path.getsize(path) < MAX_BYTES:
+        if os.path.getsize(path) < max_bytes:
             return
     except FileNotFoundError:
         return
-    oldest = f"{path}.{KEEP}"
+    oldest = f"{path}.{keep}"
     if os.path.exists(oldest):
         os.remove(oldest)
-    for i in range(KEEP - 1, 0, -1):
+    for i in range(keep - 1, 0, -1):
         s, d = f"{path}.{i}", f"{path}.{i + 1}"
         if os.path.exists(s):
             os.replace(s, d)
@@ -92,9 +92,11 @@ def _read(path):
             if not ln:
                 continue
             try:
-                out.append(json.loads(ln))
+                record = json.loads(ln)
             except json.JSONDecodeError:
                 continue
+            if isinstance(record, dict):
+                out.append(record)
     return out
 
 
@@ -174,7 +176,8 @@ def record_run(engagement, tech_stack, tested, confirmed):
     for host, cls in tested_hc:
         if cls and (host, cls) not in confirmed_hc:
             _append(neg, {"schema_version": SCHEMA_VERSION, "ts": _now(),
-                          "host": host, "stack_sig": sig, "vuln_class": cls})
+                          "host": host, "stack_sig": sig, "vuln_class": cls,
+                          "engagement": engagement})
     for host in {h for h, _ in tested_hc} | {h for h, _ in confirmed_hc}:
         if host:
             _write_rollup(host, tech_stack, tested, confirmed)
@@ -195,8 +198,13 @@ def skip_decision(host, tech_stack, item):
             return {"skip": True, "reason": "known-confirmed", "carry": carry}
     # 2) dead-class: >= threshold negatives for (stack_sig, cls) AND zero confirmations for it
     sig = _stack_sig(tech_stack)
-    negs = sum(1 for e in _read(os.path.join(root, "negatives.jsonl"))
-               if e.get("stack_sig") == sig and e.get("vuln_class") == cls)
+    negatives = _read(os.path.join(root, "negatives.jsonl"))
+    distinct = {
+        (entry.get("engagement") or index, entry.get("host"))
+        for index, entry in enumerate(negatives)
+        if entry.get("stack_sig") == sig and entry.get("vuln_class") == cls
+    }
+    negs = len(distinct)
     if negs >= DEAD_CLASS_THRESHOLD:
         confirmed_here = any(_stack_sig(e.get("tech_stack", [])) == sig and e.get("vuln_class") == cls
                              for e in _read(os.path.join(root, "findings.jsonl")))
@@ -223,7 +231,7 @@ def gc(action="report", max_mb=10, keep=KEEP, root=None):
             live_sz = os.path.getsize(live) if os.path.exists(live) else 0
             total = live_sz + sum(os.path.getsize(b) for b in backups)
             if action == "rotate" and live_sz >= max_mb * 1024 * 1024:
-                _rotate_if_needed(live)
+                _rotate_if_needed(live, max_bytes=max_mb * 1024 * 1024, keep=keep)
             if action == "purge-backups":
                 for b in backups:
                     os.remove(b)
@@ -252,8 +260,8 @@ def _selftest():
         # unseen class is never skipped
         assert skip_decision("a.com", ["nextjs"], {"url": "http://a.com/x", "param": "id", "vuln_class": "rce"})["skip"] is False
         # dead-class only after >= threshold negatives with zero confirmations
-        for _ in range(DEAD_CLASS_THRESHOLD):
-            record_run("e", ["django"], ["http://b.com/z|q|csrf"], [])
+        for index in range(DEAD_CLASS_THRESHOLD):
+            record_run(f"e-{index}", ["django"], ["http://b.com/z|q|csrf"], [])
         assert skip_decision("b.com", ["django"], {"url": "http://b.com/z", "param": "q", "vuln_class": "csrf"})["skip"] is True
         # a confirmation on that (stack,class) revives it (not dead)
         record_finding("e", "b.com", ["django"], {"url": "http://b.com/z", "param": "q", "vuln_class": "csrf", "severity": "low"}, {"reason": "x"})

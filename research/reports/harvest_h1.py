@@ -48,6 +48,13 @@ UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
 HEADERS = {"User-Agent": UA, "Content-Type": "application/json",
            "Origin": "https://hackerone.com", "Referer": "https://hackerone.com/hacktivity"}
 PAGE_SIZE = 50
+HACKERONE_REPORT_URL = re.compile(
+    r"\bhttps?://(?:www\.)?hackerone\.com/reports/(\d+)(?![\w-])", re.IGNORECASE
+)
+
+
+def report_ids(text):
+    return HACKERONE_REPORT_URL.findall(text)
 
 # Same node fields h1_reference.py requests — metadata only, no body (body is null
 # unauthenticated). Kept identical to inherit the documented crash-safe combo.
@@ -92,8 +99,13 @@ def enumerate_reports(sort_field, max_pages=40):
     after = None
     for _ in range(max_pages):
         data = _post(build_query(sort_field, after))
-        search = (data.get("data") or {}).get("search") or {}
-        nodes = search.get("nodes") or []
+        if not isinstance(data, dict) or data.get("errors"):
+            raise RuntimeError("HackerOne GraphQL returned an invalid or unsuccessful response")
+        payload = data.get("data")
+        search = payload.get("search") if isinstance(payload, dict) else None
+        nodes = search.get("nodes") if isinstance(search, dict) else None
+        if not isinstance(nodes, list):
+            raise RuntimeError("HackerOne GraphQL response has no report list")
         if not nodes:
             break
         for n in nodes:

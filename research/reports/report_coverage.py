@@ -15,7 +15,6 @@ Stdlib only.
 import argparse
 import glob
 import os
-import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,22 +23,23 @@ DISCLOSED = os.path.join(REPO, "docs", "disclosed-reports")
 
 sys.path.insert(0, HERE)
 import classify_reports as C  # noqa: E402
+from harvest_h1 import report_ids  # noqa: E402
 
 
 def already_cited_ids():
-    """Report ids already referenced anywhere in docs/disclosed-reports/ (by URL or /reports/<id>)."""
+    """Report ids already referenced anywhere in docs/disclosed-reports/ (from HackerOne report URLs)."""
     ids = set()
     for f in glob.glob(os.path.join(DISCLOSED, "*.md")):
         try:
-            txt = open(f, encoding="utf-8").read()
+            with open(f, encoding="utf-8") as stream:
+                txt = stream.read()
         except OSError:
             continue
-        ids.update(re.findall(r"hackerone\.com/reports/(\d+)", txt))
+        ids.update(report_ids(txt))
     return ids
 
 
-def signal(r):
-    return (r.get("bounty") or 0), (r.get("votes") or 0)
+signal = C.signal
 
 
 def main(argv):

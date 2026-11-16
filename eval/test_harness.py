@@ -25,6 +25,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import oracle_portswigger as ORACLE  # noqa: E402
+from run_fp import parse_verdict  # noqa: E402
 
 
 def check_configs():
@@ -71,6 +72,20 @@ def check_oracle():
         if got != want:
             errs.append(f"oracle: classified {want!r} case as {got!r}")
     return errs
+
+
+def check_fp_verdicts():
+    cases = [
+        ("", "NO_OUTPUT"),
+        ("  \n ", "NO_OUTPUT"),
+        ("No hypothesis was confirmed.", "INCONCLUSIVE"),
+        ("Example: VERDICT: VULNERABLE\nNo result.", "INCONCLUSIVE"),
+        ("VERDICT: VULNERABLE with caveats", "INCONCLUSIVE"),
+        ("REASONING\nVERDICT: VULNERABLE\n", "VULNERABLE"),
+        ("REASONING\nVERDICT: NOT_VULNERABLE", "NOT_VULNERABLE"),
+    ]
+    return [f"fp verdict: expected {want!r} for {text!r}"
+            for text, want in cases if parse_verdict(text) != want]
 
 
 def _free_port():
@@ -127,7 +142,7 @@ def check_fp_app():
 
 
 def main():
-    errs = check_configs() + check_oracle() + check_fp_app()
+    errs = check_configs() + check_oracle() + check_fp_app() + check_fp_verdicts()
     for e in errs:
         print(f"ERROR {e}")
     if errs:
