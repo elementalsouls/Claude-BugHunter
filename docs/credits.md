@@ -50,10 +50,10 @@ Plus 12 additional `hunt-*` skills curated by topic without an explicit report-c
 ### Other personal skills
 
 - **`offensive-osint` (v3.0)** — Refactored from a 4,168-line monolith into a lean SKILL.md (~400 lines) plus 15 modular reference files in `references/` (subdomain enum, identity fabric, secret patterns, dorks, sector-specific recon, etc.). Detail content loads on demand — Claude reads only the relevant references for the current task.
-- **`osint-methodology` (v2.1)** — 5-stage recon pipeline, 29-type asset graph, severity rubric, identity-fabric mapping, vulnerability prioritization (CVE/EPSS/KEV), bug bounty submission templates, threat-actor investigation, cryptocurrency tracing, image/video forensics.
+- **`osint-methodology` (v2.4)** — 5-stage recon pipeline, 29-type asset graph, severity rubric, identity-fabric mapping, vulnerability prioritization (CVE/EPSS/KEV), bug bounty submission templates, threat-actor investigation, cryptocurrency tracing, image/video forensics. Lean SKILL.md plus 10 `references/` files (same split pattern as `offensive-osint` v3.0).
 - **`bugcrowd-reporting`** — Bugcrowd-specific reporting tactics: VRT category fallback hierarchy, severity-request paragraphs, OOS-clause rebuttal templates (rate limiting on auth-flow endpoints, debug-info framing, user-enumeration with sensitive PII, theoretical-issue counter), chained-finding cross-reference patterns, target selection for QA-vs-prod programs, researcher-side hygiene.
 - **`evidence-hygiene`** — Cookie redaction protocols, PII black-bar discipline, HAR sanitization recipes, Burp/DevTools screenshot patterns, post-submission rotation hygiene. The redaction protocol distinguishes "your-account secrets" (always redact) from "other-user PII" (redact-by-default with explicit cross-account-impact exception) from "triager-useful metadata" (leave visible).
-- **`bb-local-toolkit`** — Personal customization of the master bug-bounty workflow with author's pipeline preferences.
+- **`bb-local-toolkit`** — Local-path overlay for cloned bug-bounty tools and wordlists (SecLists, jhaddix, SecretFinder, etc.). Hunting workflow lives in `bug-bounty`.
 
 ### Enterprise-platform attack skills
 

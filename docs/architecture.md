@@ -35,7 +35,7 @@ The 6-phase workflow expanded into a pipeline showing per-phase active skills, t
 | `bug-bounty` | vendored | Master orchestrator — pulls in other skills as needed |
 | `bb-methodology` | vendored | 5-phase workflow + hunting mindset |
 | **`osint-methodology`** | original | Recon framework, 29-type asset graph, time budgeting |
-| **`bb-local-toolkit`** | original | Full pipeline router for local cloned bug-bounty repos |
+| **`bb-local-toolkit`** | original | Local-path overlay for cloned bug-bounty tools and wordlists |
 | **`hunt <target>` (shell)** | original | Scaffolds `~/Targets/<name>/` with full template |
 
 ## Phase 2 — RECON (discovery)
@@ -47,7 +47,7 @@ The 6-phase workflow expanded into a pipeline showing per-phase active skills, t
 | **`offensive-osint`** | original | 15-reference probe/regex/dork arsenal — loads on demand |
 | **`recon-scope-triage`** | original | On receiving an ASM/recon dataset — ownership & namespace-collision dedup, in-scope triage before testing |
 | `web2-recon` | vendored | Subdomain enumeration, host discovery, URL crawling |
-| **`bb-local-toolkit`** | original | Routes to local cloned bug-bounty repos when applicable |
+| **`bb-local-toolkit`** | original | Resolves local clone/wordlist paths when recon needs a tool on disk |
 
 ## Phase 3 — HUNT (active testing)
 

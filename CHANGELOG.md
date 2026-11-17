@@ -6,6 +6,14 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 
 ## [Unreleased]
 
+### Changed
+- **Skill body split (#82)** — `osint-methodology`, `bug-bounty`, and `bb-local-toolkit`
+  now follow the `offensive-osint` pattern: lean `SKILL.md` plus on-demand
+  `references/`. Descriptions were already under 1,024 chars (#92); the
+  grandfathered description-length exception in `lint_skills.py` is gone.
+  `bb-local-toolkit` is a local-path overlay instead of a second copy of the
+  five-phase workflow.
+
 ### Added
 - **Disclosed-report grounding, content-verified** — 28 `hunt-*` skills strengthened
   with cited public HackerOne disclosures. **433 distinct disclosed reports** are now

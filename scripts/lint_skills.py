@@ -62,11 +62,6 @@ SECRET_ALLOW = re.compile(
     r"AKIAIOSFODNN7EXAMPLE|EXAMPLE|wJalrXUtnFEMI|\[0-9A-Z\]|\{1[06]\}|<[^>]+>|\.\.\."
 )
 
-# Intentional kitchen-sink router/aggregator skills whose descriptions deliberately
-# exceed the per-skill limit (they route to everything). Over-length is a warning,
-# not an error, for these. Do NOT add new skills here — write focused descriptions.
-DESC_LIMIT_GRANDFATHERED = {"bug-bounty", "bb-local-toolkit", "osint-methodology"}
-
 WORD_RE = re.compile(r"[a-z0-9]+")
 
 
@@ -192,9 +187,10 @@ def lint_skill(skill_dir, denylist):
     if not desc:
         errors.append(f"{name}: frontmatter missing `description`")
     elif len(desc) > MAX_DESC:
-        msg = (f"{name}: description {len(desc)} chars > {MAX_DESC} limit "
-               f"(Codex rejects >1024; install.sh --agents auto-truncates the Codex copy)")
-        (warnings if name in DESC_LIMIT_GRANDFATHERED else errors).append(msg)
+        errors.append(
+            f"{name}: description {len(desc)} chars > {MAX_DESC} limit "
+            f"(Codex rejects >1024; install.sh --agents auto-truncates the Codex copy)"
+        )
     elif len(desc) < 40:
         warnings.append(f"{name}: description very short ({len(desc)} chars) — weak trigger surface")
     # body length
