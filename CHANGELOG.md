@@ -7,12 +7,16 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Changed
-- **Skill body split (#82)** — `osint-methodology`, `bug-bounty`, and `bb-local-toolkit`
-  now follow the `offensive-osint` pattern: lean `SKILL.md` plus on-demand
-  `references/`. Descriptions were already under 1,024 chars (#92); the
+- **Skill body split (#82)** — `osint-methodology`, `bug-bounty`, `bb-local-toolkit`,
+  `security-arsenal`, `web2-recon`, `supply-chain-attack-recon`, `web3-audit`, and
+  `report-writing` now follow the `offensive-osint` pattern: lean `SKILL.md` plus
+  on-demand `references/`. Descriptions were already under 1,024 chars (#92); the
   grandfathered description-length exception in `lint_skills.py` is gone.
   `bb-local-toolkit` is a local-path overlay instead of a second copy of the
-  five-phase workflow.
+  five-phase workflow. `bb-methodology`, `cloud-iam-deep`, and `hunt-ssrf` stay
+  unsplit (a handful of lines over 500, per #82). `phase2h-smuggling-cachepoison.md`
+  now has a table of contents; `hunt-sharepoint` no longer date-anchors its
+  crown-jewel framing.
 
 ### Added
 - **Disclosed-report grounding, content-verified** — 28 `hunt-*` skills strengthened

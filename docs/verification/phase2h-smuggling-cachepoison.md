@@ -2,6 +2,15 @@
 
 > Two-server lab (Nginx 1.27 proxy + gunicorn/Flask origin) via Docker. Cache poisoning succeeded; HTTP smuggling **didn't** — and the failure mode is exactly the kind of honest negative that updates the skill content.
 
+## Contents
+
+- [Target](#target)
+- [Test 19 — cache poisoning via X-Forwarded-Host (`hunt-cache-poison`)](#test-19--cache-poisoning-via-x-forwarded-host-hunt-cache-poison)
+- [Test 20 — HTTP smuggling on Nginx 1.27 (`hunt-http-smuggling`)](#test-20--http-smuggling-on-nginx-127-hunt-http-smuggling)
+- [Skill content gap closed (hunt-http-smuggling)](#skill-content-gap-closed-hunt-http-smuggling)
+- [Summary — Phase 2H](#summary--phase-2h)
+- [Lab cleanup](#lab-cleanup)
+
 ## Target
 
 `docker-compose.yml` building Nginx 1.27 (front-end with `proxy_cache`) + gunicorn-served Flask (origin reflecting `X-Forwarded-Host`).
