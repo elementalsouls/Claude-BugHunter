@@ -1,6 +1,6 @@
 # Installation Guide
 
-Step-by-step setup for the Claude-BugHunter skill bundle.
+Step12144101-by-step1 setup for the Claude-BugHunter skill bundle.
 
 ## Prerequisites
 
