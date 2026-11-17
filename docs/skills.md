@@ -14,61 +14,61 @@ All **83 skills** in the bundle, grouped by domain. Each auto-loads when your pr
 
 | Skill | What it does | Reports |
 |---|---|---|
-| `hunt-api-misconfig` | Hunt API security misconfiguration — mass assignment, prototype pollution, HTTP verb tampering. | — |
+| `hunt-api-misconfig` | Hunt API security misconfiguration — mass assignment, prototype pollution, HTTP verb tampering. | 0 |
 | `hunt-aspnet` | Hunt ASP.NET-specific surface — ViewState deserialization (signed-only vs encrypted), machineKey recovery, dual-parser MAC-bypass anti-pattern, request-validator bypass, trace.axd/elmah.axd disclosure, load-balanced ViewState cross-node… | 1 |
-| `hunt-ato` | Hunt account takeover taxonomy — 9 distinct paths to ATO, plus chains. | — |
+| `hunt-ato` | Hunt account takeover taxonomy — 9 distinct paths to ATO, plus chains. | 7 |
 | `hunt-auth-bypass` | Hunting skill for auth bypass vulnerabilities. | 12 |
-| `hunt-brute-force` | Hunt Missing/Weak Rate Limiting — login brute force, OTP/2FA brute force (10^6 keyspace), password-reset-token brute, credential stuffing, username/email enumeration via error-string / status-code / timing differences, weak password… | 0 |
-| `hunt-business-logic` | Hunting skill for business logic vulnerabilities. | 12 |
-| `hunt-cache-poison` | Hunting skill for cache poison vulnerabilities. | 10 |
-| `hunt-captcha-bypass` | Hunt CAPTCHA Bypass — 6 distinct patterns: (1) CAPTCHA field simply omitted from the request (server-side validation absent), (2) CAPTCHA token replayed from a solved challenge (no single-use enforcement), (3) CAPTCHA response accepted on… | — |
+| `hunt-brute-force` | Hunt Missing/Weak Rate Limiting — login brute force, OTP/2FA brute force (10^6 keyspace), password-reset-token brute, credential stuffing, username/email enumeration via error-string / status-code / timing differences, weak password… | 6 |
+| `hunt-business-logic` | Hunting skill for business logic vulnerabilities. | 25 |
+| `hunt-cache-poison` | Hunting skill for cache poison vulnerabilities. | 8 |
+| `hunt-captcha-bypass` | Hunt CAPTCHA Bypass — 6 distinct patterns: (1) CAPTCHA field simply omitted from the request (server-side validation absent), (2) CAPTCHA token replayed from a solved challenge (no single-use enforcement), (3) CAPTCHA response accepted on… | 6 |
 | `hunt-cicd` | Hunt CI/CD pipeline vulnerabilities — GitHub Actions workflow injection (pull_request_target Pwnrequest + ${{ }}-into-shell), self-hosted runner poisoning, OIDC trust-policy abuse, Jenkins script-console RCE and CVE-2024-23897 file read,… | 18 |
-| `hunt-clickjacking` | Hunt Clickjacking — missing X-Frame-Options / CSP frame-ancestors lets an attacker embed the target page in an invisible iframe and trick victims into clicking buttons they cannot see (UI redressing). | — |
-| `hunt-cloud-misconfig` | Hunt cloud / infrastructure misconfigurations. | — |
-| `hunt-cors` | Hunt CORS Misconfiguration — origin-reflection with credentials, null-origin trust, subdomain-regex bypass (unanchored vs unescaped-dot vs prefix-only), pre-flight (OPTIONS) gating bypass, postMessage origin checks. | — |
-| `hunt-csrf` | Hunting skill for csrf vulnerabilities. | 15 |
+| `hunt-clickjacking` | Hunt Clickjacking — missing X-Frame-Options / CSP frame-ancestors lets an attacker embed the target page in an invisible iframe and trick victims into clicking buttons they cannot see (UI redressing). | 6 |
+| `hunt-cloud-misconfig` | Hunt cloud / infrastructure misconfigurations. | 6 |
+| `hunt-cors` | Hunt CORS Misconfiguration — origin-reflection with credentials, null-origin trust, subdomain-regex bypass (unanchored vs unescaped-dot vs prefix-only), pre-flight (OPTIONS) gating bypass, postMessage origin checks. | 19 |
+| `hunt-csrf` | Hunting skill for csrf vulnerabilities. | 18 |
 | `hunt-deserialization` | Hunt Insecure Deserialization — Java gadget chains (ysoserial), PHP object injection (phpggc), Python pickle RCE, .NET BinaryFormatter, Ruby Marshal.load, JNDI/Log4Shell. | 22 |
-| `hunt-dispatch` | Skill-set loader for /hunt orchestrator. | — |
-| `hunt-dom` | Hunt client-side DOM vulnerabilities — DOM Clobbering (overwrite JS globals via HTML injection), PostMessage hijacking (missing origin check), Service Worker abuse (intercept requests from same-origin script), CSS Injection/Exfiltration… | 17 |
-| `hunt-exceptional-conditions` | Hunt mishandling of exceptional conditions — feed an endpoint malformed/unexpected input (wrong type, broken JSON, oversized field, null byte) and make it fail OPEN or leak internals: a verbose stack-trace / framework error page that… | — |
-| `hunt-file-upload` | Hunt file upload bugs — RCE via webshell, XSS via SVG/HTML, SSRF via XXE in DOCX, path traversal via filename. | — |
+| `hunt-dispatch` | Skill-set loader for /hunt orchestrator. | 0 |
+| `hunt-dom` | Hunt client-side DOM vulnerabilities — DOM Clobbering (overwrite JS globals via HTML injection), PostMessage hijacking (missing origin check), Service Worker abuse (intercept requests from same-origin script), CSS Injection/Exfiltration… | 14 |
+| `hunt-exceptional-conditions` | Hunt mishandling of exceptional conditions — feed an endpoint malformed/unexpected input (wrong type, broken JSON, oversized field, null byte) and make it fail OPEN or leak internals: a verbose stack-trace / framework error page that… | 0 |
+| `hunt-file-upload` | Hunt file upload bugs — RCE via webshell, XSS via SVG/HTML, SSRF via XXE in DOCX, path traversal via filename. | 5 |
 | `hunt-fintech-graphql` | Hunt fintech-specific GraphQL vulnerabilities: money-movement mutations (transfers, redemptions, withdrawals, card top-ups), ledger/balance/portfolio query IDOR, decimal-precision and rounding abuse, idempotency-key bypass enabling… | 0 |
-| `hunt-forgot-password` | Hunt Forgot Password / Account Recovery Authentication Flaws — 5 distinct patterns: (1) username enumeration via different responses for valid vs invalid email, (2) reset token exposed directly in the API response body, (3) reset token not… | — |
-| `hunt-graphql` | Hunting skill for graphql vulnerabilities. | 12 |
+| `hunt-forgot-password` | Hunt Forgot Password / Account Recovery Authentication Flaws — 5 distinct patterns: (1) username enumeration via different responses for valid vs invalid email, (2) reset token exposed directly in the API response body, (3) reset token not… | 6 |
+| `hunt-graphql` | Hunting skill for graphql vulnerabilities. | 26 |
 | `hunt-grpc` | Hunt gRPC vulnerabilities — server reflection enabled (enumerate all services/methods), missing authentication / metadata-stripping on internal endpoints, plaintext gRPC over HTTP/2, internal endpoint disclosure, proto file leakage,… | 6 |
 | `hunt-host-header` | Hunt Host Header Injection — password reset poisoning → ATO, web cache poisoning via unkeyed Host/X-Forwarded-Host, routing-based SSRF (Host picks upstream → cloud metadata/internal services), path-override SSRF/ACL-bypass… | 16 |
-| `hunt-html-injection` | Hunt HTML Injection — user-supplied input is rendered as raw HTML in the response without sanitisation, allowing an attacker to inject arbitrary HTML tags (but not necessarily JavaScript). | — |
-| `hunt-http-smuggling` | Hunt HTTP request smuggling (CL.TE, TE.CL, H2.CL, H2.TE). | — |
-| `hunt-idor` | Hunting skill for idor vulnerabilities. | 26 |
-| `hunt-jwt-crypto` | Hunt JWT cryptographic failures — alg:none signature-stripping and RS256→HS256 key-confusion that let an attacker forge a token for any identity (e.g. | — |
+| `hunt-html-injection` | Hunt HTML Injection — user-supplied input is rendered as raw HTML in the response without sanitisation, allowing an attacker to inject arbitrary HTML tags (but not necessarily JavaScript). | 6 |
+| `hunt-http-smuggling` | Hunt HTTP request smuggling (CL.TE, TE.CL, H2.CL, H2.TE). | 12 |
+| `hunt-idor` | Hunting skill for idor vulnerabilities. | 39 |
+| `hunt-jwt-crypto` | Hunt JWT cryptographic failures — alg:none signature-stripping and RS256→HS256 key-confusion that let an attacker forge a token for any identity (e.g. | 6 |
 | `hunt-k8s` | Hunt Kubernetes & Docker — API anonymous access, kubelet 10250 exec (SPDY/WebSocket, NOT plain POST) and the simpler /run primitive, etcd 2379 unauth, dashboard skip-login, RBAC misconfig, secret/SA-token abuse, docker.sock host escape,… | 13 |
 | `hunt-laravel` | Hunt Laravel specific vulnerabilities — Debug mode leakage (APP_DEBUG=true exposes full stack trace + env vars), Laravel Telescope/Horizon dashboard unauthorized access, Ignition RCE (CVE-2021-3129), Signed URL manipulation, Queue Worker… | 14 |
 | `hunt-ldap` | Hunt LDAP Injection and XPath Injection — authentication bypass, blind char-by-char attribute exfiltration, AD user/group enumeration, XML-store XPath bypass. | 0 |
-| `hunt-lfi` | Hunt Local File Inclusion (LFI), Remote File Inclusion (RFI), and Path Traversal — /etc/passwd read, log poisoning → RCE, PHP filter-chain RCE (no upload needed), php:// / data:// / zip:// / phar:// wrappers, RFI via allow_url_include,… | 31 |
+| `hunt-lfi` | Hunt Local File Inclusion (LFI), Remote File Inclusion (RFI), and Path Traversal — /etc/passwd read, log poisoning → RCE, PHP filter-chain RCE (no upload needed), php:// / data:// / zip:// / phar:// wrappers, RFI via allow_url_include,… | 24 |
 | `hunt-llm-ai` | Hunt LLM/AI feature bugs — prompt injection, indirect injection, exfiltration via tool-use/markdown, ASCII smuggling, agentic AI security (OWASP Agentic Apps 2026, ASI01-ASI10). | 0 |
-| `hunt-mfa-bypass` | Hunt MFA / 2FA bypass — 7 distinct patterns. | — |
+| `hunt-mfa-bypass` | Hunt MFA / 2FA bypass — 7 distinct patterns. | 5 |
 | `hunt-misc` | Hunting skill for misc vulnerabilities. | 225 |
 | `hunt-nextjs` | Hunt Next.js specific vulnerabilities — Server Actions arbitrary function execution, Middleware auth bypass via static asset paths, ISR cache poisoning, Image Optimization SSRF (/_next/image), RSC payload leakage, getServerSideProps… | 0 |
 | `hunt-nodejs` | Hunt Node.js specific vulnerabilities — Prototype Pollution → RCE chains (lodash/merge/assign), Express trust proxy misconfiguration, child_process/eval injection, template engine SSTI (EJS/Pug/Handlebars), path traversal in file servers,… | 24 |
 | `hunt-nosqli` | Hunt NoSQL Injection — MongoDB operator injection ($where, $regex, $gt, $ne), CouchDB, Redis command injection, auth bypass via NoSQLi, data dump. | 14 |
 | `hunt-ntlm-info` | Hunt NTLM/Negotiate information disclosure on internet-reachable IIS/SharePoint/Exchange. | 1 |
-| `hunt-oauth` | Hunting skill for oauth vulnerabilities. | 19 |
+| `hunt-oauth` | Hunting skill for oauth vulnerabilities. | 22 |
 | `hunt-open-redirect` | Hunt Open Redirect — all types including low-impact, chained to OAuth token theft → ATO, phishing chains. | 28 |
-| `hunt-race-condition` | Hunting skill for race condition vulnerabilities. | 12 |
+| `hunt-race-condition` | Hunting skill for race condition vulnerabilities. | 10 |
 | `hunt-rag-vector` | Hunt vector-store / embedding-layer weaknesses in RAG pipelines (OWASP LLM08 Vector and Embedding Weaknesses) — persistent corpus poisoning that survives across sessions and users (distinct from one-shot indirect prompt injection, which is… | 0 |
-| `hunt-rce` | Hunting skill for rce vulnerabilities. | 67 |
-| `hunt-saml` | Hunt SAML / SSO attacks. | — |
+| `hunt-rce` | Hunting skill for rce vulnerabilities. | 87 |
+| `hunt-saml` | Hunt SAML / SSO attacks. | 6 |
 | `hunt-session` | Hunt Session Management vulnerabilities — session fixation (no regeneration on login), insufficient invalidation on logout / password-change / email-change, predictable or low-entropy session IDs, JWT-as-session with no exp/revocation,… | 18 |
 | `hunt-shadow-api` | Hunt shadow / zombie / undocumented API surface (OWASP API9 Improper Inventory Management) — enumerate the full API version history (v1/v2/beta/legacy paths, header- and subdomain-based versioning), pull and diff every reachable… | 0 |
 | `hunt-sharepoint` | Hunt Microsoft SharePoint Server (2013/2016/2019/Subscription Edition) on-prem farms — anonymous endpoint enumeration, version disclosure, legacy SOAP login bypass (Authentication.asmx), ToolShell precondition chain (CVE-2025-53770),… | 1 |
-| `hunt-source-leak` | Hunt source code and build artifact leakage — JavaScript source maps (.js.map) reconstructing TypeScript/ES6 source, Swagger/OpenAPI JSON endpoint discovery, .env/.git exposure, webpack chunks with hardcoded secrets,… | 31 |
+| `hunt-source-leak` | Hunt source code and build artifact leakage — JavaScript source maps (.js.map) reconstructing TypeScript/ES6 source, Swagger/OpenAPI JSON endpoint discovery, .env/.git exposure, webpack chunks with hardcoded secrets,… | 7 |
 | `hunt-spa-api` | Discover a single-page-app's hidden backend API from its public JS bundle, then test that API for broken access control / missing authentication. | 1 |
 | `hunt-springboot` | Hunt Spring Boot specific vulnerabilities — Actuator endpoints (heapdump, env, loggers, mappings, shutdown), Spring Expression Language (SpEL) injection → RCE, H2 console RCE, Jolokia JMX exposure, Spring4Shell (CVE-2022-22965), Spring… | 16 |
-| `hunt-sqli` | Hunting skill for sqli vulnerabilities. | 12 |
-| `hunt-ssrf` | Hunting skill for ssrf vulnerabilities. | 15 |
-| `hunt-ssti` | Hunt server-side template injection (SSTI) across Jinja2 (Flask/Django), Twig (Symfony), Freemarker (Java), ERB (Rails), Spring, Velocity, Mako, Thymeleaf, Smarty. | — |
+| `hunt-sqli` | Hunting skill for sqli vulnerabilities. | 29 |
+| `hunt-ssrf` | Hunting skill for ssrf vulnerabilities. | 34 |
+| `hunt-ssti` | Hunt server-side template injection (SSTI) across Jinja2 (Flask/Django), Twig (Symfony), Freemarker (Java), ERB (Rails), Spring, Velocity, Mako, Thymeleaf, Smarty. | 6 |
 | `hunt-subdomain` | Hunting skill for subdomain takeover vulnerabilities. | 3 |
-| `hunt-tls-network` | Hunt TLS/SSL and DNS misconfigurations — missing HSTS (downgrade attack), weak cipher suites, expired/invalid certificates, mTLS bypass, missing SPF/DKIM/DMARC (email spoofing), DNS Zone Transfer (AXFR), dangling CNAME subdomain takeover,… | — |
+| `hunt-tls-network` | Hunt TLS/SSL and DNS misconfigurations — missing HSTS (downgrade attack), weak cipher suites, expired/invalid certificates, mTLS bypass, missing SPF/DKIM/DMARC (email spoofing), DNS Zone Transfer (AXFR), dangling CNAME subdomain takeover,… | 6 |
 | `hunt-websocket` | Hunt WebSocket vulnerabilities — Cross-Site WebSocket Hijacking (CSWSH), missing/weak Origin validation on the WS handshake, no per-message authentication, message tampering, socket.io namespace/room authorization bypass, and… | 11 |
 | `hunt-xss` | Hunting skill for xss vulnerabilities. | 174 |
 | `hunt-xxe` | Hunting skill for xxe vulnerabilities. | 10 |
