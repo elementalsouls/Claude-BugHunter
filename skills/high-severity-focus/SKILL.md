@@ -1,7 +1,8 @@
 ---
 name: high-severity-focus
-description: "Prioritize authorized bug bounty testing and finding review by demonstrated security impact; use when ranking attack surface, choosing the next test, or deciding whether a finding deserves escalation."
-sources: Original methodology contribution; impact and evidence principles; no external report corpus used.
+sources: owasp_mastg, public_research
+report_count: 0
+description: Always bias hunting and analysis toward high-impact, high-payout vulnerability classes. Use when ranking surface, choosing what to test next, or reviewing findings.
 ---
 
 # High-Severity Focus
@@ -32,9 +33,12 @@ When helping with bug hunting or red-team external work, default to the classes 
 ## Behavior Rules
 
 - When ranking a surface or list of findings, put the preferred classes first and explicitly call out weak-alone items.
-- When a finding is weak, ask whether a realistic chain to higher impact exists *right now*. If not, recommend killing or parking it.
+- When a finding is weak, classify it as Confirmed chain / Potential chain / Hypothetical. Only Confirmed chains may be treated as high priority.
 - For any High or Critical claim, require clear proof of impact (real data, real action, or clear privilege boundary), not just a technical trigger.
-- Prefer two-account demonstrations for access-control issues.
+- Access-control / IDOR claimed as High or Critical: require a two-account demonstration (attacker account vs victim account) showing data or state change that the attacker should not have.
+- Unauthenticated high/critical classes (SSRF, RCE, command injection, dangerous deserialization, etc.):
+  - Minimum acceptable non-destructive PoC is an out-of-band DNS or HTTP callback **or** safe command/output that proves execution/reach without destructive side-effects.
+  - DNS-only SSRF with no internal content or further action is insufficient for High/Critical.
 - Protect the hunter's time and validity ratio over volume of reports.
 
 ## Output Style

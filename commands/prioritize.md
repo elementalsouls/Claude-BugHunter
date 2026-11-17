@@ -59,14 +59,35 @@ Provide either:
    - GraphQL issues that lead to the classes above
    - Missing controls that enable the classes above
 
+## Chain Classification (required)
+
+When ranking a finding that is weak on its own (open redirect, self-XSS, low info leak, missing header, CORS wildcard, etc.):
+
+- **Confirmed chain**: You already possess working steps that turn the weak finding into one of the preferred classes *today* (real ATO, real data access, real internal reach, real financial impact). Rank it with the resulting high-impact class.
+- **Potential chain**: A plausible path exists but you have not demonstrated the full chain yet. Rank it no higher than P3 / Chain-only and do **not** treat it as the highest priority.
+- **Hypothetical only**: No concrete next step exists in the current session. Deprioritize / kill for prioritization purposes.
+
+Never promote a finding to P1 solely on hypothetical future chaining.
+
+## Scope Gate (before ranking surfaces)
+
+Before surfacing any ranked list:
+
+1. Prefer an in-scope definition already present in the workspace (engagement notes, scope file, CLAUDE.md, program page excerpt, etc.).
+2. If none is available, ask the user to confirm the exact in-scope assets / domains before producing the ranking.
+3. Explicitly exclude anything that is staging, third-party, or listed as out-of-scope.
+
+Do not rank surfaces the user has not authorized.
+
 ## How to Apply
 
 When given a surface or list of findings:
 
-1. Map each item to the ranking above.
-2. Call out anything that is only valuable if chained.
-3. Recommend the top 1–3 places to spend the next hours.
-4. Explicitly say what to ignore or deprioritize right now.
+1. Confirm scope (see Scope Gate).
+2. Map each item to the ranking above.
+3. Classify any weak finding as Confirmed chain / Potential chain / Hypothetical (see Chain Classification).
+4. Recommend the top 1–3 places to spend the next hours.
+5. Explicitly say what to ignore or deprioritize right now.
 
 ## Output Format
 

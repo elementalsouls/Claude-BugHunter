@@ -33,7 +33,7 @@ Provide:
 ## Required Report Structure
 
 ### 1. Title
-Follow exactly:
+Follow exactly:  
 `[Bug Class] in [Endpoint/Asset] allows [actor] to [concrete impact]`
 
 Examples:
@@ -46,7 +46,7 @@ Examples:
 - Why this is not third-party or out-of-scope
 
 ### 3. Summary (impact first)
-First 1–2 sentences must state what the attacker gains.
+First 1–2 sentences must state what the attacker gains.  
 No "could potentially", "might allow", or "may be possible".
 
 ### 4. Vulnerability Details
@@ -84,16 +84,16 @@ Numbered, exact, copy-paste friendly.
 
 ## Platform Notes
 
-**HackerOne**
+**HackerOne**  
 Markdown. Clear sections. CVSS + vector. Two-account setup when relevant.
 
-**Bugcrowd**
+**Bugcrowd**  
 Include VRT category path and P1–P5. Expected vs Actual behavior is useful.
 
-**Intigriti**
+**Intigriti**  
 CVSS prominent. Business impact clear.
 
-**Immunefi (Web3)**
+**Immunefi (Web3)**  
 Root cause, PoC (Foundry preferred), economic impact quantified.
 
 ## Escalation Language (use only when justified)

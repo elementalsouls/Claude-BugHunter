@@ -5,7 +5,7 @@ description: Full pre-submission validation. Strict 8-Question Gate + 4 Gates + 
 
 # /validate
 
-Full validation before any report is written.
+Full validation before any report is written.  
 Run this after `/triage` returns GO.
 
 ## Goal
@@ -29,7 +29,7 @@ Provide:
 
 ## Part 1 — 8-Question Gate (must all pass)
 
-Same strict questions as `/triage`. Re-confirm every one.
+Same strict questions as `/triage`. Re-confirm every one.  
 Any hard NO → **KILL**.
 
 Special emphasis:
@@ -93,22 +93,23 @@ All must pass.
 
 For any claim of **High** or **Critical**:
 
-- Must show actual sensitive data, account takeover path, or financial/business impact
-- Preference for two-account demonstration on access-control issues
-- SSRF must return internal content or demonstrate meaningful reach, not just a callback
-- XSS must demonstrate real impact (session, actions, data), not just `alert(1)`
+- Must show actual sensitive data, account takeover path, or financial/business impact.
+- Access-control / IDOR: two-account demonstration is required (attacker vs victim). Single-account "I can see my own data" is not sufficient.
+- SSRF: must return internal content or demonstrate meaningful reach; pure DNS/HTTP callback alone is not enough for High/Critical.
+- RCE / command injection / dangerous deserialization: non-destructive proof (safe command output or OOB callback) is the minimum; destructive actions are never required or recommended.
+- XSS: must demonstrate real impact (session, actions, data), not just `alert(1)`.
 
 If these are missing → force DOWNGRADE or KILL.
 
 ## Output
 
-**PASS**
+**PASS**  
 All questions and gates clear. Proceed to `/report`.
 
-**DOWNGRADE**
+**DOWNGRADE**  
 Impact proof is weak for the claimed severity. Lower severity or gather stronger evidence.
 
-**KILL**
+**KILL**  
 State the failing question or gate and the reason. Move on.
 
 Be ruthless. One clean High is worth more than five weak Mediums that get N/A'd.

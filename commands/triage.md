@@ -82,18 +82,18 @@ Kill immediately if any of these are true:
 
 ## Chain Exception
 
-If the finding is on the weak list **but** you already have a working chain to high impact today, keep it and report the full chain.
+If the finding is on the weak list **but** you already have a working chain to high impact today, keep it and report the full chain.  
 If the chain is only theoretical → KILL the weak finding.
 
 ## Output Format
 
-**GO**
+**GO**  
 All 8 questions pass. Proceed to `/validate` then `/report`.
 
-**DOWNGRADE**
+**DOWNGRADE**  
 Q2 or Q7 weak. Severity should be lowered or more proof required before claiming High/Critical.
 
-**KILL [Q# + reason]**
+**KILL [Q# + reason]**  
 Example: `KILL Q2 — only status 200, no other-user data or action demonstrated.`
 
 Be blunt. The goal is to protect your validity ratio and time.

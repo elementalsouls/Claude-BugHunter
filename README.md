@@ -2,7 +2,7 @@
 
 # claude-bughunter
 
-> A self-contained Claude skill bundle for bug hunting and external red-team work · **84 skills** · 15 slash commands · **681 disclosed-report patterns** (433 now individually cited & auditable) across 24 core vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Burp MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
+> A self-contained Claude skill bundle for bug hunting and external red-team work · **83 skills** · 15 slash commands · **681 disclosed-report patterns** (433 now individually cited & auditable) across 24 core vulnerability classes · enterprise identity + infrastructure attack matrices · engagement-folder scaffolding · Burp MCP integration · battle-tested across authorized red-team and bug-hunting engagements, plus public training platforms (DVWA, OWASP Juice Shop, Hacker101, testphp.vulnweb.com).
 
 Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — Bug Hunting & GenAI Security Research.
 
@@ -35,7 +35,7 @@ Four layers stack:
 - **Think** — `bb-methodology` + `redteam-mindset`: the 5-phase non-linear workflow, critical-thinking framework, and red-team operator discipline.
 - **Hunt webapps** — 58 `hunt-*` skills curated from 681 disclosed HackerOne reports: per-class detection patterns, payloads, bypass tables, and chain templates.
 - **Hit the perimeter** — enterprise platform chains (M365/Entra, Okta, vCenter, SSL-VPN appliances, SharePoint, cloud IAM): current 2024–2026 CVE chains + post-credential escalation.
-- **Ship it** — `triage-validation` + reporting + `evidence-hygiene`: the existing 7-Question skill gate, stricter 8-Question command gate, VRT-aware severity, OOS rebuttals, PII redaction, and red-team deliverables.
+- **Ship it** — `triage-validation` + reporting + `evidence-hygiene`: the 7-Question Gate, VRT-aware severity, OOS rebuttals, PII redaction, and red-team deliverables.
 
 All triggered automatically by topic — describe what you're testing in plain English and the relevant skill loads. No invocation by name.
 
@@ -173,7 +173,7 @@ If you're running an internal red team that includes domain-takeover chains via 
 
 ## What's inside
 
-**84 skills**, auto-loaded by topic — no invocation by name. Coverage across the external attack surface:
+**83 skills**, auto-loaded by topic — no invocation by name. Coverage across the external attack surface:
 
 | Category | # | Examples |
 |---|---|---|
@@ -181,7 +181,7 @@ If you're running an internal red team that includes domain-takeover chains via 
 | Enterprise platform attack ★ | 10 | M365/Entra, Okta, cloud-IAM-deep, vCenter, enterprise VPN, APK/iOS red-team pipelines, supply-chain recon |
 | Reporting & validation | 6 | triage-validation, evidence-hygiene, report-writing, bugcrowd-reporting |
 | Recon & OSINT | 5 | web2-recon, offensive-osint, osint-methodology, recon-scope-triage |
-| Methodology & mindset | 5 | bb-methodology, bug-bounty, redteam-mindset, bb-local-toolkit, high-severity-focus |
+| Methodology & mindset | 4 | bb-methodology, bug-bounty, redteam-mindset, bb-local-toolkit |
 
 Full searchable catalog → **[docs/skills.md](docs/skills.md)**. Also ships **15 slash commands** (`/hunt`, `/recon`, `/report`, …) and a deterministic **engagement engine** (`engine/`) that maps a target's attack surface and routes each finding to the skill that handles it.
 
@@ -189,7 +189,7 @@ Full searchable catalog → **[docs/skills.md](docs/skills.md)**. Also ships **1
 
 ## How it works
 
-A 6-phase, non-linear workflow — **recon → map & rank → hunt → validate → report** — with scope enforced in code, the existing **7-Question skill gate**, and a stricter **8-Question command gate** before reports are submitted. Two ways to drive it:
+A 6-phase, non-linear workflow — **recon → map & rank → hunt → validate → report** — with scope enforced in code and a **7-Question Gate** before anything is submitted. Two ways to drive it:
 
 - **Plain English** — describe what you're testing and the relevant skill loads automatically.
 - **`/hunt` scaffold + `cbh` CLI** — engagement-folder structure, state, and orchestration.
@@ -330,6 +330,22 @@ Operational tradecraft accumulated across bug-bounty engagements and authorized 
 - [ProjectDiscovery](https://github.com/projectdiscovery) — subfinder · dnsx · httpx · katana · nuclei
 - [SecLists](https://github.com/danielmiessler/SecLists) · [Assetnote Wordlists](https://wordlists.assetnote.io/)
 
+## Contribution intent — high-impact prioritization
+
+**Why this repo exists:** Claude-BugHunter is a drop-in skill bundle for Claude Code that turns it from a generic chatbot into a disciplined bug-hunting and external red-team operator: per-class hunting skills distilled from hundreds of disclosed reports, an engagement workflow (scope → recon → surface → hunt → validate → report), and strict reporting hygiene that protects validity ratio.
+
+**What this contribution changes and why:** too many hunts burn time on weak-alone findings (open redirects, self-XSS, missing headers, DNS-only SSRF) that die as N/A. This contribution biases the whole loop toward impact that actually pays:
+- New `/prioritize` command — rank surface and findings by historical impact and payout potential, with required Chain Classification (Confirmed / Potential / Hypothetical — never P1 on hypothetical chains) and a Scope Gate before any ranking.
+- Stricter `/triage` and `/validate` — an 8-Question Gate plus High-Severity Extra Requirements: two-account demonstrations for access-control/IDOR Highs, internal content or meaningful reach for SSRF Highs, non-destructive PoC minimums for RCE, real impact (not `alert(1)`) for XSS.
+- New `high-severity-focus` skill — keeps the agent defaulting to authentication, access control, SSRF, RCE, business logic, and strong chains, and parking weak-alone items.
+- Tighter `/report` — impact-first, scope-confirmed, evidence-backed writing.
+
+The standalone browser launcher under `launcher/` is an optional add-on for humans working from a phone or offline; it is not required by any skill or command.
+
+## Optional add-ons
+
+The standalone browser launcher under `launcher/` is an optional add-on. It is not required by the core methodology skills or the `/prioritize`, `/triage`, `/validate`, or `/report` commands.
+
 ## License
 
 This project is dual-licensed:
@@ -344,7 +360,3 @@ Reuse the content freely — including commercially — as long as you credit **
 ---
 
 > *"Give Claude the right skill and it stops being a chatbot. It becomes an operator."*
-
-### High-severity prioritization contribution
-
-This contribution adds a strict 8-question command-level gate (/triage and /validate), an impact-first /prioritize command, tighter /report requirements, and a focused high-severity-focus skill. The existing triage-validation skill's broader workflow remains unchanged.
