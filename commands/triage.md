@@ -1,15 +1,17 @@
 ---
 name: triage
-description: "Quick 7-Question Gate triage on a finding before writing a report. Kills N/A submissions before they happen. Faster than /validate — for quick go/no-go decisions. Usage: /triage"
+description: Strict 8-Question Gate triage focused on real impact and high-severity potential. Kills weak findings early. Faster than /validate. Usage: /triage
 ---
 
 # /triage
 
-Quick triage to decide: submit or kill?
+Quick, strict triage. Decide: **GO → validate**, **DOWNGRADE**, or **KILL**.
+
+Use this *before* writing any report. One hard NO = stop.
 
 ## When to Use
 
-Use this before spending time writing a full report. If triage passes, run `/validate` for the full 4-gate check, then `/report`.
+After you have a candidate finding and at least one real HTTP request/response pair.
 
 ## Usage
 
@@ -17,80 +19,81 @@ Use this before spending time writing a full report. If triage passes, run `/val
 /triage
 ```
 
-Describe the finding in one sentence. Example:
-- "I can read other users' orders by changing user_id in /api/orders/{id}"
-- "The /api/export endpoint returns 200 with data even with no auth header"
-- "I found X-Forwarded-Host is reflected in the password reset email"
+Describe the finding in 1–3 sentences. Include:
+- Endpoint + method
+- What you changed / sent
+- What the response actually contained (not just status code)
+- Whether you used two accounts or only one
 
-## The 7 Questions (Fast Version)
+## The 8-Question Gate (Strict)
 
-Answer YES or NO to each. First NO = kill it immediately.
+Answer YES or NO. First hard NO = **KILL**.
 
 ```
-Q1: Can I demonstrate this with a real HTTP request RIGHT NOW?
-    YES: I have the request/response already
-    NO: I need to look at more code first → KILL
+Q1: Do I have a real, copy-pasteable HTTP request AND the response body right now?
+    YES: Full request + response already captured
+    NO:  Still exploring / only saw a status code → KILL
 
-Q2: Is this impact type accepted by the program?
-    YES: Bug class is on their accepted list
-    NO: They explicitly exclude this type → KILL
+Q2: Does the response prove real impact (data, action, or privilege), not just "it worked"?
+    YES: Other user's data, successful action, or clear privilege boundary crossed
+    NO:  Only 200 / error message / reflection without consequence → DOWNGRADE or KILL
 
-Q3: Is the vulnerable asset owned by and in scope for the program?
-    YES: Domain confirmed in-scope, not third-party
-    NO: Third-party service or excluded domain → KILL
+Q3: Is this impact type accepted by the specific program?
+    YES: Explicitly listed or clearly in scope
+    NO:  Excluded or "informational only" → KILL
 
-Q4: Does this work without admin/privileged access?
-    YES: Regular user account is enough
-    NO: Requires admin → KILL (99% of programs)
+Q4: Is the asset confirmed in-scope and owned by the program?
+    YES: Exact domain / app in scope, not third-party
+    NO:  Staging, third-party, or excluded → KILL
 
-Q5: Is this NOT already known/disclosed/documented behavior?
-    YES: Not in changelogs, not in disclosed reports
-    NO: It's documented as intended → KILL
+Q5: Can a normal (non-admin) attacker reach this?
+    YES: Regular user / unauthenticated is enough
+    NO:  Requires admin or special internal access → KILL (almost always)
 
-Q6: Can I prove impact beyond "technically possible"?
-    YES: I have actual data in the response / action completed
-    NO: I only have a 200 status or error message → DOWNGRADE
+Q6: Is this NOT already known, documented, or intended behavior?
+    YES: Not in disclosed reports, changelog, or docs as accepted
+    NO:  Documented or previously disclosed → KILL
 
-Q7: Is this NOT on the never-submit list?
-    YES: It's a real bug class
-    NO: Missing headers, self-XSS, open redirect alone, etc. → KILL or CHAIN
+Q7: Is this a high-value class or a clear chain to one?
+    Preferred: Auth bypass, ATO, IDOR+sensitive data, SSRF→internal, RCE, financial logic
+    Acceptable: Stored XSS with real session impact, strong business logic
+    Weak alone: Open redirect, missing headers, self-XSS, rate-limit, introspection only
+    → If weak and no chain today → KILL
+
+Q8: Can I reproduce this cleanly from a fresh session with the evidence I already have?
+    YES: Steps are clear and evidence is sufficient
+    NO:  Needs more setup or "I think it works" → KILL or come back later
 ```
 
-## Fast Kill Checklist
+## Fast Kill List (instant NO)
 
-Kill immediately if ANY of these are true:
-```
-[ ] "Admin can do X" = not a bug
-[ ] "Could theoretically lead to..." = no PoC = not a bug
-[ ] Bug requires 3+ preconditions simultaneously
-[ ] Finding is a missing header, missing flag, missing DMARC
-[ ] SSRF with DNS callback only, no data returned
-[ ] Open redirect with no OAuth chain or ATO path
-[ ] Self-XSS (only affects your own account)
-[ ] Introspection only (no IDOR, no auth bypass shown)
-[ ] Rate limit on login/contact/search (Cloudflare covers it)
-```
+Kill immediately if any of these are true:
 
-## Conditional Kill (chain required)
+- "Admin can do X" / requires privileged role the attacker can't get
+- Only technical possibility, no real data or action shown
+- SSRF with DNS callback only, no internal content returned
+- Open redirect with no OAuth / ATO / token theft chain
+- Self-XSS (only affects the attacker)
+- Missing security headers, cookie flags, DMARC, etc. alone
+- GraphQL introspection with no further impact shown
+- Rate limiting on non-critical endpoints
+- Requires 3+ unlikely preconditions at the same time
+- Staging / third-party / out-of-scope asset
 
-If it's on the never-submit list BUT you can chain it:
-```
-Open redirect → OAuth code theft → ATO        = report the chain
-SSRF DNS → internal service access = data     = report the chain
-CORS → credentialed data exfil PoC            = report the chain
-Prompt injection → IDOR via chatbot           = report the chain
-```
+## Chain Exception
 
-If you can't build the chain today → KILL IT.
+If the finding is on the weak list **but** you already have a working chain to high impact today, keep it and report the full chain.
+If the chain is only theoretical → KILL the weak finding.
 
-## Output
+## Output Format
 
-**GO:** "All 7 pass. Run /validate for full check, then /report."
+**GO**
+All 8 questions pass. Proceed to `/validate` then `/report`.
 
-**KILL [reason]:**
-- "Q1 fails — no HTTP request yet"
-- "Q4 fails — requires admin access"
-- "Q7 fails — open redirect alone is not submittable. Chain it with OAuth theft first."
+**DOWNGRADE**
+Q2 or Q7 weak. Severity should be lowered or more proof required before claiming High/Critical.
 
-**DOWNGRADE:**
-- "Q6 — you have 200 status but not actual other-user data. Reproduce with two accounts and show victim's PII in the response before reporting."
+**KILL [Q# + reason]**
+Example: `KILL Q2 — only status 200, no other-user data or action demonstrated.`
+
+Be blunt. The goal is to protect your validity ratio and time.

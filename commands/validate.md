@@ -1,18 +1,16 @@
 ---
 name: validate
-description: "Validate a finding — runs 7-Question Gate + 4-gate checklist. Kills weak findings before report writing. Prevents N/A submissions that hurt validity ratio. Usage: /validate"
+description: Full pre-submission validation. Strict 8-Question Gate + 4 Gates + high-severity evidence requirements. Prevents N/A and weak reports. Usage: /validate
 ---
 
 # /validate
 
-Run full validation on the current finding before writing a report.
+Full validation before any report is written.
+Run this after `/triage` returns GO.
 
-## What This Does
+## Goal
 
-1. Runs 7-Question Gate (one wrong answer = kill it)
-2. Checks against the always-rejected list
-3. Runs 4 pre-submission gates
-4. Outputs: PASS (write the report) or KILL (move on)
+Protect validity ratio. Only pass findings that have real, demonstrable impact and clean evidence.
 
 ## Usage
 
@@ -20,115 +18,97 @@ Run full validation on the current finding before writing a report.
 /validate
 ```
 
-Describe the finding when prompted. Include:
-- The endpoint
-- The bug class
-- What the PoC shows
-- The target program
+Provide:
+- Program name / platform
+- Bug class
+- Exact endpoint
+- Full HTTP request that triggers it
+- Full response (or clear screenshot description) that proves impact
+- Whether two accounts were used
+- Claimed severity
 
-## The 7-Question Gate
+## Part 1 — 8-Question Gate (must all pass)
 
-Answer each. ONE wrong answer = STOP.
+Same strict questions as `/triage`. Re-confirm every one.
+Any hard NO → **KILL**.
 
-### Q1: Can I demonstrate this step-by-step RIGHT NOW?
+Special emphasis:
+- Q2 and the impact-proof rule are non-negotiable for High/Critical claims.
+- Two-account PoC (or clear unauthenticated privilege boundary) is required for most IDOR / auth issues.
 
-Write this out:
-```
-1. Setup:   I need [own account / another user's ID / no account]
-2. Request: [exact HTTP method, URL, headers, body]
-3. Result:  Response shows [exact data / action completed]
-4. Impact:  Real consequence is [account takeover / PII exposed / money stolen]
-5. Cost:    Time: [X min], Capital: [$0 / $X]
-```
+## Part 2 — Always-Rejected / Conditional List
 
-If step 2 is "I need to look at the code more" → KILL IT.
+**Instant kill unless a real chain exists today:**
+- Missing headers / cookie flags / security.txt / DMARC
+- Self-XSS
+- Open redirect alone
+- SSRF DNS-only
+- GraphQL introspection alone
+- Clickjacking without sensitive action + working PoC
+- Logout CSRF
+- Rate limits on non-critical functions
+- Information disclosure of non-sensitive data
 
-### Q2: Is the impact accepted by this program?
+**Chain required to keep:**
+| Weak finding          | Required chain to keep it          |
+|-----------------------|------------------------------------|
+| Open redirect         | OAuth / token theft → ATO          |
+| SSRF DNS-only         | Actual internal data or action     |
+| CORS wildcard         | Credentialed data exfiltration     |
+| Prompt injection      | Clear IDOR or data access          |
+| Clickjacking          | Sensitive state-changing action    |
 
-Check program scope page. Is your bug class listed? Is it excluded?
+No chain today → KILL.
 
-### Q3: Is the vulnerable asset in scope?
+## Part 3 — 4 Pre-Submission Gates
 
-Exact domain in scope? Not staging/dev? Not a third-party service?
+All must pass.
 
-### Q4: Does it need admin or privileged access that an attacker can't get?
+**Gate 0 — Evidence (must be true right now)**
+- [ ] Real HTTP request + response captured
+- [ ] Impact visible in the response or follow-up action
+- [ ] Reproducible from a clean session
+- [ ] Asset confirmed in-scope on the program page
 
-"Admin can do X" → KILL IT.
-"Regular user can do X that only admin should" → valid.
+**Gate 1 — Impact**
+- [ ] Clear answer to: "What does the attacker actually walk away with?"
+- [ ] More than theoretical or "could be used to..."
+- [ ] Real victim or privilege boundary crossed
+- [ ] No extreme or unlikely preconditions
 
-### Q5: Is this known or documented behavior?
+**Gate 2 — Deduplication & Known Behavior**
+- [ ] Searched program disclosed reports / Hacktivity
+- [ ] Checked recent changelog / release notes
+- [ ] Not documented as intended behavior
+- [ ] Not a known duplicate of a recent report
 
-Search disclosed reports + changelog + API docs.
+**Gate 3 — Report Readiness**
+- [ ] Title can follow: `[Class] in [Endpoint] allows [actor] to [impact]`
+- [ ] Exact request can be pasted into the report
+- [ ] Evidence shows the impact (not just 200 OK)
+- [ ] Severity justified with CVSS or VRT reasoning
+- [ ] Fix suggestion is specific (1–2 sentences)
 
-### Q6: Can you prove impact beyond "technically possible"?
+## High-Severity Extra Requirements
 
-- XSS → actual cookie value in exfil request, not just alert()
-- SSRF → response body from internal service, not just DNS callback
-- IDOR → actual other-user's private data in response, not just 200 status
+For any claim of **High** or **Critical**:
 
-### Q7: Is this on the never-submit list?
+- Must show actual sensitive data, account takeover path, or financial/business impact
+- Preference for two-account demonstration on access-control issues
+- SSRF must return internal content or demonstrate meaningful reach, not just a callback
+- XSS must demonstrate real impact (session, actions, data), not just `alert(1)`
 
-```
-Missing headers, GraphQL introspection alone, clickjacking without PoC,
-self-XSS, open redirect alone, SSRF DNS-only, logout CSRF, banner disclosure,
-rate limit on non-critical forms, missing cookie flags alone...
-```
-
-If yes → KILL IT unless you have a chain.
-
-## Check: Conditionally Valid?
-
-If it's on the never-submit list, can you chain it?
-
-| You Have | Chain Available? |
-|---|---|
-| Open redirect | + OAuth code theft → ATO? |
-| SSRF DNS-only | + internal service data? |
-| Clickjacking | + sensitive action + PoC? |
-| CORS wildcard | + credentialed data exfil? |
-| Prompt injection | + IDOR → other user's data? |
-
-If no chain → KILL IT. If chain confirmed → report both together.
-
-## 4 Gates — All Must Pass
-
-**Gate 0 (30 sec):**
-```
-[ ] Confirmed with real HTTP requests (not just code reading)
-[ ] In scope (checked program page)
-[ ] Reproducible from scratch
-[ ] Evidence captured
-```
-
-**Gate 1 — Impact (2 min):**
-```
-[ ] Can answer "What does attacker walk away with?"
-[ ] More than "sees non-sensitive data"
-[ ] Real victim exists
-[ ] No unlikely preconditions
-```
-
-**Gate 2 — Dedup (5 min):**
-```
-[ ] Searched HackerOne Hacktivity for endpoint + bug class
-[ ] Searched GitHub issues
-[ ] Read 5 most recent disclosed reports
-[ ] Not in changelog as known issue
-```
-
-**Gate 3 — Report quality (10 min):**
-```
-[ ] Title formula: [Class] in [Endpoint] allows [actor] to [impact]
-[ ] Steps have exact HTTP request
-[ ] Evidence shows actual impact
-[ ] CVSS calculated
-[ ] Fix: 1-2 concrete sentences
-```
+If these are missing → force DOWNGRADE or KILL.
 
 ## Output
 
-**PASS:** "All 7 questions pass. All 4 gates pass. Proceed to /report."
+**PASS**
+All questions and gates clear. Proceed to `/report`.
 
-**KILL:** "Q[N] fails because [reason]. Kill this finding. Reason: [explanation]. Move on."
+**DOWNGRADE**
+Impact proof is weak for the claimed severity. Lower severity or gather stronger evidence.
 
-**DOWNGRADE:** "Q6 only shows technical possibility. Downgrade from High to Medium. Requires showing actual data exfil in PoC."
+**KILL**
+State the failing question or gate and the reason. Move on.
+
+Be ruthless. One clean High is worth more than five weak Mediums that get N/A'd.

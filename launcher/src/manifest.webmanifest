@@ -1,0 +1,57 @@
+{
+  "name": "BugHunter Launcher \u2014 Claude-BugHunter",
+  "short_name": "BugHunter",
+  "description": "Standalone browser launcher for Claude-BugHunter triage, validation, prioritization and report drafting.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0e14",
+  "theme_color": "#0a0e14",
+  "categories": [
+    "security",
+    "utilities",
+    "developer"
+  ],
+  "icons": [
+    {
+      "src": "src/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "src/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "CBH Runner",
+      "url": "./?shortcut=runner",
+      "description": "Open the in-browser cbh recon, classify, triage and report runner.",
+      "icons": [
+        {
+          "src": "src/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Skills",
+      "url": "./?shortcut=skills",
+      "description": "Browse the 83 bundled hunting skills.",
+      "icons": [
+        {
+          "src": "src/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

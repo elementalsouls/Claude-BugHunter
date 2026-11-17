@@ -1,0 +1,7 @@
+$meta
+  title = BugHunter Launcher — Claude-BugHunter Standalone App
+  description = Fully functional Claude-BugHunter launcher: 84 skills (83 upstream + hunt-ios), 15 slash commands, 681 disclosed-report patterns, in-browser cbh recon/classify/triage/report, offline bundle + PWA/APK installer.
+  header
+    mode = minimal
+
+superFetch = {import:super-fetch-plugin}

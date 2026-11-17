@@ -1,0 +1,761 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e14">
+<link rel="manifest" href="src/manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a0e14'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%2339ff88'%3E%E2%9A%94%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="src/icons/icon-192.png">
+<style>
+html{color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0a0e14;color:#e6eef6;font-family:system-ui,-apple-system,Roboto,Segoe UI,Arial,sans-serif;text-align:left;font-size:15px;line-height:1.45}
+a{color:#5eb0ff}
+.topbar{position:sticky;top:0;z-index:20;background:#0d141c;border-bottom:1px solid #1e2c3d;padding:10px 12px}
+.topbar h1{margin:0;font-size:18px;letter-spacing:.2px}
+.topbar h1 .bug{color:#39ff88}
+.topbar .sub{font-size:12px;color:#93a5b8;margin-top:2px}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 12px 0}
+.stat{background:#111a24;border:1px solid #223448;border-radius:10px;padding:7px 9px;min-width:0}
+.stat .k{font-size:11px;color:#8fa2b5}
+.stat .v{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{position:sticky;top:0;z-index:19;display:flex;gap:6px;overflow-x:auto;padding:10px 12px;background:#0a0e14;border-bottom:1px solid #1a2634}
+.tabs button{flex:0 0 auto;padding:10px 14px;border-radius:999px;border:1px solid #2a3d53;background:#16202c;color:#e6eef6;font-size:14px;min-height:44px;cursor:pointer}
+.tabs button.on{background:#1f7a44;border-color:#39ff88;font-weight:700}
+.wrap{padding:10px 12px 140px;max-width:1100px;margin:0 auto}
+.card{background:#101922;border:1px solid #223448;border-radius:12px;padding:12px;margin:10px 0}
+.card h2{margin:2px 0 8px;font-size:16px}
+.card h3{margin:10px 0 6px;font-size:14px;color:#39ff88}
+.muted{color:#93a5b8;font-size:13px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:140px}
+button.big{min-height:48px;font-size:15px;padding:10px 14px;border-radius:10px;border:1px solid #2d3f57;background:#1b2837;color:#fff;cursor:pointer}
+button.primary{background:#1f7a44;border-color:#39ff88}
+button.warn{background:#7a2020;border-color:#7a2020}
+button.ghost{background:transparent}
+button:disabled{opacity:.45}
+input[type=text],input[type=url],input[type=number],select,textarea{width:100%;font-size:15px;padding:11px;border-radius:10px;border:1px solid #2d3f57;background:#0b1118;color:#fff;margin:6px 0;font-family:inherit}
+textarea{min-height:110px;resize:vertical}
+.log{background:#070b10;border:1px solid #1e2a3a;border-radius:10px;padding:8px;max-height:260px;overflow:auto;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap}
+.log div{padding:3px 0;border-bottom:1px dotted #1a2330}
+.skillgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.skillcard{background:#131d29;border:1px solid #26394f;border-radius:10px;padding:10px;cursor:pointer;text-align:left;color:#e6eef6;width:100%}
+.skillcard:hover{border-color:#39ff88}
+.skillcard b{font-size:14px}
+.skillcard .d{font-size:12px;color:#93a5b8;margin-top:4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid #2d4a68;color:#9fc3e8;margin:2px 4px 2px 0}
+table.mkt{width:100%;border-collapse:collapse}
+table.mkt th,table.mkt td{padding:8px 6px;border-bottom:1px solid #1e2a3a;font-size:13px;text-align:left;vertical-align:top}
+table.mkt th{color:#93a5b8;font-size:11px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:10px}
+.overlay.show{display:flex}
+.sheet{background:#0f1721;border:1px solid #2a3d53;border-radius:14px;width:100%;max-width:860px;max-height:90vh;overflow:auto;padding:14px}
+.sheet h3{margin:0 0 8px}
+.md{font-size:14px;line-height:1.55}
+.md h1,.md h2,.md h3{color:#39ff88}
+.md pre{background:#070b10;border:1px solid #223448;border-radius:8px;padding:8px;overflow:auto;font-size:12px}
+.md code{background:#1a2634;padding:1px 5px;border-radius:5px;font-size:12.5px}
+.md pre code{background:none;padding:0}
+.md blockquote{border-left:3px solid #39ff88;margin:8px 0;padding:4px 10px;color:#b9c9d9;background:#0c141d}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dotted #223;font-size:13px}
+.footer{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#0d141cf2;border-top:1px solid #223;padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.footer button{flex:1}
+.check{display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px dotted #223;font-size:14px}
+.check input{width:22px;height:22px;margin:0;flex:0 0 auto}
+.step{display:flex;gap:10px;margin:8px 0}
+.step .n{flex:0 0 28px;height:28px;border-radius:50%;background:#1f7a44;display:flex;align-items:center;justify-content:center;font-weight:800}
+pre.cmd{background:#070b10;border:1px solid #223448;border-radius:8px;padding:10px;overflow:auto;font-size:12.5px;white-space:pre-wrap;position:relative}
+.copybtn{float:right;font-size:12px;padding:6px 10px;min-height:0}
+.searchrow{display:flex;gap:8px;position:sticky;top:0;background:#0a0e14;padding:6px 0;z-index:5}
+.badge{font-size:11px;background:#1f7a44;border-radius:6px;padding:2px 6px;margin-left:6px}
+@media(min-width:800px){.statgrid{grid-template-columns:repeat(8,1fr)}.overlay{align-items:center}}
+</style>
+
+<div class="topbar">
+<h1><span class="bug">⚔</span> Claude-BugHunter <span style="font-weight:400;font-size:13px;color:#93a5b8">Launcher + Standalone App</span></h1>
+<div class="sub">84 skills (83 upstream + hunt-ios) · 15 slash commands · 681 disclosed-report patterns · 24 vuln classes · cbh CLI in-browser · offline-capable · installable as app / APK</div>
+</div>
+
+<div class="statgrid">
+<div class="stat"><div class="k">Skills</div><div class="v" id="statSkills">83</div></div>
+<div class="stat"><div class="k">Commands</div><div class="v">15</div></div>
+<div class="stat"><div class="k">Reports</div><div class="v" id="statReports">681</div></div>
+<div class="stat"><div class="k">Mode</div><div class="v" id="statMode">offline</div></div>
+<div class="stat"><div class="k">Engagements</div><div class="v" id="statEng">0</div></div>
+<div class="stat"><div class="k">Repo</div><div class="v" id="statRepo">bundled</div></div>
+<div class="stat"><div class="k">Generator</div><div class="v" id="statGen">…</div></div>
+<div class="stat"><div class="k">App</div><div class="v">PWA/APK</div></div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="wrap">
+<!-- DASHBOARD -->
+<div id="view-dash">
+<div class="card"><h2>🎯 New / active engagement</h2>
+<div class="muted">Scope-first. Everything stays in scope — recon discoveries are filtered, hunts never dispatch out-of-scope. State persists on this device.</div>
+<label class="muted">Target (e.g. example.com)</label>
+<input id="engTarget" type="text" placeholder="target.com" value="">
+<label class="muted">In-scope (comma-separated hosts / wildcards)</label>
+<input id="engScope" type="text" placeholder="*.target.com, target.com">
+<div class="row">
+<select id="engMode" class="grow"><option value="curl">curl-only (no Burp)</option><option value="burp">Burp proxy (127.0.0.1:8080)</option><option value="mcp">Burp MCP conversational</option></select>
+<button class="big primary grow" id="engStartBtn">Start engagement</button>
+</div>
+<div id="engList" style="margin-top:8px"></div>
+</div>
+<div class="card"><h2>⚡ Quick CBH (in-browser, no Python needed)</h2>
+<div class="row">
+<button class="big grow" data-go="runner" data-tool="recon">cbh recon</button>
+<button class="big grow" data-go="runner" data-tool="classify">cbh classify</button>
+<button class="big grow" data-go="runner" data-tool="triage">cbh triage</button>
+<button class="big grow" data-go="runner" data-tool="report">cbh report</button>
+</div>
+<div class="muted" style="margin-top:6px">JS re-implementation of <code>cbh/cli.py</code>: crt.sh passive enum, URL→skill pattern match, strict 8-Question triage gate, H1/Bugcrowd/Intigriti/Immunefi drafts. Full Python CLI available in App tab for desktop/Termux.</div>
+<div class="log" id="dashLog"><div>Ready. Pick a tab above. Bundled docs and commands load from src/repo/.</div></div>
+</div>
+<div class="card"><h2>🧭 5-phase workflow</h2>
+<div class="step"><div class="n">1</div><div><b>Scope</b> — /scope. Define in-scope, out-of-scope, forbidden. <span class="muted">skill: recon-scope-triage</span></div></div>
+<div class="step"><div class="n">2</div><div><b>Recon</b> — /recon. Subdomains, live hosts, URLs, JS, swagger. <span class="muted">skills: web2-recon, hunt-subdomain, offensive-osint</span></div></div>
+<div class="step"><div class="n">3</div><div><b>Rank</b> — /surface. P1/P2/Kill attack surface from manifest.json.</div></div>
+<div class="step"><div class="n">4</div><div><b>Hunt</b> — /hunt + hunt-* skills. Per-class payloads from 681 disclosed reports.</div></div>
+<div class="step"><div class="n">5</div><div><b>Validate → Report</b> — /validate, /triage, /report. Strict 8-Question gate, then H1/Bugcrowd template.</div></div>
+</div>
+</div>
+
+<!-- SKILLS -->
+<div id="view-skills" hidden>
+<div class="card"><h2>📚 Skills <span class="badge" id="skillCount">83</span></h2>
+<div class="searchrow"><input id="skillSearch" type="text" placeholder="Search skills… (xss, ssrf, oauth, k8s, mobile, graphql)" class="grow"><select id="skillCat" style="max-width:170px"><option value="">all categories</option><option value="hunt-">hunt-*</option><option value="infra">infra / cloud / ident</option><option value="mobile">mobile</option><option value="method">methodology</option><option value="osint">osint / recon</option><option value="web3">web3</option></select></div>
+<div class="muted" id="skillStatus">Loading skill index…</div>
+<div class="skillgrid" id="skillGrid" style="margin-top:8px"></div>
+</div>
+</div>
+
+<!-- COMMANDS -->
+<div id="view-cmds" hidden>
+<div class="card"><h2>⌨️ Slash commands (15)</h2><div class="muted">Claude Code slash commands. Tap View to read the prompt, Copy to paste into Claude Code.</div>
+<div id="cmdList"></div></div>
+</div>
+
+<!-- RUNNER -->
+<div id="view-runner" hidden>
+<div class="card"><h2>🛠 cbh runner — in-browser</h2>
+<div class="row">
+<button class="big" data-tool="recon">recon</button>
+<button class="big" data-tool="surface">surface</button>
+<button class="big" data-tool="classify">classify</button>
+<button class="big" data-tool="triage">triage</button>
+<button class="big" data-tool="report">report</button>
+</div>
+<div id="toolBox" style="margin-top:10px"></div>
+</div>
+<div class="card"><h2>Equivalent Python CLI</h2>
+<pre class="cmd" id="cliHelp">cbh recon &lt;target&gt;      passive enum + probe → recon/&lt;target&gt;/manifest.json
+cbh surface &lt;target&gt;    rank P1/P2/Kill from manifest.json
+cbh classify &lt;url&gt;      URL → matched hunt-* skills + attack candidates
+cbh triage &lt;finding.md&gt;  Strict 8-Question gate → PASS / DOWNGRADE / KILL
+cbh report &lt;finding.md&gt;  H1 / Bugcrowd / Intigriti / Immunefi draft</pre>
+<button class="big" id="copyCliBtn">Copy cbh quickstart</button>
+</div>
+</div>
+
+<!-- PLAYBOOKS -->
+<div id="view-play" hidden>
+<div class="card"><h2>📖 Methodology playbooks</h2>
+<div id="playList"></div>
+</div>
+<div class="card"><h2>✅ Pre-flight checklist (tap to check, saved)</h2>
+<div id="checkList"></div>
+<button class="big" id="resetChecksBtn">Reset checklist</button>
+</div>
+</div>
+
+<!-- REPORTS -->
+<div id="view-reports" hidden>
+<div class="card"><h2>📄 Disclosed-report patterns</h2>
+<div class="muted">Curated from 681 HackerOne reports across 24 vuln classes. 433 individually cited &amp; auditable. Tap to read.</div>
+<div class="searchrow"><input id="repSearch" type="text" placeholder="Filter reports…"></div>
+<div id="repList"></div>
+</div>
+</div>
+
+<!-- APP -->
+<div id="view-app" hidden>
+<div class="card"><h2>📦 Standalone app / APK</h2>
+<div class="muted">This launcher <b>is</b> the standalone app. Everything below turns it into an offline file or an Android APK.</div>
+<h3>1 — Install as app (no store, 10 sec)</h3>
+<div class="muted">Android Chrome: menu ⋮ → <b>Add to Home screen</b> → launcher opens fullscreen like a native app. iOS Safari: Share → Add to Home Screen. Your engagements stay on-device.</div>
+<div class="row" style="margin-top:6px"><button class="big primary grow" id="pwaBtn">Show install steps</button><button class="big grow" id="copyUrlBtn">Copy app URL</button></div>
+<div id="pwaSteps" class="muted" hidden style="margin-top:6px">1) Open this page in Chrome (Android) → 2) ⋮ menu → Add to Home screen / Install app → 3) Launch “BugHunter” from home screen → 4) It runs fullscreen. This archive does not include a standalone service worker, so offline caching is not enabled.</div>
+<div class="row" style="margin-top:6px"><button class="big primary grow" id="installAppBtn" hidden>⬇ Install app</button></div>
+<div class="muted" id="swStatus" style="margin-top:6px">Service worker: checking…</div>
+<h3>2 — Download standalone HTML (truly offline)</h3>
+<div class="muted">Single <code>.html</code> file with launcher + all skills + 15 commands + reports inlined (~3.5 MB). Double-click to run, no server. Share via USB/Bluetooth.</div>
+<div class="row"><button class="big primary grow" id="dlLiteBtn">Download launcher (150 KB)</button><button class="big grow" id="dlFullBtn">Download FULL offline bundle</button></div>
+<div class="muted" id="dlStatus"></div>
+<h3>3 — Wrap into APK (PWABuilder, free, no code)</h3>
+<div class="muted">1) Copy app URL → 2) go to <b>pwabuilder.com</b> → 3) paste URL → Package for Android → download <code>.apk / .aab</code> → sideload to phone. Works because this page ships a web manifest + icons.</div>
+<div class="row"><button class="big grow" id="openPwaBtn">Open PWABuilder</button><button class="big grow" id="dlManifestBtn">Download manifest</button></div>
+<div class="row" style="margin-top:6px"><button class="big grow" id="dlSwBtn">Download sw.js</button><button class="big grow" id="copySwUrlBtn">Copy SW + manifest URLs</button></div>
+<div class="muted">PWABuilder needs a public manifest + service worker + icons. Inside Perchance the platform owns the top-level SW, so for store/APK packaging host the FULL offline export (it bundles sw.js + manifest + icons) on GitHub Pages / Netlify / any HTTPS host, then run PWABuilder on <i>that</i> URL.</div>
+<h3>4 — Full repo ZIP + desktop CLI</h3>
+<div class="row"><a href="https://github.com/elementalsouls/Claude-BugHunter/archive/refs/heads/main.zip"><button class="big grow">Download repo .zip (GitHub)</button></a><button class="big grow" id="dlRepoBtn">Download bundled repo listing</button></div>
+<pre class="cmd">git clone https://github.com/elementalsouls/Claude-BugHunter.git
+cd Claude-BugHunter
+bash scripts/install.sh        # macOS/Linux  (Windows: pwsh ./scripts/install.ps1)
+pip install -e .               # cbh CLI
+cbh recon example.com
+cbh classify "https://example.com/reset?token=abc"
+cbh triage finding.md
+cbh report finding.md</pre>
+<h3>5 — Android Termux (real cbh on phone, no APK needed)</h3>
+<pre class="cmd">pkg update &amp;&amp; pkg install -y python git
+git clone https://github.com/elementalsouls/Claude-BugHunter.git
+cd Claude-BugHunter
+bash scripts/install.sh
+python scripts/cbh.py recon example.com</pre>
+<button class="big" id="copyTermuxBtn">Copy Termux setup</button>
+</div>
+<div class="card"><h2>🔌 Installers &amp; scripts (from bundled repo)</h2><div id="scriptList"></div></div>
+<div class="card"><h2>📄 Docs</h2><div id="docList"></div></div>
+</div>
+</div>
+
+<div class="footer">
+<button class="big" id="footBackBtn">◀ Skills</button>
+<button class="big primary" id="footRunBtn">▶ CBH Runner</button>
+<button class="big" id="footAppBtn">📦 App/APK</button>
+</div>
+
+<div class="overlay" id="ov"><div class="sheet"><div class="row"><h3 id="ovTitle" class="grow">…</h3><button class="big" id="ovClose">✕</button></div><div class="row"><button class="big grow" id="ovCopy">Copy markdown</button><button class="big grow" id="ovDl">Download .md</button></div><div class="md" id="ovBody" style="margin-top:8px"></div><pre id="ovRaw" hidden></pre></div></div>
+
+<script>
+"use strict";
+var REPO="src/repo";
+var $=function(id){return document.getElementById(id);};
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function log(m){var el=$("dashLog");if(!el)return;var d=document.createElement("div");d.textContent=m;el.prepend(d);while(el.children.length>80)el.removeChild(el.lastChild);}
+function say(m){log(m);}
+/* ---------- tabs ---------- */
+var TABDEF=[["Dashboard","view-dash"],["Skills","view-skills"],["Commands","view-cmds"],["CBH Runner","view-runner"],["Playbooks","view-play"],["Reports","view-reports"],["App/APK","view-app"]];
+var curTab=0;
+function buildTabs(){var t=$("tabs");t.innerHTML="";TABDEF.forEach(function(d,i){var b=document.createElement("button");b.textContent=d[0];if(i===0)b.classList.add("on");b.onclick=function(){showTab(i);};t.appendChild(b);});}
+function showTab(i){curTab=i;TABDEF.forEach(function(d,j){$(d[1]).hidden=(j!==i);});var bs=$("tabs").querySelectorAll("button");bs.forEach(function(b,k){b.classList.toggle("on",k===i);});window.scrollTo({top:0});}
+document.querySelectorAll("[data-go]").forEach(function(b){b.onclick=function(){var map={runner:3};showTab(map[b.getAttribute("data-go")]||0);if(b.getAttribute("data-tool"))selectTool(b.getAttribute("data-tool"));};});
+$("footBackBtn").onclick=function(){showTab(1);};
+$("footRunBtn").onclick=function(){showTab(3);};
+$("footAppBtn").onclick=function(){showTab(6);};
+/* ---------- markdown (small) ---------- */
+function mdRender(src){
+  var h=esc(src);
+  h=h.replace(/```(\w*)\n([\s\S]*?)```/g,function(m,l,c){return "<pre>"+c+"</pre>";});
+  h=h.replace(/^### (.*)$/gm,"<h3>$1</h3>").replace(/^## (.*)$/gm,"<h2>$1</h2>").replace(/^# (.*)$/gm,"<h1>$1</h1>");
+  h=h.replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/`([^`]+)`/g,"<code>$1</code>");
+  h=h.replace(/^\s*-\s+(.*)$/gm,"<li>$1</li>");
+  h=h.replace(/(<li>.*<\/li>\n?)+/g,function(m){return "<ul>"+m+"</ul>";});
+  h=h.replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,'<a href="$2" target="_blank">$1</a>');
+  h=h.replace(/\n\n/g,"<br><br>");
+  return '<div class="md">'+h+"</div>";
+}
+/* ---------- overlay viewer ---------- */
+var ovRawText="";
+function openDoc(title, text){
+  ovRawText=text||"";
+  $("ovTitle").textContent=title;
+  $("ovRaw").textContent=text||"";
+  $("ovBody").innerHTML=mdRender(text||"(empty)");
+  $("ov").classList.add("show");
+}
+$("ovClose").onclick=function(){$("ov").classList.remove("show");};
+$("ov").addEventListener("click",function(e){if(e.target.id==="ov")$("ov").classList.remove("show");});
+$("ovCopy").onclick=function(){navigator.clipboard.writeText(ovRawText).then(function(){say("Copied "+ovRawText.length+" chars");});};
+$("ovDl").onclick=function(){var blob=new Blob([ovRawText],{type:"text/markdown"});var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=$("ovTitle").textContent.replace(/[^a-z0-9-_]+/gi,"-")+".md";a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},4000);};
+async function fetchText(path){
+  var r=await fetch(path);
+  if(!r.ok)throw new Error("HTTP "+r.status+" "+path);
+  return await r.text();
+}
+async function fetchJSON(path){
+  var r=await fetch(path);
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return await r.json();
+}
+/* ---------- engagements ---------- */
+var LS_ENG="cbh_engagements_v2", LS_CHECK="cbh_checks_v1";
+function getEngs(){
+  try{
+    var raw=localStorage.getItem(LS_ENG);
+    if(raw)return JSON.parse(raw);
+    var old=localStorage.getItem("cbh_engagements_v1");
+    if(old){
+      var migrated=JSON.parse(old).map(function(e){return Object.assign({status:"active",priority:"P2",notes:"",findings:[]},e);});
+      localStorage.setItem(LS_ENG,JSON.stringify(migrated));
+      return migrated;
+    }
+    return [];
+  }catch(e){return[];}
+}
+function setEngs(a){try{localStorage.setItem(LS_ENG,JSON.stringify(a));}catch(e){}if($("statEng"))$("statEng").textContent=a.length;}
+function renderEngs(){
+  var a=getEngs();setEngs(a);
+  var box=$("engList");
+  if(!a.length){box.innerHTML='<div class="muted">No engagements yet. Start one above — it saves on-device.</div>';return;}
+  var h='<table class="mkt"><tr><th>Target</th><th>Status</th><th>Pri</th><th>Notes</th><th></th></tr>';
+  a.forEach(function(e,i){
+    var sc=e.status==="validated"?"#39ff88":e.status==="killed"?"#ff6b6b":e.status==="reported"?"#4dabf7":"#93a5b8";
+    h+="<tr><td>"+esc(e.target)+"<br><span class=muted>"+esc(e.created||"")+"</span></td><td style='color:"+sc+"'>"+esc(e.status||"active")+"</td><td>"+esc(e.priority||"P2")+"</td><td class=muted>"+esc((e.notes||"").slice(0,36))+(e.notes&&e.notes.length>36?"…":"")+"</td><td><button class=big data-open='"+i+"'>Open</button> <button class=big data-status='"+i+"'>Status</button> <button class=big data-del='"+i+"'>✕</button></td></tr>";
+  });
+  box.innerHTML=h+"</table>";
+  box.querySelectorAll("[data-open]").forEach(function(b){b.onclick=function(){var e=getEngs()[Number(b.getAttribute("data-open"))];$("engTarget").value=e.target;$("engScope").value=e.scope||"";$("engMode").value=e.mode||"curl";showTab(3);selectTool("recon");say("Loaded "+e.target+" ["+(e.status||"active")+"]");};});
+  box.querySelectorAll("[data-status]").forEach(function(b){b.onclick=function(){var idx=Number(b.getAttribute("data-status"));var arr=getEngs();var cur=arr[idx];var next=prompt("Status for "+cur.target+":\nactive | hunting | validated | reported | killed",cur.status||"active");if(!next)return;next=next.trim().toLowerCase();if(["active","hunting","validated","reported","killed"].indexOf(next)<0){say("Invalid status");return;}arr[idx].status=next;if(next==="killed"){var r=prompt("Kill reason (optional):",cur.killReason||"");if(r!==null)arr[idx].killReason=r;}setEngs(arr);renderEngs();say(cur.target+" → "+next);};});
+  box.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){if(!confirm("Delete this engagement?"))return;var arr=getEngs();arr.splice(Number(b.getAttribute("data-del")),1);setEngs(arr);renderEngs();};});
+}
+$("engStartBtn").onclick=function(){
+  var t=$("engTarget").value.trim().replace(/^https?:\/\//,"").split("/")[0];
+  if(!t){say("Enter a target first.");return;}
+  var arr=getEngs();
+  arr.unshift({target:t,scope:$("engScope").value.trim(),mode:$("engMode").value,status:"active",priority:"P2",notes:"",findings:[],created:new Date().toISOString().slice(0,16).replace("T"," ")});
+  setEngs(arr.slice(0,40));renderEngs();say("Engagement started: "+t);
+};
+/* ---------- skills ---------- */
+var SKILL_INDEX=null, SKILL_NAMES=[];
+var CMDS=[["autopilot","Autonomous engagement loop driver"],["chain","Vuln chaining templates"],["hunt","Main hunting orchestrator"],["intel","Target intel gathering"],["memory-gc","Engagement memory cleanup"],["pickup","Resume prior engagement"],["recon","Passive recon workflow"],["remember","Save engagement memory"],["report","Report drafting"],["scope","Scope definition"],["surface","Attack-surface ranking"],["token-scan","Secret/token scanning"],["triage","Finding triage gate"],["validate","Finding validation"],["web3-audit","Web3 / smart-contract audit"]];
+var CAT_OF=function(n){
+  if(n==="hunt-ios")return"mobile";
+  if(n.indexOf("hunt-")===0)return"hunt";
+  if(["m365-entra-attack","okta-attack","cloud-iam-deep","enterprise-vpn-attack","vmware-vcenter-attack","hunt-k8s","hunt-cicd","hunt-cloud-misconfig","supply-chain-attack-recon","hunt-sharepoint"].indexOf(n)>=0)return"infra";
+  if(["apk-redteam-pipeline","ios-redteam-pipeline","hunt-ios"].indexOf(n)>=0)return"mobile";
+  if(["web3-audit","meme-coin-audit","hunt-fintech-graphql","hunt-rag-vector","hunt-llm-ai"].indexOf(n)>=0)return"web3";
+  if(["bb-methodology","redteam-mindset","triage-validation","report-writing","redteam-report-template","evidence-hygiene","mid-engagement-ir-detection","bug-bounty","bugcrowd-reporting","bb-local-toolkit","security-arsenal","hunt-dispatch"].indexOf(n)>=0)return"method";
+  if(["offensive-osint","osint-methodology","web2-recon","hunt-subdomain","recon-scope-triage"].indexOf(n)>=0)return"osint";
+  return"hunt";
+};
+async function loadSkillIndex(){
+  try{
+    var j=await fetchJSON(REPO+"/cbh/data/skill_index.json");
+    SKILL_INDEX=j.skills||{};
+    // patch missing one
+    if(!SKILL_INDEX["hunt-fintech-graphql"])SKILL_INDEX["hunt-fintech-graphql"]="Fintech + GraphQL attack surface — payment logic, wallet abuse, GraphQL batching/introspection (see skills/hunt-fintech-graphql/SKILL.md).";
+    SKILL_NAMES=Object.keys(SKILL_INDEX).sort();
+    $("skillStatus").textContent="Loaded "+SKILL_NAMES.length+" skills from bundled repo (offline OK). Tap a card to read full SKILL.md.";
+    $("statSkills").textContent=SKILL_NAMES.length;
+  }catch(e){
+    SKILL_NAMES=["hunt-xss","hunt-sqli","hunt-ssrf","hunt-idor","hunt-rce","hunt-ssti","hunt-oauth","hunt-graphql","hunt-race-condition","hunt-csrf","hunt-cors","hunt-xxe","hunt-lfi","hunt-jwt-crypto","hunt-saml","hunt-mfa-bypass","hunt-ato","hunt-business-logic","hunt-file-upload","hunt-websocket","hunt-api-misconfig","hunt-k8s","hunt-cloud-misconfig","apk-redteam-pipeline","ios-redteam-pipeline","web3-audit","bug-bounty","bb-methodology","redteam-mindset","triage-validation"];
+    SKILL_INDEX={};SKILL_NAMES.forEach(function(n){SKILL_INDEX[n]="Bundled repo not yet cached — connect once to load full descriptions from src/repo/. Full SKILL.md viewer still tries network first.";});
+    $("skillStatus").textContent="Offline fallback: showing core list. Full index needs src/repo/ (first load).";
+  }
+  renderSkills();
+}
+function renderSkills(){
+  var q=($("skillSearch").value||"").toLowerCase();
+  var cat=$("skillCat").value;
+  var g=$("skillGrid");g.innerHTML="";
+  var shown=0;
+  SKILL_NAMES.forEach(function(n){
+    var d=SKILL_INDEX[n]||"";
+    if(q&&n.toLowerCase().indexOf(q)<0&&d.toLowerCase().indexOf(q)<0)return;
+    var c=CAT_OF(n);
+    if(cat==="hunt-"&&n.indexOf("hunt-")!==0)return;
+    if(cat==="infra"&&c!=="infra")return;
+    if(cat==="mobile"&&c!=="mobile")return;
+    if(cat==="method"&&c!=="method")return;
+    if(cat==="osint"&&c!=="osint")return;
+    if(cat==="web3"&&c!=="web3")return;
+    var b=document.createElement("button");b.className="skillcard";
+    b.innerHTML="<b>"+esc(n)+"</b> <span class=pill>"+esc(c)+"</span><div class=d>"+esc(d.slice(0,220))+"</div>";
+    b.onclick=function(){viewSkill(n);};
+    g.appendChild(b);shown++;
+  });
+  $("skillCount").textContent=shown+" / "+SKILL_NAMES.length;
+}
+$("skillSearch").oninput=renderSkills;$("skillCat").onchange=renderSkills;
+async function viewSkill(name){
+  openDoc(name,"Loading "+name+"/SKILL.md …");
+  try{var t=await fetchText(REPO+"/skills/"+name+"/SKILL.md");openDoc(name,t);}
+  catch(e){openDoc(name,"# "+name+"\n\n"+(SKILL_INDEX[name]||"")+"\n\n> Full SKILL.md could not be fetched ("+e.message+"). If running the standalone lite file, use FULL bundle or the repo ZIP in App tab.\n");}
+}
+/* ---------- commands ---------- */
+function renderCmds(){
+  var box=$("cmdList");box.innerHTML="";
+  CMDS.forEach(function(c){
+    var d=document.createElement("div");d.className="card";
+    d.innerHTML="<b>/"+esc(c[0])+"</b> <span class=muted>"+esc(c[1])+"</span><div class=row style='margin-top:6px'><button class=big data-v='"+esc(c[0])+"'>View</button><button class='big primary' data-c='"+esc(c[0])+"'>Copy /"+esc(c[0])+"</button></div>";
+    box.appendChild(d);
+  });
+  box.querySelectorAll("[data-v]").forEach(function(b){b.onclick=function(){viewCmd(b.getAttribute("data-v"));};});
+  box.querySelectorAll("[data-c]").forEach(function(b){b.onclick=function(){navigator.clipboard.writeText("/"+b.getAttribute("data-c")).then(function(){say("Copied /"+b.getAttribute("data-c"));});};});
+}
+async function viewCmd(name){
+  openDoc("/"+name,"Loading commands/"+name+".md …");
+  try{var t=await fetchText(REPO+"/commands/"+name+".md");openDoc("/"+name,t);}
+  catch(e){openDoc("/"+name,"# /"+name+"\n\nCould not load ("+e.message+"). See App tab → repo ZIP.");}
+}
+/* ---------- CBH runner ---------- */
+var CLASSIFY_RULES=[
+ [/graphql|graphiql|\/graphql/i,"hunt-graphql","GraphQL endpoint — introspection, batching, depth-limit"],
+ [/api\/|rest|\/v1\/|\/v2\/|swagger|openapi/i,"hunt-api-misconfig","REST/API surface — verb tampering, mass assignment, shadow APIs"],
+ [/oauth|authorize|callback|openid/i,"hunt-oauth","OAuth flow — redirect_uri, code leakage, PKCE downgrade"],
+ [/saml|sso\/acs|adfs/i,"hunt-saml","SAML — signature exclusion, XXE in metadata, GoldenSAML"],
+ [/jwt|token=|auth/i,"hunt-jwt-crypto","JWT/session — alg=none, weak secret, kid injection"],
+ [/reset|forgot|recover/i,"hunt-forgot-password","Password reset — token leak, Host-header poisoning"],
+ [/mfa|otp|2fa|totp/i,"hunt-mfa-bypass","MFA — response manipulation, rate-limit, backup-code abuse"],
+ [/login|signin|session/i,"hunt-ato","Auth / ATO — credential stuffing, lockout bypass"],
+ [/\.git|\.env|backup|\.bak|source/i,"hunt-source-leak","Source leak — .git, .env, backups"],
+ [/upload|avatar|import|media/i,"hunt-file-upload","File upload — polyglot, SVG XSS, path traversal"],
+ [/redirect|next=|return=|continue=/i,"hunt-open-redirect","Open redirect — chained to OAuth/token theft"],
+ [/id=\d+|user\/\d+|order\/|invoice/i,"hunt-idor","IDOR — numeric IDs, BOLA"],
+ [/q=|search|query|keyword/i,"hunt-sqli","SQLi/NoSQLi entry — error/time-based probes"],
+ [/url=|redirect|fetch|proxy|webhook/i,"hunt-ssrf","SSRF — cloud metadata 169.254.169.254"],
+ [/template|render|preview|mustache|twig/i,"hunt-ssti","SSTI — Jinja/Twig probes"],
+ [/\.xml|soap|upload.*xml|import/i,"hunt-xxe","XXE — SVG, SOAP, file import"],
+ [/exec|cmd|ping|shell|template/i,"hunt-rce","RCE — command/template injection"],
+ [/\.js|chunk\.|bundle/i,"hunt-dom","DOM / JS — postMessage, prototype pollution"],
+ [/websocket|socket\.io|ws:\/\//i,"hunt-websocket","WebSocket — CSWSH, origin check"],
+ [/\.asp|__viewstate|aspx/i,"hunt-aspnet","ASP.NET — ViewState, padding oracle"],
+ [/laravel|_token|php/i,"hunt-laravel","Laravel/PHP — mass assignment, deserialization"],
+ [/spring|actuator|jolokia/i,"hunt-springboot","Spring Boot — actuator, SpEL"],
+ [/next\/|_next\//i,"hunt-nextjs","Next.js — RSC, middleware bypass"],
+ [/node|express/i,"hunt-nodejs","Node — prototype pollution"],
+ [/ldap|directory/i,"hunt-ldap","LDAP injection"],
+ [/lfi|file=|path=|include/i,"hunt-lfi","LFI/path traversal"],
+ [/cors|origin/i,"hunt-cors","CORS — null/attacker origin reflection"],
+ [/csrf|_token/i,"hunt-csrf","CSRF — method override, SameSite"],
+ [/cache|x-cache|cdn/i,"hunt-cache-poison","Cache poisoning — unkeyed headers"],
+ [/smuggl|transfer-encoding|content-length/i,"hunt-http-smuggling","Request smuggling"],
+ [/subdomain|dns/i,"hunt-subdomain","Subdomain takeover — CNAME dangling"],
+ [/\.apk|android|play\.google/i,"apk-redteam-pipeline","Android APK — jadx, Firebase, exported components"],
+ [/\.ipa$|info\.plist|itms-services|apple-app-site-association|applinks|testflight|uipasteboard|keychain|cfbundleurltypes|nsapptransportsecurity|lacontext/i,"hunt-ios","iOS client bugs — deeplinks, ATS, Keychain, pasteboard, WebView, biometrics"],
+ [/\.ipa|ios|apple/i,"ios-redteam-pipeline","iOS — plist, keychain, ATS"],
+ [/\.sol|contract|web3|nft/i,"web3-audit","Web3 — reentrancy, access control"],
+ [/vpn|citrix|forti|palo/i,"enterprise-vpn-attack","Enterprise VPN — pre-auth RCE"],
+ [/sharepoint|_layouts/i,"hunt-sharepoint","SharePoint — business-data RCE chains"],
+ [/k8s|kubernetes|etcd|kubelet/i,"hunt-k8s","K8s — unauth kubelet, etcd"],
+ [/\.mjs|\.cjs|grpc/i,"hunt-grpc","gRPC — reflection, metadata"],
+];
+function selectTool(name){
+  document.querySelectorAll("#view-runner [data-tool]").forEach(function(b){b.style.outline=(b.getAttribute("data-tool")===name)?"2px solid #39ff88":"";});
+  var box=$("toolBox");
+  if(name==="recon")box.innerHTML=toolReconHTML();
+  if(name==="surface")box.innerHTML=toolSurfaceHTML();
+  if(name==="classify")box.innerHTML=toolClassifyHTML();
+  if(name==="triage")box.innerHTML=toolTriageHTML();
+  if(name==="report")box.innerHTML=toolReportHTML();
+  wireTool(name);
+}
+document.querySelectorAll("#view-runner [data-tool]").forEach(function(b){b.onclick=function(){selectTool(b.getAttribute("data-tool"));};});
+function toolReconHTML(){
+  return '<h3>cbh recon &lt;target&gt;</h3><div class="muted">Passive crt.sh enum + live probe. Online: real crt.sh lookup. Offline: heuristic manifest you can still feed to surface/classify.</div><label class=muted>Target</label><input id="tRecon" type="text" placeholder="example.com"><div class=row><button class="big primary grow" id="goRecon">Run recon</button><button class="big grow" id="dlManifest">Download manifest.json</button></div><div class=log id="reconOut" style="margin-top:8px"><div>Awaiting run…</div></div>';
+}
+function toolSurfaceHTML(){
+  return '<h3>cbh surface</h3><div class="muted">Paste recon manifest.json → ranked P1/P2/Kill surface.</div><label class=muted>manifest.json</label><textarea id="tSurf" placeholder=\'{"target":"example.com","live":[...]}\'></textarea><div class=row><button class="big primary grow" id="goSurf">Rank surface</button></div><div class=log id="surfOut" style="margin-top:8px"><div>Awaiting manifest…</div></div>';
+}
+function toolClassifyHTML(){
+  return '<h3>cbh classify &lt;url&gt;</h3><div class="muted">Pattern-match a URL against hunt-* skill descriptions.</div><label class=muted>URL</label><input id="tCls" type="text" placeholder="https://example.com/api/users/123?token=abc"><div class=row><button class="big primary grow" id="goCls">Classify</button></div><div class=log id="clsOut" style="margin-top:8px"><div>Awaiting URL…</div></div>';
+}
+function toolTriageHTML(){
+  var qs=["1. Real HTTP request + response body already captured?","2. Response proves real impact (data / action / privilege), not just status code?","3. Impact type accepted by this specific program?","4. Asset confirmed in-scope and owned by the program?","5. Reachable by normal (non-admin) attacker?","6. NOT already known / documented / intended behavior?","7. High-value class or clear chain to one? (auth/ATO/IDOR+sens/SSRF-int/RCE/biz-logic)","8. Reproducible cleanly from a fresh session with current evidence?"];
+  var h='<h3>cbh triage — Strict 8-Question Gate</h3><div class="muted">PASS requires strong YES on impact (Q2) and high-value class (Q7). First hard NO = KILL. Protects validity ratio.</div>';
+  qs.forEach(function(q,i){h+='<div class=check><input type=checkbox id="tq'+i+'"><label for="tq'+i+'">'+esc(q)+'</label></div>';});
+  h+='<label class=muted>Finding title</label><input id="tTitle" type=text placeholder="IDOR in /api/orders/{id} returns other users PII"><label class=muted>Quick notes (optional)</label><textarea id="tNotes" placeholder="Two accounts used, response contained email + address…" rows=2></textarea><div class=row><button class="big primary grow" id="goTri">Run 8-Question Gate</button></div><div class=log id="triOut" style="margin-top:8px"><div>Answer the questions, then run the gate.</div></div>';
+  return h;
+}
+function toolReportHTML(){
+  return '<h3>cbh report — Impact-first draft</h3><div class="muted">Only generate after triage/validate PASS. Title formula: [Class] in [Endpoint] allows [actor] to [impact]</div><label class=muted>Title</label><input id="rTitle" type=text placeholder="IDOR in /api/orders/{id} allows any user to read other users order details and PII"><label class=muted>Severity</label><select id="rSev"><option>P1 / Critical</option><option selected>P2 / High</option><option>P3 / Medium</option><option>P4 / Low</option><option>P5 / Info</option></select><label class=muted>Asset / URL</label><input id="rUrl" type=text placeholder="https://api.target.com/orders/123"><label class=muted>Scope confirmation (1 line)</label><input id="rScope" type=text placeholder="api.target.com is listed in-scope on the H1 program page"><label class=muted>Impact + Steps (prove it)</label><textarea id="rBody" placeholder="Impact: Any authenticated user can read another users full order history including PII.\n\nSteps:\n1. Login as user A\n2. Request GET /api/orders/USER_B_ID\n3. Response contains USER_B email, address, items…" rows=6></textarea><label class=muted>Platform</label><select id="rPlat"><option>HackerOne</option><option>Bugcrowd</option><option>Intigriti</option><option>Immunefi</option></select><div class=row><button class="big primary grow" id="goRep">Generate draft</button><button class="big grow" id="copyRep">Copy</button><button class="big grow" id="dlRep">Download .md</button></div><div class=log id="repOut" style="margin-top:8px"><div>Awaiting validated finding…</div></div>';
+}
+var lastManifest=null, lastReport="";
+function wireTool(name){
+  if(name==="recon"){
+    $("goRecon").onclick=runRecon;
+    $("dlManifest").onclick=function(){if(!lastManifest){say("Run recon first.");return;}dl("manifest-"+lastManifest.target+".json",JSON.stringify(lastManifest,null,2));};
+  }
+  if(name==="surface"){$("goSurf").onclick=function(){
+    try{var m=JSON.parse($("tSurf").value);$("surfOut").innerHTML="<div>"+esc(rankSurface(m))+"</div>";}catch(e){$("surfOut").innerHTML="<div>Bad JSON: "+esc(e.message)+"</div>";}
+  };}
+  if(name==="classify"){$("goCls").onclick=function(){
+    var u=$("tCls").value.trim();if(!u)return;
+    var hits=classifyURL(u);
+    var h="URL: "+u+"\n\nMatched skills ("+hits.length+"):\n";
+    hits.forEach(function(x){h+="  • "+x[0]+" — "+x[1]+"\n";});
+    if(!hits.length)h+="  (no pattern hit — try hunt-misc + manual review)\n";
+    h+="\nNext: load the top skill from Skills tab, then /validate.";
+    $("clsOut").innerHTML="<div>"+esc(h)+"</div>";say("classify: "+hits.length+" skills for "+u);
+  };}
+  if(name==="triage"){$("goTri").onclick=function(){
+    var v=[];for(var i=0;i<8;i++)v.push(!!$("tq"+i).checked);
+    var title=$("tTitle").value.trim()||"(untitled)";
+    var res=triageGate(v);
+    $("triOut").innerHTML="<div><b>"+esc(title)+"</b><br>→ "+esc(res)+"</div>";say("triage → "+res.split("—")[0].trim()+" — "+title);
+  };}
+  if(name==="report"){
+    $("goRep").onclick=function(){
+      lastReport=reportDraft({title:$("rTitle").value,sev:$("rSev").value,url:$("rUrl").value,scope:$("rScope")?$("rScope").value:"",body:$("rBody").value,plat:$("rPlat").value});
+      $("repOut").innerHTML="<pre style='white-space:pre-wrap;font-size:12px'>"+esc(lastReport)+"</pre>";
+      say("Report draft generated");
+    };
+    $("copyRep").onclick=function(){navigator.clipboard.writeText(lastReport).then(function(){say("Report copied");});};
+    $("dlRep").onclick=function(){dl("report-"+Date.now()+".md",lastReport);};
+  }
+}
+async function runRecon(){
+  var t=$("tRecon").value.trim().replace(/^https?:\/\//,"").split("/")[0].toLowerCase();
+  if(!t){$("reconOut").innerHTML="<div>Enter a target.</div>";return;}
+  if(!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(t)){$("reconOut").innerHTML="<div>That doesn't look like a domain. Scope-first: confirm authorization.</div>";return;}
+  $("reconOut").innerHTML="<div>[1/4] crt.sh passive enum for "+esc(t)+" … (15s timeout, fallback if blocked)</div>";
+  var subs=new Set([t]);
+  var gotLive=false;
+  // Prefer super-fetch-plugin (CORS-proof proxy) when available, else direct fetch with timeout.
+  async function crtFetch(url){
+    try{
+      var sf=(typeof root!=="undefined"&&root.superFetch)?root.superFetch:(window.root&&window.root.superFetch?window.root.superFetch:null);
+      if(sf){
+        var resp=await sf(url);
+        var txt=await resp.text();
+        return {ok:true,status:resp.status||200,json:async function(){return JSON.parse(txt);}};
+      }
+    }catch(e){}
+    var ctrl=new AbortController();var to=setTimeout(function(){try{ctrl.abort();}catch(e){}},15000);
+    try{
+      var r=await fetch(url,{signal:ctrl.signal});
+      clearTimeout(to);
+      return r;
+    }catch(e){clearTimeout(to);throw e;}
+  }
+  try{
+    var r=await crtFetch("https://crt.sh/?q=%25."+encodeURIComponent(t)+"&output=json");
+    if(r.ok){var rows=await r.json();rows.forEach(function(x){(x.name_value||"").split("\n").forEach(function(s){s=s.trim().toLowerCase();if(s&&s.indexOf("*")<0&&s.length<120)subs.add(s);});});
+      gotLive=true;
+      $("reconOut").innerHTML="<div>[1/4] crt.sh: "+subs.size+" candidates (live)</div><div>[2/4] DNS: skipped in-browser (use Python cbh for resolution)</div><div>[3/4] live probe: verify each host manually — authorization required</div>";
+    }else{$("reconOut").innerHTML="<div>crt.sh HTTP "+r.status+" — using heuristic fallback (crt.sh rate-limits often).</div>";heuristicSubs(t,subs);}
+  }catch(e){$("reconOut").innerHTML="<div>crt.sh unreachable/timeout ("+esc(e.message||e)+") — heuristic fallback with 20 common prefixes. For real enum run Python cbh (App tab).</div>";heuristicSubs(t,subs);}
+  var list=Array.from(subs).sort();
+  lastManifest={target:t,generated:new Date().toISOString(),subs:list,live:list.slice(0,20).map(function(h){return{host:h,url:"https://"+h+"/"};}),note:"browser recon: DNS + HTTP probe need Python cbh (App tab). Verify authorization before active probing."};
+  $("tRecon").value=t;
+  var el=$("reconOut");var d=document.createElement("div");d.textContent="[4/4] manifest.json ready: "+list.length+" subs. Paste into surface, or Download.";el.prepend(d);
+  say("recon "+t+": "+list.length+" subs");
+}
+function heuristicSubs(t,subs){
+  ["www","api","app","dev","staging","test","admin","portal","vpn","mail","blog","shop","cdn","static","auth","login","sso","beta","demo"].forEach(function(p){subs.add(p+"."+t);});
+}
+function classifyURL(u){
+  var out=[];
+  CLASSIFY_RULES.forEach(function(r){if(r[0].test(u))out.push([r[1],r[2]]);});
+  return out.slice(0,8);
+}
+function rankSurface(m){
+  var live=(m&&m.live)||[];var subs=(m&&m.subs)||[];
+  var lines=["Target: "+(m.target||"?"),"Subs: "+subs.length+"  Live: "+live.length,"","Ranked surface:"];
+  live.slice(0,15).forEach(function(h,i){
+    var host=(h.host||h.url||"?");
+    var hits=classifyURL(String(h.url||host));
+    var pri=hits.length?"P2":"P3";
+    if(/admin|vpn|sso|actuator|graphql|api/i.test(String(host)))pri="P1";
+    lines.push((i+1)+". ["+pri+"] "+host+(hits.length?" → "+hits[0][0]:""));
+  });
+  lines.push("","Kill (skip): static CDN images, out-of-scope, marketing blog with no auth.","Next: /hunt on P1s with matching hunt-* skill.");
+  return lines.join("\n");
+}
+function triageGate(v){
+  // v: 8 bools matching the strict gate
+  if(!v[0])return"KILL Q1 — no real request/response captured yet.";
+  if(!v[3])return"KILL Q4 — asset not confirmed in-scope.";
+  if(!v[4])return"KILL Q5 — requires admin/privileged access the attacker cannot obtain.";
+  if(!v[5])return"KILL Q6 — known / documented / intended behavior.";
+  if(!v[2])return"KILL Q3 — impact type not accepted by this program.";
+  if(!v[7])return"KILL Q8 — not cleanly reproducible with current evidence.";
+  if(!v[1]&&!v[6])return"KILL — no real impact demonstrated and not a high-value class.";
+  if(!v[1])return"DOWNGRADE — technical trigger only. Need actual data/action/privilege proof before claiming severity.";
+  if(!v[6])return"DOWNGRADE — impact exists but class is low-value alone. Chain it to ATO/IDOR/SSRF-internal/RCE or accept lower severity.";
+  return"PASS — all critical checks clear. Proceed to /validate then /report. Keep evidence attached.";
+}
+function reportDraft(f){
+  var title=f.title||"Untitled finding";
+  var sev=f.sev||"P3 / Medium";
+  var url=f.url||"";
+  var scope=f.scope||"Confirm asset is in-scope on the program page.";
+  var body=f.body||"";
+  var plat=f.plat||"HackerOne";
+  var h="";
+  if(plat==="Bugcrowd"){
+    h+="# ["+sev+"] "+title+"\n\n**Target:** "+url+"\n**Severity:** "+sev+"\n**Scope:** "+scope+"\n\n## Summary\n"+(body.split("\n")[0]||body)+"\n\n## Expected vs Actual Behavior\nExpected: Access restricted to resource owner.\nActual: "+body+"\n\n## Impact\n\n## Reproduction\n\n## Remediation\n";
+  }else if(plat==="Intigriti"){
+    h+="## "+title+"\n\n**Severity:** "+sev+"  \n**Asset:** "+url+"  \n**Scope:** "+scope+"\n\n## Summary\n"+body+"\n\n## Proof of Concept\n\n## Impact\n\n## Recommended Fix\n";
+  }else if(plat==="Immunefi"){
+    h+="# "+title+"\n\n**Severity:** "+sev+"\n**Location:** "+url+"\n\n## Description\n"+body+"\n\n## PoC\n\n## Impact / Likelihood\n\n## Fix\n";
+  }else{
+    h+="## Summary\n"+title+"\n\n**Severity:** "+sev+"  \n**Asset:** "+url+"  \n**Scope confirmation:** "+scope+"\n\n## Vulnerability Details\n"+body+"\n\n## Steps to Reproduce\n1. \n2. \n3. \n\n## Impact\n\n## Recommended Fix\n";
+  }
+  h+="\n---\n*Generated by BugHunter launcher. Triage/validate first. Attach full request/response evidence. No soft language.*\n";
+  return h;
+}
+function dl(name,text){var b=new Blob([text],{type:"application/octet-stream"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},4000);say("Downloaded "+name);}
+$("copyCliBtn").onclick=function(){navigator.clipboard.writeText($("cliHelp").textContent).then(function(){say("CLI quickstart copied");});};
+/* ---------- playbooks ---------- */
+var PLAYS=[
+ ["bb-methodology","The 5-phase non-linear workflow (core)"],
+ ["recon-scope-triage","Scope triage before any packet"],
+ ["web2-recon","Web2 recon stack"],
+ ["hunt-dispatch","Which hunt-* skill for which signal"],
+ ["hunt-ios","iOS app bug hunting (client-side checklist)"],
+ ["triage-validation","7-Question Gate (full)"],
+ ["evidence-hygiene","Evidence hygiene (no PII over-collect)"],
+ ["redteam-mindset","Red-team operator discipline"],
+ ["report-writing","Report writing that gets paid"],
+ ["mid-engagement-ir-detection","Mid-engagement IR detection (don't get burned)"]
+];
+function renderPlays(){
+  var box=$("playList");box.innerHTML="";
+  PLAYS.forEach(function(p){
+    var d=document.createElement("div");d.className="row";d.style.margin="6px 0";
+    d.innerHTML="<b class=grow>"+esc(p[0])+" <span class=muted>— "+esc(p[1])+"</span></b>";
+    var b=document.createElement("button");b.className="big";b.textContent="Open";b.onclick=function(){viewSkill(p[0]);};
+    d.appendChild(b);box.appendChild(d);
+  });
+  var checks=["Authorization confirmed in writing (program / client SOW)","Scope saved (in-scope + out-of-scope + forbidden)","Burp project scoped, upstream scope filter on","No prod DoS / no spam / rate-limits respected","Evidence folder ready (requests, responses, video)","Triage gate understood (PASS needs repro + boundary cross)","Report template chosen (H1/Bugcrowd/Intigriti/Immunefi)"];
+  var saved={};try{saved=JSON.parse(localStorage.getItem(LS_CHECK)||"{}");}catch(e){}
+  var cl=$("checkList");cl.innerHTML="";
+  checks.forEach(function(c,i){
+    var d=document.createElement("div");d.className="check";
+    var cb=document.createElement("input");cb.type="checkbox";cb.checked=!!saved[i];
+    cb.onchange=function(){saved[i]=cb.checked;try{localStorage.setItem(LS_CHECK,JSON.stringify(saved));}catch(e){}};
+    var lb=document.createElement("label");lb.textContent=c;
+    d.appendChild(cb);d.appendChild(lb);cl.appendChild(d);
+  });
+}
+$("resetChecksBtn").onclick=function(){localStorage.removeItem(LS_CHECK);renderPlays();};
+/* ---------- reports browser ---------- */
+var REP_FILES=["hunt-ato.md","hunt-auth-bypass.md","hunt-brute-force.md","hunt-business-logic.md","hunt-cache-poison.md","hunt-captcha-bypass.md","hunt-clickjacking.md","hunt-cloud-misconfig.md","hunt-cors.md","hunt-csrf.md","hunt-deserialization.md","hunt-dom.md","hunt-file-upload.md","hunt-forgot-password.md","hunt-graphql.md","hunt-host-header.md","hunt-html-injection.md","hunt-http-smuggling.md","hunt-idor.md","hunt-jwt-crypto.md","hunt-ldap.md","hunt-lfi.md","hunt-mfa-bypass.md","hunt-nosqli.md","hunt-oauth.md","hunt-open-redirect.md","hunt-race-condition.md","hunt-rce.md","hunt-saml.md","hunt-session.md","hunt-source-leak.md","hunt-sqli.md","hunt-ssrf.md","hunt-ssti.md","hunt-tls-network.md","hunt-xss.md"];
+function renderReps(){
+  var q=($("repSearch").value||"").toLowerCase();
+  var box=$("repList");box.innerHTML="";
+  REP_FILES.filter(function(f){return !q||f.toLowerCase().indexOf(q)>=0;}).forEach(function(f){
+    var d=document.createElement("div");d.className="row";d.style.margin="6px 0";
+    d.innerHTML="<b class=grow>"+esc(f)+"</b>";
+    var b=document.createElement("button");b.className="big";b.textContent="Read";b.onclick=function(){viewReport(f);};
+    d.appendChild(b);box.appendChild(d);
+  });
+}
+$("repSearch").oninput=renderReps;
+async function viewReport(f){
+  openDoc(f,"Loading disclosed-reports/"+f+" …");
+  try{var t=await fetchText(REPO+"/docs/disclosed-reports/"+f);openDoc(f,t);}
+  catch(e){openDoc(f,"# "+f+"\n\nLoad failed: "+e.message);}
+}
+/* ---------- app/apk ---------- */
+$("pwaBtn").onclick=function(){$("pwaSteps").hidden=!$("pwaSteps").hidden;};
+$("copyUrlBtn").onclick=function(){var u="https://perchance.org/"+(window.generatorName||"");navigator.clipboard.writeText(u).then(function(){say("App URL copied: "+u);});};
+$("openPwaBtn").onclick=function(){window.open("https://www.pwabuilder.com","_blank");};
+$("dlManifestBtn").onclick=function(){fetchText(REPO+"/../manifest.webmanifest").catch(function(){return JSON.stringify({name:"BugHunter",short_name:"BugHunter",display:"standalone"},null,2);}).then(function(t){dl("manifest.webmanifest",t);});};
+$("dlSwBtn").onclick=function(){fetchText(REPO+"/../sw.js").then(function(t){dl("sw.js",t);}).catch(function(e){say("sw.js fetch failed: "+e.message);});};
+$("copySwUrlBtn").onclick=function(){
+  var base="https://perchance.org/"+(window.generatorName||"");
+  var txt="Manifest: "+base+"/src/manifest.webmanifest\nSW: "+base+"/src/sw.js\nIcon 512: "+base+"/src/icons/icon-512.png\nIcon 192: "+base+"/src/icons/icon-192.png\nPWABuilder: https://www.pwabuilder.com";
+  navigator.clipboard.writeText(txt).then(function(){say("SW + manifest URLs copied");});
+};
+$("dlLiteBtn").onclick=function(){
+  var html="<!DOCTYPE html><html><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"+document.querySelector("style").outerHTML+"</head><body>"+document.querySelector(".topbar").outerHTML+"<div class=wrap>"+document.querySelector(".wrap").innerHTML+"</div><p style='padding:20px;color:#888'>Lite launcher export. For full skills open the live app or FULL bundle.</p></body></html>";
+  dl("bughunter-launcher-lite.html",html);
+};
+$("dlFullBtn").onclick=exportFull;
+$("dlRepoBtn").onclick=function(){dl("bughunter-repo-index.txt","Claude-BugHunter\nhttps://github.com/elementalsouls/Claude-BugHunter\n\nSkills ("+SKILL_NAMES.length+"):\n"+SKILL_NAMES.join("\n")+"\n\nCommands:\n"+CMDS.map(function(c){return c[0];}).join("\n")+"\n\nReports:\n"+REP_FILES.join("\n")+"\n");};
+$("copyTermuxBtn").onclick=function(){navigator.clipboard.writeText("pkg update && pkg install -y python git\n git clone https://github.com/elementalsouls/Claude-BugHunter.git\n cd Claude-BugHunter\n bash scripts/install.sh\n python scripts/cbh.py recon example.com").then(function(){say("Termux setup copied");});};
+async function exportFull(){
+  $("dlStatus").textContent="Bundling skills + commands + reports… (30–60s)";
+  try{
+    var bundle={skills:{},commands:{},reports:{},index:SKILL_INDEX,exported:new Date().toISOString()};
+    for(var i=0;i<SKILL_NAMES.length;i++){
+      var n=SKILL_NAMES[i];
+      try{bundle.skills[n]=await fetchText(REPO+"/skills/"+n+"/SKILL.md");}catch(e){bundle.skills[n]="FAILED: "+e.message;}
+      if(i%10===0)$("dlStatus").textContent="Bundling skills "+i+"/"+SKILL_NAMES.length+"…";
+    }
+    for(var j=0;j<CMDS.length;j++){try{bundle.commands[CMDS[j][0]]=await fetchText(REPO+"/commands/"+CMDS[j][0]+".md");}catch(e){}}
+    for(var k=0;k<REP_FILES.length;k++){try{bundle.reports[REP_FILES[k]]=await fetchText(REPO+"/docs/disclosed-reports/"+REP_FILES[k]);}catch(e){}}
+    var page=document.documentElement.outerHTML;
+    var full="<!DOCTYPE html><html><head><meta charset=utf-8><title>BugHunter FULL offline</title></head><body><script>window.__FULL_BUNDLE="+JSON.stringify(bundle).slice(0,15000000)+";<\/script>"+page+"</body></html>";
+    dl("bughunter-FULL-offline.html",full);
+    $("dlStatus").textContent="Done. FULL bundle downloaded ("+Math.round(full.length/1024)+" KB). Double-click to run offline.";
+  }catch(e){$("dlStatus").textContent="Bundle failed: "+e.message;}
+}
+async function loadScriptsDocs(){
+  var scripts=[["install.sh","scripts/install.sh"],["install.ps1","scripts/install.ps1"],["hunt.sh","scripts/hunt.sh"],["hunt.ps1","scripts/hunt.ps1"],["cbh.py","scripts/cbh.py"],["setup_harness_mcp.py","scripts/setup_harness_mcp.py"]];
+  var docs=[["README.md","README.md"],["INSTALL.md","INSTALL.md"],["USAGE.md","USAGE.md"],["docs/cbh-cli.md","docs/cbh-cli.md"],["docs/architecture.md","docs/architecture.md"],["ENGAGEMENTS.md","ENGAGEMENTS.md"],["SECURITY.md","SECURITY.md"]];
+  var sl=$("scriptList");sl.innerHTML="";
+  scripts.forEach(function(s){
+    var d=document.createElement("div");d.className="row";d.style.margin="6px 0";
+    d.innerHTML="<b class=grow>"+esc(s[0])+"</b>";
+    var b=document.createElement("button");b.className="big";b.textContent="View";b.onclick=function(){fetchText(REPO+"/"+s[1]).then(function(t){openDoc(s[0],t);}).catch(function(e){openDoc(s[0],"Load failed: "+e.message);});};
+    d.appendChild(b);sl.appendChild(d);
+  });
+  var dl2=$("docList");dl2.innerHTML="";
+  docs.forEach(function(s){
+    var d=document.createElement("div");d.className="row";d.style.margin="6px 0";
+    d.innerHTML="<b class=grow>"+esc(s[0])+"</b>";
+    var b=document.createElement("button");b.className="big";b.textContent="Read";b.onclick=function(){fetchText(REPO+"/"+s[1]).then(function(t){openDoc(s[0],t);}).catch(function(e){openDoc(s[0],"Load failed: "+e.message);});};
+    d.appendChild(b);dl2.appendChild(d);
+  });
+}
+/* ---------- boot ---------- */
+$("statGen").textContent=window.generatorName||"local";
+try{$("statMode").textContent=navigator.onLine?"online":"offline";}catch(e){}
+window.addEventListener("online",function(){$("statMode").textContent="online";});
+window.addEventListener("offline",function(){$("statMode").textContent="offline";});
+buildTabs();renderEngs();renderCmds();renderPlays();renderReps();loadSkillIndex();loadScriptsDocs();selectTool("recon");
+try{
+  var _q=new URLSearchParams(location.search).get("shortcut");
+  if(_q==="runner")showTab(3);else if(_q==="skills")showTab(1);
+}catch(e){}
+/* PWA install prompt (fires on standalone-hosted export; inside Perchance the
+ * top-level page owns it, so this button stays hidden there — harmless). */
+var deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",function(e){
+  try{e.preventDefault();}catch(err){}
+  deferredPrompt=e;
+  var b=$("installAppBtn");if(b)b.hidden=false;
+  var s=$("swStatus");if(s)s.textContent+=" Install ready — tap Install app.";
+});
+if($("installAppBtn"))$("installAppBtn").onclick=function(){
+  if(!deferredPrompt){say("Install prompt not available here — use Add to Home Screen.");return;}
+  deferredPrompt.prompt();
+  if(deferredPrompt.userChoice)deferredPrompt.userChoice.then(function(c){say("Install outcome: "+c.outcome);deferredPrompt=null;$("installAppBtn").hidden=true;});
+};
+window.addEventListener("appinstalled",function(){say("App installed.");var b=$("installAppBtn");if(b)b.hidden=true;});
+/* Service worker: safe registration.
+ * Inside Perchance the platform already controls this origin with its own SW
+ * (lib/serviceWorker.js, scope /) which resolves unsaved src/ files — replacing
+ * it would break the preview, so we deliberately do NOT register over it.
+ * On a standalone host (FULL export), the same file takes over normally. */
+setupSW();
+async function setupSW(){
+  var el=$("swStatus");
+  function set(t){if(el)el.textContent="Service worker: "+t;}
+  if(!("serviceWorker" in navigator)){set("not supported in this browser.");return;}
+  try{
+    var regs=await navigator.serviceWorker.getRegistrations();
+    for(var i=0;i<regs.length;i++){
+      var r=regs[i];
+      var url=(r.active&&r.active.scriptURL)||(r.installing&&r.installing.scriptURL)||(r.waiting&&r.waiting.scriptURL)||"";
+      if(r.scope===location.origin+"/"&&url.indexOf("lib/serviceWorker.js")>=0){
+        set("platform SW active (Perchance preview). src/sw.js ships with the FULL export — host it on HTTPS and the SW takes over there. PWABuilder: run it on the hosted export URL.");
+        return;
+      }
+    }
+    if(navigator.serviceWorker.controller)set("active ("+navigator.serviceWorker.controller.scriptURL+").");
+  }catch(e){}
+  // Standalone / hosted layout: sw.js sits next to the page or under src/.
+  var candidates=["src/sw.js","sw.js"];
+  for(var c=0;c<candidates.length;c++){
+    try{
+      var reg=await navigator.serviceWorker.register(candidates[c]);
+      set("registered ("+reg.scope+"). Offline caching on.");
+      say("SW registered: "+reg.scope);
+      return;
+    }catch(e){/* try next */}
+  }
+  set("not registered here ("+(location.protocol==="file:"?"file:// needs hosting":"preview uses platform SW")+"). This archive has no standalone service worker; offline caching requires a host-specific service worker.");
+}
+if(window.__FULL_BUNDLE&&window.__FULL_BUNDLE.skills){
+  SKILL_INDEX={};Object.keys(window.__FULL_BUNDLE.skills).forEach(function(k){SKILL_INDEX[k]=window.__FULL_BUNDLE.skills[k].slice(0,300);});
+  SKILL_NAMES=Object.keys(window.__FULL_BUNDLE.skills).sort();renderSkills();
+  say("FULL offline bundle loaded ("+SKILL_NAMES.length+" skills inlined).");
+}
+</script>

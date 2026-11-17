@@ -295,12 +295,13 @@ Required for external red-team work where targets are full enterprise estates ra
 |---|---|
 | "I want to start a new engagement on `target.com`" | Run `hunt target` (shell command). Read the generated CLAUDE.md. |
 | "How should I plan this hunt?" | `bb-methodology` + `osint-methodology` |
+| "What should I test first / which finding has the most impact?" | Run `/prioritize`; the `high-severity-focus` skill ranks by demonstrated impact. |
 | "Find subdomains / endpoints / leaked secrets" | `offensive-osint` + `web2-recon` |
 | "Which tool from my local stack does X?" | `bb-local-toolkit` |
 | "I'm hunting [vuln class]" | `hunt-<class>` (auto-triggers on class mention) |
 | "What's the payload that bypasses [filter]?" | `security-arsenal` |
 | "Smart-contract audit for [protocol]" | `web3-audit` (or `meme-coin-audit` for tokens) |
-| "I think I found a bug — should I report it?" | Run `/triage` (decides PASS / KILL / DOWNGRADE / CHAIN-REQUIRED) |
+| "I think I found a bug — should I report it?" | Run `/triage` (strict 8-Question command gate: GO / KILL / DOWNGRADE) |
 | "About to take a screenshot of my PoC" | Read `evidence-hygiene` first (cookie + PII redaction) |
 | "Need to sanitize a HAR file before attaching" | `evidence-hygiene` §4 (jq filter) |
 | "Drafting a report" | `/report` invokes `report-writing` (+ `bugcrowd-reporting` if Bugcrowd) |
@@ -353,7 +354,7 @@ You think you have a finding. Before writing anything:
 /triage
 ```
 
-Or describe the finding to Claude. The `triage-validation` skill runs the 7-Question Gate:
+Or describe the finding to Claude. The existing `triage-validation` skill retains its 7-Question Gate; the updated `/triage` and `/validate` commands add a stricter 8-Question evidence gate:
 
 - Q1: Real HTTP request? Show me.
 - Q2: Accepted impact per program?
@@ -455,3 +456,7 @@ These are nice-to-haves. The current stack is production-grade as-is.
 ## 10. Credits
 
 See [docs/credits.md](docs/credits.md) for full attribution.
+
+### High-severity prioritization commands
+
+Use /prioritize to rank authorized testing surfaces and findings by demonstrated impact before spending time on low-value leads. Use /triage for the strict 8-question evidence gate, /validate for the pre-submission checks, and /report only after validation passes. The high-severity-focus skill reinforces this ranking behavior; it does not authorize testing outside a program's scope.
