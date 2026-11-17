@@ -22,7 +22,7 @@ Describe the finding in one sentence. Example:
 - "The /api/export endpoint returns 200 with data even with no auth header"
 - "I found X-Forwarded-Host is reflected in the password reset email"
 
-## The 7 Questions (Fast Version)
+## The 8-Question Gate (Fast Version)
 
 Answer YES or NO to each. First NO = kill it immediately.
 
@@ -55,6 +55,10 @@ Q7: Is this NOT on the never-submit list?
     YES: It's a real bug class
     NO: Missing headers, self-XSS, open redirect alone, etc. → KILL or CHAIN
 ```
+
+## Q8 — Reproducibility
+
+Can the finding be reproduced cleanly from a fresh session using the captured steps and evidence? If not, do not submit yet; return to validation and capture a repeatable request/response.
 
 ## Fast Kill Checklist
 

@@ -330,6 +330,22 @@ Operational tradecraft accumulated across bug-bounty engagements and authorized 
 - [ProjectDiscovery](https://github.com/projectdiscovery) — subfinder · dnsx · httpx · katana · nuclei
 - [SecLists](https://github.com/danielmiessler/SecLists) · [Assetnote Wordlists](https://wordlists.assetnote.io/)
 
+## Contribution intent — high-impact prioritization
+
+**Why this repo exists:** Claude-BugHunter is a drop-in skill bundle for Claude Code that turns it from a generic chatbot into a disciplined bug-hunting and external red-team operator: per-class hunting skills distilled from hundreds of disclosed reports, an engagement workflow (scope → recon → surface → hunt → validate → report), and strict reporting hygiene that protects validity ratio.
+
+**What this contribution changes and why:** too many hunts burn time on weak-alone findings (open redirects, self-XSS, missing headers, DNS-only SSRF) that die as N/A. This contribution biases the whole loop toward impact that actually pays:
+- New `/prioritize` command — rank surface and findings by historical impact and payout potential, with required Chain Classification (Confirmed / Potential / Hypothetical — never P1 on hypothetical chains) and a Scope Gate before any ranking.
+- Stricter `/triage` and `/validate` — an 8-Question Gate plus High-Severity Extra Requirements: two-account demonstrations for access-control/IDOR Highs, internal content or meaningful reach for SSRF Highs, non-destructive PoC minimums for RCE, real impact (not `alert(1)`) for XSS.
+- New `high-severity-focus` skill — keeps the agent defaulting to authentication, access control, SSRF, RCE, business logic, and strong chains, and parking weak-alone items.
+- Tighter `/report` — impact-first, scope-confirmed, evidence-backed writing.
+
+The standalone browser launcher under `launcher/` is an optional add-on for humans working from a phone or offline; it is not required by any skill or command.
+
+## Optional add-ons
+
+The standalone browser launcher under `launcher/` is an optional add-on. It is not required by the core methodology skills or the `/prioritize`, `/triage`, `/validate`, or `/report` commands.
+
 ## License
 
 This project is dual-licensed:

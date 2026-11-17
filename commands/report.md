@@ -38,6 +38,18 @@ Provide when prompted:
 6. Recommended fix (1-2 sentences, specific)
 7. Supporting materials section
 
+## Scope and High-Severity Evidence Requirements
+
+Confirm the exact asset is in scope before drafting. State the program and asset, and distinguish first-party assets from third-party services. Do not imply authorization beyond the published scope.
+
+For High/Critical claims, include evidence that directly supports the severity:
+- Access-control / IDOR: two controlled accounts and a reproducible cross-account request/response.
+- SSRF: internal response content or meaningful internal reach; DNS-only callbacks are insufficient for a High claim.
+- RCE: a non-destructive proof of execution.
+- XSS: a demonstrated victim-side security consequence; `alert(1)` alone is insufficient.
+
+Label every exploit chain Confirmed, Potential, or Hypothetical. Do not present potential or hypothetical impact as proven, and do not inflate severity beyond the demonstrated result.
+
 ## Platform Selection
 
 ### HackerOne Format

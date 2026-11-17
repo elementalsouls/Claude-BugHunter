@@ -26,7 +26,7 @@ Describe the finding when prompted. Include:
 - What the PoC shows
 - The target program
 
-## The 7-Question Gate
+## The 8-Question Gate
 
 Answer each. ONE wrong answer = STOP.
 
@@ -76,6 +76,10 @@ rate limit on non-critical forms, missing cookie flags alone...
 
 If yes → KILL IT unless you have a chain.
 
+## Q8: Can you reproduce it cleanly from a fresh session?
+
+Repeat the exact steps with the recorded request and response. If the result is inconsistent, depends on undocumented state, or cannot be reproduced, stop and gather reliable evidence before reporting.
+
 ## Check: Conditionally Valid?
 
 If it's on the never-submit list, can you chain it?
@@ -124,6 +128,17 @@ If no chain → KILL IT. If chain confirmed → report both together.
 [ ] CVSS calculated
 [ ] Fix: 1-2 concrete sentences
 ```
+
+## High-Severity Extra Requirements
+
+Do not assign High or Critical based on a hypothetical chain. The evidence must demonstrate the claimed impact:
+
+- **Access control / IDOR:** use two controlled accounts and show that one account can access or change the other account's protected data or action. Record both account identities and the exact cross-account request/response.
+- **SSRF:** show returned internal content or another meaningful internal capability. A DNS callback alone does not establish High severity.
+- **RCE:** use a non-destructive proof of execution. Do not use destructive commands or payloads to prove impact.
+- **XSS:** demonstrate a real victim-side consequence, such as access to sensitive data or a meaningful privileged action. `alert(1)` alone is not High-severity evidence.
+
+Classify chains as **Confirmed**, **Potential**, or **Hypothetical**. Never label a hypothetical chain P1/ Critical; report only impact actually demonstrated.
 
 ## Output
 
