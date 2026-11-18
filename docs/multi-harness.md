@@ -113,6 +113,51 @@ args = ["-jar", "~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar", "--sse-url", "http:/
 
 **Hermes** — see the [Hermes MCP guide](https://hermes-agent.nousresearch.com/docs/guides/use-mcp-with-hermes); use the same `java -jar … --sse-url …` command.
 
+## HackerOne MCP on other harnesses
+
+The in-repo HackerOne MCP (`mcp/hackerone/server.py`, stdlib-only stdio) also translates 1:1. `--hackerone-mcp` wires it automatically (public tools need no key; set `HACKERONE_API_USERNAME` / `HACKERONE_API_TOKEN` before running to carry the logged-in tools into the config):
+
+```bash
+# macOS / Linux — wire both MCPs into every detected harness
+bash scripts/install.sh --all --burp-mcp --hackerone-mcp
+```
+
+Or manually (replace `/path/to/Claude-BugHunter` with your clone):
+
+**OpenCode** — `~/.config/opencode/opencode.json`
+```json
+{
+  "mcp": {
+    "hackerone": {
+      "type": "local",
+      "command": ["python3", "/path/to/Claude-BugHunter/mcp/hackerone/server.py"],
+      "enabled": true
+    }
+  }
+}
+```
+
+**Codex** — `~/.codex/config.toml`
+```toml
+[mcp_servers.hackerone]
+command = "python3"
+args = ["/path/to/Claude-BugHunter/mcp/hackerone/server.py"]
+```
+
+**Google AntiGravity** — `~/.gemini/config/mcp_config.json`
+```json
+{
+  "mcpServers": {
+    "hackerone": {
+      "command": "python3",
+      "args": ["/path/to/Claude-BugHunter/mcp/hackerone/server.py"]
+    }
+  }
+}
+```
+
+**Hermes** — same stdio command under the `mcp_servers:` block; see the Hermes MCP guide. On Windows give the full path to `python.exe` (`python3` there is often the Store stub).
+
 ## Verify it loaded
 - **OpenCode / Codex / Hermes / Google AntiGravity:** open the tool and describe a task (e.g. *"test this endpoint for SSRF"*) — the matching `hunt-*` skill should auto-load by its description, same as in Claude Code.
 - **Hermes:** `hermes skills` should list the bundle from `~/.hermes/skills/`.
