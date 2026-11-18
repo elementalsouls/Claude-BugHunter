@@ -112,12 +112,31 @@ def _selftest():
     print("scope.py self-test: PASS")
 
 
+def _rule_from_token(token):
+    """Normalize one scope.md bullet token into a host rule.
+
+    `https://app.example.com/login?x=1` -> `app.example.com`.
+    Explicit-rule forms (`re:`, CIDR, `*.host`) and already-bare hosts are kept as-is.
+    """
+    t = token.strip()
+    if t[:3].lower() == "re:" or ("://" not in t and not t.startswith("//")):
+        return t
+    try:
+        host = urlparse(t if "://" in t else "//" + t).hostname or ""
+    except ValueError:
+        return t
+    return host or t
+
 def _scope_from_md(path):
     """Build a Scope from a scaffolded scope.md (the `hunt` template).
 
     Collects bullet items under an '## In scope' / '## Out of scope' heading.
     Takes the first whitespace token of each bullet (so '- api.example.com — note'
     yields 'api.example.com'). Skips placeholder bullets like '(paste ... here)'.
+    A token written as a URL (the common paste-from-program-page form,
+    '- https://app.example.com/login — main app') is reduced to its host, because
+    every rule is matched against the host anyway; leaving the scheme in made the
+    rule match nothing and the whole engagement default-deny.
     """
     in_scope, out_scope, section = [], [], None
     with open(path, encoding="utf-8") as fh:
@@ -138,10 +157,12 @@ def _scope_from_md(path):
                 tok = s[2:].strip().split()[0:1]
                 if not tok:
                     continue
-                pat = tok[0]
-                if pat.startswith("(") or pat.startswith("["):
+                pat = tok[0].strip("`\"'")
+                if pat.startswith("**") and pat.endswith("**") and len(pat) > 4:
+                    pat = pat[2:-2]   # bullet written in bold, e.g. '**api.example.com**'
+                if not pat or pat.startswith("(") or pat.startswith("["):
                     continue          # placeholder text, not a real pattern
-                (in_scope if section == "in" else out_scope).append(pat)
+                (in_scope if section == "in" else out_scope).append(_rule_from_token(pat))
     return Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
 
 
