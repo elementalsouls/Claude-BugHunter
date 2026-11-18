@@ -12,14 +12,14 @@
   "userConfig": {
     "hackerone_api_username": {
       "type": "string",
-      "title": "HackerOne API username",
-      "description": "Optional. With the token, turns on the HackerOne MCP's logged-in tools (your programs, private scope, your reports).",
+      "title": "HackerOne API username (optional)",
+      "description": "Only for HackerOne bug bounty work: lets the HackerOne MCP read your private programs and your own reports. Leave blank if you don't need it.",
       "required": false
     },
     "hackerone_api_token": {
       "type": "string",
-      "title": "HackerOne API token",
-      "description": "Optional. Create it under HackerOne Settings > API Token. Kept in secure storage.",
+      "title": "HackerOne API token (optional)",
+      "description": "Goes with the username; create it under HackerOne Settings > API Token. Kept in secure storage. Leave blank if you don't need it.",
       "sensitive": true,
       "required": false
     }
