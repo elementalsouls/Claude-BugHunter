@@ -5,9 +5,9 @@ The "how to think" reference for external red-team OSINT and bug-bounty reconnai
 | Field | Value |
 |---|---|
 | Name | `osint-methodology` |
-| Version | 2.1 |
-| Lines | ~1,700 |
-| Top-level sections | 33 |
+| Version | 2.4 |
+| Layout | lean `SKILL.md` + 10 files in `references/` |
+| Top-level sections | 33 (index in SKILL.md; detail in `references/`) |
 | Subsections | ~125 |
 | Companion skill | [`offensive-osint`](../offensive-osint/) |
 
@@ -47,15 +47,14 @@ Highlights:
 
 ## Loading
 
-```bash
-# Local Claude Code install
-cp SKILL.md ~/.claude/skills/osint-methodology/SKILL.md
+The installer copies the whole skill directory (`SKILL.md` + `references/`). Manual install:
 
-# Or attach to a Claude.ai project / Claude API system prompt
-# (paste contents of SKILL.md as project knowledge)
+```bash
+# Local Claude Code install — copy the directory, not just SKILL.md
+cp -R skills/osint-methodology ~/.claude/skills/osint-methodology
 ```
 
-The full content lives in this `SKILL.md` (or in `docs/full-skills/osint-methodology.SKILL.full.md` if this file is the structured-outline variant — see repo root for sync instructions).
+`SKILL.md` is the planning index (§0–5 plus the references table). Detail content loads on demand from `references/`.
 
 ## Self-test
 
