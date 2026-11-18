@@ -26,7 +26,7 @@
   },
   "mcpServers": {
     "hackerone": {
-      "command": "python",
+      "command": "python3",
       "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/hackerone/server.py"],
       "env": {
         "HACKERONE_API_USERNAME": "${user_config.hackerone_api_username}",
