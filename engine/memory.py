@@ -14,7 +14,15 @@ Storage (~/.claude/bughunter/memory/, override BUGHUNTER_MEMORY_DIR):
 
 stdlib-only; imports nothing from sibling engine modules.
 """
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
+
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
 import json
 import os
 import sys
@@ -73,12 +81,24 @@ def _append(path, obj):
     lock = str(path) + ".lock"
     lfd = os.open(lock, os.O_WRONLY | os.O_CREAT, 0o644)
     try:
-        fcntl.flock(lfd, fcntl.LOCK_EX)
+        if fcntl:
+            fcntl.flock(lfd, fcntl.LOCK_EX)
+        elif msvcrt:
+            try:
+                msvcrt.locking(lfd, msvcrt.LK_LOCK, 1)
+            except OSError:
+                pass
         _rotate_if_needed(path)                      # now inside the lock: no cross-process rename race
         with open(path, "ab") as f:
             f.write(line.encode("utf-8"))
     finally:
-        fcntl.flock(lfd, fcntl.LOCK_UN)
+        if fcntl:
+            fcntl.flock(lfd, fcntl.LOCK_UN)
+        elif msvcrt:
+            try:
+                msvcrt.locking(lfd, msvcrt.LK_UNLCK, 1)
+            except OSError:
+                pass
         os.close(lfd)
 
 

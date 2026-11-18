@@ -61,26 +61,31 @@ def test_triage():
 - Evidence: leaked credential
 """
 
-    with tempfile.NamedTemporaryFile("w+", suffix=".md") as f1, \
-         tempfile.NamedTemporaryFile("w+", suffix=".md") as f2, \
-         tempfile.NamedTemporaryFile("w+", suffix=".md") as f3, \
-         tempfile.NamedTemporaryFile("w+", suffix=".md") as f4:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        p1 = os.path.join(tmpdir, "pass_http.md")
+        p2 = os.path.join(tmpdir, "pass_post.md")
+        p3 = os.path.join(tmpdir, "pass_curl.md")
+        p4 = os.path.join(tmpdir, "fail_q1.md")
 
-        f1.write(sample_pass_http); f1.flush()
-        f2.write(sample_pass_post); f2.flush()
-        f3.write(sample_pass_curl); f3.flush()
-        f4.write(sample_fail_q1); f4.flush()
+        with open(p1, "w", encoding="utf-8") as f:
+            f.write(sample_pass_http)
+        with open(p2, "w", encoding="utf-8") as f:
+            f.write(sample_pass_post)
+        with open(p3, "w", encoding="utf-8") as f:
+            f.write(sample_pass_curl)
+        with open(p4, "w", encoding="utf-8") as f:
+            f.write(sample_fail_q1)
 
-        res_http = cmd_triage(argparse.Namespace(finding=f1.name))
+        res_http = cmd_triage(argparse.Namespace(finding=p1))
         assert res_http == 0, f"Expected 0 (PASS) for HTTP GET, got {res_http}"
 
-        res_post = cmd_triage(argparse.Namespace(finding=f2.name))
+        res_post = cmd_triage(argparse.Namespace(finding=p2))
         assert res_post == 0, f"Expected 0 (PASS) for HTTP POST, got {res_post}"
 
-        res_curl = cmd_triage(argparse.Namespace(finding=f3.name))
+        res_curl = cmd_triage(argparse.Namespace(finding=p3))
         assert res_curl == 0, f"Expected 0 (PASS) for curl, got {res_curl}"
 
-        res_fail = cmd_triage(argparse.Namespace(finding=f4.name))
+        res_fail = cmd_triage(argparse.Namespace(finding=p4))
         assert res_fail == 2, f"Expected 2 (KILL) for missing request, got {res_fail}"
 
     print("\n✓ test_triage passed: all assertions verified.")

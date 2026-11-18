@@ -1,4 +1,11 @@
+import argparse
+import io
+import os
+import tempfile
 import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
+from unittest.mock import patch
 
 from cbh import cli
 
@@ -55,3 +62,37 @@ Actual impact.
         self.assertEqual(metadata["impact"], "Actual impact.")
         self.assertIn("## Impact\nFake impact.", metadata["steps"])
         self.assertTrue(metadata["steps"].endswith("After the sample."))
+
+    def test_render_report_uses_username_when_user_unset(self):
+        env = {"USERNAME": "win_researcher"}
+        with patch.dict(os.environ, env, clear=True):
+            report = cli.render_report({"title": "Test Finding"}, "hackerone")
+            self.assertIn("**Reporter:** win_researcher", report)
+
+    def test_cmd_report_creates_parent_dirs_and_writes_utf8(self):
+        finding_content = """# Unicode Finding — café & 特殊文字
+## Summary
+Finding summary with special bullet • and em-dash —.
+## Steps
+curl -H "X-Test: café" https://example.com/api
+## Impact
+High impact.
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cwd = Path(tmpdir).resolve()
+            finding_file = cwd / "finding.md"
+            finding_file.write_text(finding_content, encoding="utf-8")
+            out_file = cwd / "reports" / "draft.md"
+            args = argparse.Namespace(
+                finding=str(finding_file),
+                platform="hackerone",
+                out=str(out_file),
+            )
+            with patch.object(Path, "cwd", return_value=cwd), redirect_stdout(io.StringIO()):
+                ret = cli.cmd_report(args)
+            self.assertEqual(ret, 0)
+            self.assertTrue(out_file.exists())
+            written_text = out_file.read_text(encoding="utf-8")
+            self.assertIn("Unicode Finding — café & 特殊文字", written_text)
+            self.assertIn("Finding summary with special bullet • and em-dash —.", written_text)
+
