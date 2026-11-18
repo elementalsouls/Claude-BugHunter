@@ -31,10 +31,19 @@ import urllib.parse
 import urllib.request
 
 _REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(_REPO, "skills", "offensive-osint", "scripts"))
-from h1_reference import GRAPHQL_URL, HEADERS, REPORT_FIELDS, _escape  # noqa: E402
+# Load the shared HackerOne client by explicit path — no sys.path mutation, so a
+# same-named module elsewhere on the path can never shadow it or a stdlib import.
+import importlib.util  # noqa: E402
+_H1_PATH = os.path.join(_REPO, "skills", "offensive-osint", "scripts", "h1_reference.py")
+_spec = importlib.util.spec_from_file_location("cbh_h1_reference", _H1_PATH)
+if _spec is None or _spec.loader is None:  # pragma: no cover
+    raise ImportError(f"cannot locate h1_reference at {_H1_PATH}")
+_h1 = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_h1)
+GRAPHQL_URL, HEADERS, REPORT_FIELDS, _escape = _h1.GRAPHQL_URL, _h1.HEADERS, _h1.REPORT_FIELDS, _h1._escape
 
 PROTOCOL_VERSION = "2025-06-18"
+SUPPORTED_PROTOCOLS = {"2025-06-18", "2025-03-26", "2024-11-05"}
 SERVER_INFO = {"name": "hackerone", "version": "1.0.0"}
 HACKER_API = "https://api.hackerone.com/v1/hackers"
 TIMEOUT = 25
@@ -44,6 +53,10 @@ SEVERITIES = ["none", "low", "medium", "high", "critical"]
 
 class ToolError(Exception):
     """A failure the caller should see as a tool result, not a protocol error."""
+
+
+class InvalidParams(Exception):
+    """Bad params for an existing method (JSON-RPC -32602), e.g. an unknown tool name."""
 
 
 # ─── HTTP ────────────────────────────────────────────────────────────────────
@@ -91,12 +104,25 @@ def _hacker_api(path, params=None):
         raise ToolError(f"HackerOne Hacker API request failed: {e}")
 
 
+_MAX_PAGES = 50  # hard cap: at page[size]=100 this is 5000 records, well past any `limit`
+
+
 def _hacker_pages(path, limit):
-    """Follow the Hacker API's `links.next` until `limit` records are collected."""
+    """Follow the Hacker API's `links.next` until `limit` records are collected.
+
+    Bounded two ways so a misbehaving/MITM'd upstream cannot hang the server:
+    a hard page cap, and a stop as soon as a page yields zero new records (an
+    empty `data` with a non-null `next` would otherwise loop forever).
+    """
     out, url_path, params = [], path, {"page[size]": 100}
-    while url_path and len(out) < limit:
+    for _ in range(_MAX_PAGES):
+        if not (url_path and len(out) < limit):
+            break
         page = _hacker_api(url_path, params)
-        out.extend(page.get("data") or [])
+        rows = page.get("data") or []
+        if not rows:
+            break
+        out.extend(rows)
         nxt = (page.get("links") or {}).get("next")
         if not nxt:
             break
@@ -108,12 +134,12 @@ def _hacker_pages(path, limit):
 
 # ─── Public tools ────────────────────────────────────────────────────────────
 
-def _limit(args, default=10):
+def _limit(args, default=10, cap=MAX_LIMIT):
     try:
         n = int(args.get("limit", default))
     except (TypeError, ValueError):
         raise ToolError("limit must be a whole number")
-    return max(1, min(n, MAX_LIMIT))
+    return max(1, min(n, cap))
 
 
 def _handle(args):
@@ -208,7 +234,7 @@ def get_program_scope(args):
 # ─── Logged-in tools ─────────────────────────────────────────────────────────
 
 def list_my_programs(args):
-    limit = max(1, min(int(args.get("limit", 100)), 500))
+    limit = _limit(args, 100, 500)
     programs = []
     for item in _hacker_pages("/programs", limit):
         a = item.get("attributes") or {}
@@ -239,7 +265,7 @@ def get_my_program(args):
 
 def list_my_reports(args):
     program = str(args.get("program") or "").strip().lower()
-    limit = max(1, min(int(args.get("limit", 50)), 500))
+    limit = _limit(args, 50, 500)
     reports = []
     for item in _hacker_pages("/me/reports", 1000 if program else limit):
         a = item.get("attributes") or {}
@@ -248,7 +274,7 @@ def list_my_reports(args):
         if program and (handle or "").lower() != program:
             continue
         reports.append({"id": item.get("id"), "title": a.get("title"), "state": a.get("state"),
-                        "substate": a.get("substate"), "program": handle,
+                        "program": handle,
                         "created_at": a.get("created_at"), "disclosed_at": a.get("disclosed_at")})
         if len(reports) >= limit:
             break
@@ -327,7 +353,10 @@ def _send(message):
 def _handle_request(msg):
     method, params = msg.get("method"), msg.get("params") or {}
     if method == "initialize":
-        return {"protocolVersion": params.get("protocolVersion") or PROTOCOL_VERSION,
+        asked = params.get("protocolVersion")
+        # Echo the client's version only if we actually speak it; else offer ours.
+        version = asked if asked in SUPPORTED_PROTOCOLS else PROTOCOL_VERSION
+        return {"protocolVersion": version,
                 "capabilities": {"tools": {}}, "serverInfo": SERVER_INFO}
     if method == "ping":
         return {}
@@ -337,7 +366,7 @@ def _handle_request(msg):
         name, args = params.get("name"), params.get("arguments") or {}
         fn = next((f for spec, f in _tools() if spec["name"] == name), None)
         if fn is None:
-            raise LookupError(f"Unknown tool: {name}")
+            raise InvalidParams(f"Unknown tool: {name}")
         try:
             result = fn(args)
             return {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False, indent=1)}],
@@ -359,10 +388,14 @@ def main():
         except ValueError:
             _send({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}})
             continue
+        if not isinstance(msg, dict):
+            continue  # a bare JSON scalar/array is not a valid request object; ignore it
         if "id" not in msg:
             continue  # notification (e.g. notifications/initialized): no reply
         try:
             _send({"jsonrpc": "2.0", "id": msg["id"], "result": _handle_request(msg)})
+        except InvalidParams as e:
+            _send({"jsonrpc": "2.0", "id": msg["id"], "error": {"code": -32602, "message": str(e)}})
         except LookupError as e:
             _send({"jsonrpc": "2.0", "id": msg["id"], "error": {"code": -32601, "message": str(e)}})
         except Exception as e:  # never let one bad call kill the server
