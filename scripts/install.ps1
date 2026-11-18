@@ -23,6 +23,8 @@
 #                  force a path regardless of detection.)
 #   -BurpMcp       wire your existing Burp MCP server into the selected harnesses'
 #                  configs (opt-in; backs up each config first; uses python)
+#   -HackeroneMcp  wire the in-repo HackerOne MCP (mcp\hackerone\server.py) into the
+#                  selected harnesses (opt-in; carries HACKERONE_API_* env if set)
 #   -NormalizeFrontmatter
 #                  strip non-standard keys (sources/report_count) from the NON-Claude
 #                  copies — only needed if a harness rejects unknown frontmatter keys
@@ -44,6 +46,7 @@ param(
     [switch] $AntiGravity,
     [switch] $All,
     [switch] $BurpMcp,
+    [switch] $HackeroneMcp,
     [switch] $NormalizeFrontmatter,
     [switch] $NoProfile,
     [switch] $Uninstall,
@@ -169,7 +172,7 @@ function Install-Skills([string] $Dest, [string] $Label) {
 }
 
 # --- flag plumbing -----------------------------------------------------
-$DO_AGENTS = [bool]$Agents; $DO_HERMES = [bool]$Hermes; $DO_ANTIGRAVITY = [bool]$AntiGravity; $DO_MCP = [bool]$BurpMcp
+$DO_AGENTS = [bool]$Agents; $DO_HERMES = [bool]$Hermes; $DO_ANTIGRAVITY = [bool]$AntiGravity; $DO_MCP = [bool]$BurpMcp; $DO_H1_MCP = [bool]$HackeroneMcp
 $NORMALIZE = [bool]$NormalizeFrontmatter; $DETECT = [bool]$All
 $DO_UNINSTALL = [bool]$Uninstall; $NO_PROFILE = [bool]$NoProfile
 $HAS_CLAUDE = $false; $HAS_OPENCODE = $false; $HAS_CODEX = $false; $HAS_HERMES = $false; $HAS_ANTIGRAVITY = $false
@@ -408,8 +411,8 @@ if ($DO_ANTIGRAVITY) {
     Record-Harness 'antigravity'
 }
 
-# --- opt-in Burp MCP wiring -------------------------------------------
-if ($DO_MCP) {
+# --- opt-in Burp / HackerOne MCP wiring -------------------------------
+if ($DO_MCP -or $DO_H1_MCP) {
     $mcpTargets = @()
     if ($DETECT) {
         if ($HAS_OPENCODE)    { $mcpTargets += '--opencode' }
@@ -421,21 +424,24 @@ if ($DO_MCP) {
         if ($DO_HERMES)      { $mcpTargets += '--hermes' }
         if ($DO_ANTIGRAVITY) { $mcpTargets += '--antigravity' }
     }
+    $mcpServers = @()
+    if ($DO_MCP)    { $mcpServers += '--burp' }
+    if ($DO_H1_MCP) { $mcpServers += '--hackerone' }
     if ($mcpTargets.Count -eq 0) {
-        Write-Host "  ! -BurpMcp found no non-Claude harness (none detected, no -Agents/-Hermes/-AntiGravity). Skipping."
+        Write-Host "  ! MCP wiring found no non-Claude harness (none detected, no -Agents/-Hermes/-AntiGravity). Skipping."
     } else {
         $py = Get-Python
         if ($py) {
             $setupPy = Join-Path $RepoDir 'scripts\setup_harness_mcp.py'
             $pyExe = $py[0]
-            $pyRest = @($py | Select-Object -Skip 1) + @($setupPy) + $mcpTargets
+            $pyRest = @($py | Select-Object -Skip 1) + @($setupPy) + $mcpServers + $mcpTargets
             try {
                 & $pyExe $pyRest
             } catch {
-                Write-Host "  ! Burp MCP wiring reported an issue -- see scripts/setup_harness_mcp.py output."
+                Write-Host "  ! MCP wiring reported an issue -- see scripts/setup_harness_mcp.py output."
             }
         } else {
-            Write-Host "  ! python not found -- skipping -BurpMcp. See docs/multi-harness.md for manual snippets."
+            Write-Host "  ! python not found -- skipping MCP wiring. See docs/multi-harness.md for manual snippets."
         }
     }
     Write-Host ''

@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """
-setup_harness_mcp.py — wire your EXISTING Burp MCP server into other harnesses.
+setup_harness_mcp.py — wire this bundle's MCP servers into other harnesses.
 
-Reads your real Burp MCP definition from ~/.claude.json (the stdio command Claude
-Code already uses — we never invent one) and writes the equivalent into each
-selected harness's config, backing up the file first. Idempotent.
+Two servers can be wired:
+  - burp       your EXISTING Burp MCP, discovered from ~/.claude.json (the stdio
+               command Claude Code already uses — we never invent one).
+  - hackerone  the in-repo HackerOne MCP (mcp/hackerone/server.py), run with python3.
+               Carries HACKERONE_API_USERNAME / HACKERONE_API_TOKEN into the config
+               only if they are set in the environment at install time.
+
+Each is written into the selected harness's config, backing up the file first. Idempotent.
 
 Usage:
-    python3 scripts/setup_harness_mcp.py [--opencode] [--codex] [--hermes] [--antigravity] [--dry-run]
-    # optional overrides if auto-discovery fails:
-    python3 scripts/setup_harness_mcp.py --opencode --command java --arg -jar --arg /path/mcp-proxy-all.jar --arg --sse-url --arg http://127.0.0.1:9876
+    # pick servers (default is burp, for backward compatibility) and harnesses:
+    python3 scripts/setup_harness_mcp.py [--burp] [--hackerone] \
+        [--opencode] [--codex] [--hermes] [--antigravity] [--dry-run]
+    # optional overrides if burp auto-discovery fails:
+    python3 scripts/setup_harness_mcp.py --burp --opencode --command java --arg -jar --arg /path/mcp-proxy-all.jar
 
 Schema notes (verified against each tool's docs, mid-2026):
   - OpenCode     ~/.config/opencode/opencode.json  →  mcp.<name> = {type:"local", command:[...], enabled:true}   (JSON — written here)
@@ -21,6 +28,7 @@ Schema notes (verified against each tool's docs, mid-2026):
 import argparse, json, os, shutil, sys, time
 
 CLAUDE_JSON = os.path.expanduser("~/.claude.json")
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def discover_burp():
@@ -52,6 +60,19 @@ def discover_burp():
     return d.get("command"), list(d.get("args", [])), dict(d.get("env", {}) or {})
 
 
+def hackerone_source():
+    """Return (command, args, env) for the in-repo HackerOne MCP server.
+
+    env carries the HackerOne API credentials only if they are already set in the
+    environment (same opt-in as `claude mcp add -e`); otherwise the public tools
+    work keyless.
+    """
+    server = os.path.join(REPO, "mcp", "hackerone", "server.py")
+    env = {k: os.environ[k] for k in ("HACKERONE_API_USERNAME", "HACKERONE_API_TOKEN")
+           if os.environ.get(k)}
+    return "python3", [server], env
+
+
 def backup(path):
     if os.path.exists(path):
         b = f"{path}.bak-{time.strftime('%Y%m%d-%H%M%S')}"
@@ -79,7 +100,7 @@ def read_json_config(path, harness, server_key):
     return cfg
 
 
-def write_opencode(cmd, args, env, dry):
+def write_opencode(cmd, args, env, dry, name="burp"):
     path = os.path.expanduser("~/.config/opencode/opencode.json")
     cfg = read_json_config(path, "OpenCode", "mcp")
     if cfg is None:
@@ -89,11 +110,11 @@ def write_opencode(cmd, args, env, dry):
     entry = {"type": "local", "command": [cmd] + args, "enabled": True}
     if env:
         entry["environment"] = env
-    if mcp.get("burp") == entry:
-        print("  = OpenCode: burp MCP already configured (no change).")
+    if mcp.get(name) == entry:
+        print(f"  = OpenCode: {name} MCP already configured (no change).")
         return
-    mcp["burp"] = entry
-    print(f"  → OpenCode: set mcp.burp in {path}")
+    mcp[name] = entry
+    print(f"  → OpenCode: set mcp.{name} in {path}")
     if dry:
         print("      [dry-run] " + json.dumps(entry))
         return
@@ -101,24 +122,24 @@ def write_opencode(cmd, args, env, dry):
     backup(path)
     json.dump(cfg, open(path, "w", encoding="utf-8"), indent=2)
     open(path, "a").write("\n")
-    print("  ✓ OpenCode burp MCP written.")
+    print(f"  ✓ OpenCode {name} MCP written.")
 
 
-def write_codex(cmd, args, env, dry):
+def write_codex(cmd, args, env, dry, name="burp"):
     path = os.path.expanduser("~/.codex/config.toml")
     existing = open(path, encoding="utf-8").read() if os.path.isfile(path) else ""
-    if "[mcp_servers.burp]" in existing:
-        print("  = Codex: [mcp_servers.burp] already present (no change).")
+    if f"[mcp_servers.{name}]" in existing:
+        print(f"  = Codex: [mcp_servers.{name}] already present (no change).")
         return
-    lines = ["", "[mcp_servers.burp]", f"command = {toml_str(cmd)}",
+    lines = ["", f"[mcp_servers.{name}]", f"command = {toml_str(cmd)}",
              "args = [" + ", ".join(toml_str(a) for a in args) + "]"]
     if env:
         lines.append("")
-        lines.append("[mcp_servers.burp.env]")
+        lines.append(f"[mcp_servers.{name}.env]")
         for k, v in env.items():
             lines.append(f"{toml_str(k)} = {toml_str(str(v))}")
     block = "\n".join(lines) + "\n"
-    print(f"  → Codex: append [mcp_servers.burp] to {path}")
+    print(f"  → Codex: append [mcp_servers.{name}] to {path}")
     if dry:
         print("      [dry-run]\n" + "\n".join("        " + l for l in block.splitlines()))
         return
@@ -128,16 +149,16 @@ def write_codex(cmd, args, env, dry):
         if existing and not existing.endswith("\n"):
             f.write("\n")
         f.write(block)
-    print("  ✓ Codex burp MCP appended.  (alt: `codex mcp add burp -- " + " ".join([cmd] + args) + "`)")
+    print(f"  ✓ Codex {name} MCP appended.  (alt: `codex mcp add {name} -- " + " ".join([cmd] + args) + "`)")
 
 
-def write_hermes(cmd, args, env, dry):
+def write_hermes(cmd, args, env, dry, name="burp"):
     # Hermes schema (verified): top-level `mcp_servers: <name>: {command, args, env}`.
     # No PyYAML dependency, so we only WRITE when we can do it safely (append a new
     # top-level block when `mcp_servers:` is absent). If it already exists, we PRINT
     # the block rather than risk an unparsed merge.
     path = os.path.expanduser("~/.hermes/config.yaml")
-    body = ["mcp_servers:", "  burp:", f"    command: {json.dumps(cmd)}",
+    body = ["mcp_servers:", f"  {name}:", f"    command: {json.dumps(cmd)}",
             "    args: [" + ", ".join(json.dumps(a) for a in args) + "]"]
     if env:
         body.append("    env:")
@@ -146,14 +167,14 @@ def write_hermes(cmd, args, env, dry):
     block = "\n" + "\n".join(body) + "\n"
     existing = open(path, encoding="utf-8").read() if os.path.isfile(path) else ""
     has_mcp = existing.startswith("mcp_servers:") or "\nmcp_servers:" in existing
-    if has_mcp and "burp:" in existing:
-        print("  = Hermes: burp already in mcp_servers (no change).")
+    if has_mcp and f"{name}:" in existing:
+        print(f"  = Hermes: {name} already in mcp_servers (no change).")
         return
     if has_mcp:
         print(f"  ℹ Hermes: {path} already has mcp_servers — add this under it manually:")
         print("\n".join("        " + l for l in body[1:]))
         return
-    print(f"  → Hermes: append mcp_servers.burp to {path}")
+    print(f"  → Hermes: append mcp_servers.{name} to {path}")
     if dry:
         print("      [dry-run]" + block.replace("\n", "\n        "))
         return
@@ -163,10 +184,10 @@ def write_hermes(cmd, args, env, dry):
         if existing and not existing.endswith("\n"):
             f.write("\n")
         f.write(block)
-    print("  ✓ Hermes burp MCP written.")
+    print(f"  ✓ Hermes {name} MCP written.")
 
 
-def write_antigravity(cmd, args, env, dry):
+def write_antigravity(cmd, args, env, dry, name="burp"):
     path = os.path.expanduser("~/.gemini/config/mcp_config.json")
     cfg = read_json_config(path, "AntiGravity", "mcpServers")
     if cfg is None:
@@ -175,11 +196,11 @@ def write_antigravity(cmd, args, env, dry):
     entry = {"command": cmd, "args": args}
     if env:
         entry["env"] = env
-    if servers.get("burp") == entry:
-        print("  = AntiGravity: burp MCP already configured in mcp_config.json (no change).")
+    if servers.get(name) == entry:
+        print(f"  = AntiGravity: {name} MCP already configured in mcp_config.json (no change).")
         return
-    servers["burp"] = entry
-    print(f"  → AntiGravity: set mcpServers.burp in {path}")
+    servers[name] = entry
+    print(f"  → AntiGravity: set mcpServers.{name} in {path}")
     if dry:
         print("      [dry-run] " + json.dumps(entry))
         return
@@ -187,11 +208,28 @@ def write_antigravity(cmd, args, env, dry):
     backup(path)
     json.dump(cfg, open(path, "w", encoding="utf-8"), indent=2)
     open(path, "a").write("\n")
-    print("  ✓ AntiGravity burp MCP written.")
+    print(f"  ✓ AntiGravity {name} MCP written.")
+
+
+def _wire(name, cmd, args, env, a):
+    """Write one server into every selected harness. Returns True on a hard failure."""
+    print(f"{name} MCP source: {cmd} {' '.join(args)}{'  (dry-run)' if a.dry_run else ''}")
+    failed = False
+    if a.opencode:
+        failed = (write_opencode(cmd, args, env, a.dry_run, name) is False) or failed
+    if a.codex:
+        write_codex(cmd, args, env, a.dry_run, name)
+    if a.hermes:
+        write_hermes(cmd, args, env, a.dry_run, name)
+    if a.antigravity:
+        failed = (write_antigravity(cmd, args, env, a.dry_run, name) is False) or failed
+    return failed
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--burp", action="store_true", help="wire the Burp MCP (default if no server flag given)")
+    ap.add_argument("--hackerone", action="store_true", help="wire the in-repo HackerOne MCP")
     ap.add_argument("--opencode", action="store_true")
     ap.add_argument("--codex", action="store_true")
     ap.add_argument("--hermes", action="store_true")
@@ -201,30 +239,38 @@ def main():
     ap.add_argument("--arg", action="append", default=[])
     a = ap.parse_args()
 
-    if a.command:
-        cmd, args, env = a.command, a.arg, {}
-    else:
-        found = discover_burp()
-        if not found:
-            print("✗ Could not find a 'burp' MCP server in ~/.claude.json.")
-            print("  Pass it explicitly, e.g.:")
-            print("    --command java --arg -jar --arg ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar --arg --sse-url --arg http://127.0.0.1:9876")
-            return 1
-        cmd, args, env = found
+    want_burp, want_hackerone = a.burp, a.hackerone
+    if not (want_burp or want_hackerone):
+        want_burp = True  # backward-compatible default
 
-    print(f"Burp MCP source: {cmd} {' '.join(args)}{'  (dry-run)' if a.dry_run else ''}")
     if not (a.opencode or a.codex or a.hermes or a.antigravity):
         print("Nothing to do — pass --opencode / --codex / --hermes / --antigravity.")
         return 0
+
+    # Resolve sources first so a burp-discovery failure doesn't half-wire hackerone.
+    sources = []
+    if want_burp:
+        if a.command:
+            sources.append(("burp", (a.command, a.arg, {})))
+        else:
+            found = discover_burp()
+            if found:
+                sources.append(("burp", found))
+            else:
+                print("✗ Could not find a 'burp' MCP server in ~/.claude.json.")
+                print("  Pass it explicitly, e.g.:")
+                print("    --command java --arg -jar --arg ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar --arg --sse-url --arg http://127.0.0.1:9876")
+                if not want_hackerone:
+                    return 1
+                print("  → continuing with hackerone only.")
+    if want_hackerone:
+        sources.append(("hackerone", hackerone_source()))
+
+    if not sources:
+        return 1
     failed = False
-    if a.opencode:
-        failed = write_opencode(cmd, args, env, a.dry_run) is False
-    if a.codex:
-        write_codex(cmd, args, env, a.dry_run)
-    if a.hermes:
-        write_hermes(cmd, args, env, a.dry_run)
-    if a.antigravity:
-        failed = (write_antigravity(cmd, args, env, a.dry_run) is False) or failed
+    for name, (cmd, args, env) in sources:
+        failed = _wire(name, cmd, args, env, a) or failed
     return int(failed)
 
 

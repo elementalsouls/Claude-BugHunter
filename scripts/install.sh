@@ -16,11 +16,13 @@
 #   --antigravity  force-copy skills → ~/.gemini/config/skills/ (Google AntiGravity)
 #   --all          DETECT installed harnesses and install to each: Claude always, ~/.agents
 #                  if Codex is present, ~/.hermes if Hermes is present, ~/.gemini/config/skills
-#                  if Google AntiGravity is present. With --burp-mcp it
-#                  wires Burp only into the detected harnesses. (--agents/--hermes/--antigravity still
-#                  force a path regardless of detection.)
+#                  if Google AntiGravity is present. With --burp-mcp / --hackerone-mcp
+#                  it wires those servers only into the detected harnesses. (--agents/--hermes/--antigravity
+#                  still force a path regardless of detection.)
 #   --burp-mcp  wire your existing Burp MCP server into the selected harnesses'
 #               configs (opt-in; backs up each config first; uses python3)
+#   --hackerone-mcp  wire the in-repo HackerOne MCP (mcp/hackerone/server.py) into
+#               the selected harnesses (opt-in; carries HACKERONE_API_* env if set)
 #   --normalize-frontmatter
 #               strip non-standard keys (sources/report_count) from the NON-Claude
 #               copies — only needed if a harness rejects unknown frontmatter keys
@@ -55,7 +57,7 @@ HARNESS_MANIFEST_DIR="$MANIFEST_DIR/$BUNDLE_NAME-harnesses"
 
 usage() { sed -n '2,/^# ===/p' "$0" | sed 's/^#\{0,1\} \{0,1\}//'; }
 
-DO_AGENTS=0; DO_HERMES=0; DO_ANTIGRAVITY=0; DO_MCP=0; NORMALIZE=0; DETECT=0; DO_UNINSTALL=0; NO_SHELL=0
+DO_AGENTS=0; DO_HERMES=0; DO_ANTIGRAVITY=0; DO_MCP=0; DO_H1_MCP=0; NORMALIZE=0; DETECT=0; DO_UNINSTALL=0; NO_SHELL=0
 HAS_CLAUDE=0; HAS_OPENCODE=0; HAS_CODEX=0; HAS_HERMES=0; HAS_ANTIGRAVITY=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -64,6 +66,7 @@ while [ $# -gt 0 ]; do
     --antigravity) DO_ANTIGRAVITY=1 ;;
     --all)    DETECT=1 ;;
     --burp-mcp) DO_MCP=1 ;;
+    --hackerone-mcp) DO_H1_MCP=1 ;;
     --normalize-frontmatter) NORMALIZE=1 ;;
     --no-shell) NO_SHELL=1 ;;
     --uninstall) DO_UNINSTALL=1 ;;
@@ -323,11 +326,11 @@ if [ "$DO_ANTIGRAVITY" = "1" ]; then
   record_harness antigravity
 fi
 
-# === Opt-in: wire the existing Burp MCP into the selected harnesses ===
-if [ "$DO_MCP" = "1" ]; then
+# === Opt-in: wire the Burp and/or HackerOne MCP into the selected harnesses ===
+if [ "$DO_MCP" = "1" ] || [ "$DO_H1_MCP" = "1" ]; then
   MCP_TARGETS=""
   if [ "$DETECT" = "1" ]; then
-    # detection mode: wire Burp only into the harnesses actually present
+    # detection mode: wire only into the harnesses actually present
     if [ "$HAS_OPENCODE"    = "1" ]; then MCP_TARGETS="$MCP_TARGETS --opencode"; fi
     if [ "$HAS_CODEX"       = "1" ]; then MCP_TARGETS="$MCP_TARGETS --codex"; fi
     if [ "$HAS_HERMES"      = "1" ]; then MCP_TARGETS="$MCP_TARGETS --hermes"; fi
@@ -338,14 +341,18 @@ if [ "$DO_MCP" = "1" ]; then
     if [ "$DO_HERMES"      = "1" ]; then MCP_TARGETS="$MCP_TARGETS --hermes"; fi
     if [ "$DO_ANTIGRAVITY" = "1" ]; then MCP_TARGETS="$MCP_TARGETS --antigravity"; fi
   fi
+  # which servers to wire (both can be on at once)
+  MCP_SERVERS=""
+  if [ "$DO_MCP"    = "1" ]; then MCP_SERVERS="$MCP_SERVERS --burp"; fi
+  if [ "$DO_H1_MCP" = "1" ]; then MCP_SERVERS="$MCP_SERVERS --hackerone"; fi
   if [ -z "$MCP_TARGETS" ]; then
-    echo "  ⚠ --burp-mcp found no non-Claude harness (none detected, no --agents/--hermes/--antigravity). Skipping."
+    echo "  ⚠ MCP wiring found no non-Claude harness (none detected, no --agents/--hermes/--antigravity). Skipping."
   elif command -v python3 >/dev/null 2>&1; then
     # shellcheck disable=SC2086
-    python3 "$REPO_DIR/scripts/setup_harness_mcp.py" $MCP_TARGETS || \
-      echo "  ⚠ Burp MCP wiring reported an issue — see scripts/setup_harness_mcp.py output."
+    python3 "$REPO_DIR/scripts/setup_harness_mcp.py" $MCP_SERVERS $MCP_TARGETS || \
+      echo "  ⚠ MCP wiring reported an issue — see scripts/setup_harness_mcp.py output."
   else
-    echo "  ⚠ python3 not found — skipping --burp-mcp. See docs/multi-harness.md for manual snippets."
+    echo "  ⚠ python3 not found — skipping MCP wiring. See docs/multi-harness.md for manual snippets."
   fi
   echo ""
 fi
