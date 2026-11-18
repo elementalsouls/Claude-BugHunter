@@ -346,7 +346,7 @@ def cmd_recon(args: argparse.Namespace) -> int:
     subs = {host for host in candidates
             if host is not None and (host == target or host.endswith("." + target))}
     subs.add(target)
-    (out_dir / "subdomains.txt").write_text("\n".join(sorted(subs)) + "\n")
+    (out_dir / "subdomains.txt").write_text("\n".join(sorted(subs)) + "\n", encoding="utf-8")
     say(f"  Total unique: {color(str(len(subs)), 'bold')}")
 
     # Step 2 — DNS resolution
@@ -358,7 +358,8 @@ def cmd_recon(args: argparse.Namespace) -> int:
         if ips:
             resolved[s] = ips
     (out_dir / "resolved.txt").write_text(
-        "\n".join(f"{h}|{','.join(ips)}" for h, ips in sorted(resolved.items())) + "\n"
+        "\n".join(f"{h}|{','.join(ips)}" for h, ips in sorted(resolved.items())) + "\n",
+        encoding="utf-8",
     )
     say(f"  Resolved: {color(str(len(resolved)), 'bold')} / {len(subs)}")
 
@@ -375,7 +376,7 @@ def cmd_recon(args: argparse.Namespace) -> int:
             if rec:
                 rec["host"] = host
                 live.append(rec)
-    (out_dir / "live-hosts.json").write_text(json.dumps(live, indent=2))
+    (out_dir / "live-hosts.json").write_text(json.dumps(live, indent=2), encoding="utf-8")
     say(f"  HTTP-live: {color(str(len(live)), 'bold')} / {len(resolved)}")
 
     # Step 4 — summary report
@@ -388,7 +389,7 @@ def cmd_recon(args: argparse.Namespace) -> int:
     # recon→hunt handoff contract — see docs/recon-manifest.md
     manifest = build_manifest(target, subs, resolved, live)
     manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     say(f"  {manifest_path}  {color('(recon→hunt manifest)', 'dim')}")
 
     section("SUMMARY")
@@ -430,7 +431,7 @@ def write_recon_summary(target: str, subs: set[str], resolved: dict, live: list,
         "- For `mta-sts.*` / `*.github.io` hosts, fingerprint against `hunt-subdomain` takeover table.",
         "",
     ]
-    out.write_text("\n".join(lines))
+    out.write_text("\n".join(lines), encoding="utf-8")
 
 
 # ============================================================
@@ -773,7 +774,7 @@ def render_report(md: dict, platform: str) -> str:
     impact = md.get("impact") or "(fill in — concrete dollar / PII / state impact)"
     remediation = md.get("remediation") or "(fill in)"
     asset = md.get("asset") or md.get("endpoint") or "(fill in)"
-    user = os.environ.get('USER', 'researcher')
+    user = os.environ.get("USER") or os.environ.get("USERNAME") or "researcher"
     today = datetime.date.today().isoformat()
 
     if platform == "bugcrowd":
@@ -876,7 +877,8 @@ def cmd_report(args: argparse.Namespace) -> int:
         # Ancestry check, not str.startswith (which a `<cwd>-evil` sibling bypasses).
         if cwd not in out_path.parents:
             print("[error] --out path must be within cwd", file=sys.stderr); return 1
-        out_path.write_text(draft)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(draft, encoding="utf-8")
         section(f"report — {args.platform}")
         say(f"  Draft written: {color(str(out_path), 'bold')}")
         say()
