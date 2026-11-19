@@ -49,6 +49,14 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Scope: out-of-scope rules no longer fail open** (`engine/scope.py`). A deny rule written with
+  a port (`admin.example.com:8443`), a scheme in `scope.json` / `--out-of-scope`
+  (`https://admin.example.com`), a path, a trailing dot, a trailing comma, or as an IPv6 CIDR
+  matched no host, so the host fell through to a broader in-scope rule (`example.com`) and was
+  tested. Every rule from every source is now normalized to its host once, in `Scope`; IPv6
+  addresses and CIDRs are supported; an uncompilable out-of-scope regex raises instead of being
+  skipped; rules widened to their host or unable to match are reported as `scope warning:` lines
+  by `scope.py` and the engine log. `Scope.load` reads `scope.json` as UTF-8.
 - `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
   `surfaces:`) broke strict YAML / Codex. Also genericized lab/harness-specific language in the new
   skills for cross-harness portability.

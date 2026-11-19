@@ -17,8 +17,14 @@ judgment — deny wins, default deny.
    - apex `acme.com` → the apex **and** any subdomain
    - `*.acme.com` → any subdomain (NOT the bare apex)
    - `api.acme.com` → that exact host
-   - `10.0.0.0/8` → any IP in the CIDR
+   - `10.0.0.0/8`, `2001:db8::/32` → any IP in the CIDR (IPv4 or IPv6)
    - `re:^lab[0-9]+\.acme\.io$` → explicit regex (prefix `re:`)
+
+   Rules can be pasted as the program page writes them: `https://admin.acme.com/panel`,
+   `admin.acme.com:8443` and `ADMIN.acme.com.` all reduce to the host `admin.acme.com`.
+   Scope is enforced per host, so a rule's path or port is dropped (a
+   `scope warning:` line says so); an out-of-scope `re:` rule that does not compile
+   is a hard error, never a silently skipped deny.
 3. Prints `IN-SCOPE` / `OUT-OF-SCOPE <reason>` and exits non-zero if any asset
    is out of scope — so it can gate automation.
 

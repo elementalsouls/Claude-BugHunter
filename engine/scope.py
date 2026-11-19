@@ -11,12 +11,38 @@ Pattern forms (matched against the URL's host):
   example.com        -> the apex AND any subdomain (example.com, api.example.com)
   *.example.com      -> any subdomain (NOT the bare apex)
   api.example.com    -> that exact host
-  10.0.0.0/8         -> any IP in the CIDR (IPv4)
+  10.0.0.0/8         -> any IP in the CIDR (IPv4 or IPv6, e.g. 2001:db8::/32)
+  10.0.0.5, ::1      -> that exact IP
   re:^staging[0-9]+\\.example\\.com$   -> explicit regex (prefix re:)
+
+Every non-regex rule is normalized to the host it names before matching, however
+it was written: `https://admin.example.com/panel`, `admin.example.com:8443`,
+`ADMIN.example.com.` and `[2001:db8::1]` all become a host rule. This matters most
+for out-of-scope rules, where a rule that silently matched nothing failed OPEN.
+A rule that loses information (a path or port cannot be enforced per host) or
+still cannot match anything is reported in `Scope.warnings`; an out-of-scope
+regex that does not compile raises ValueError instead of being skipped.
 """
 import ipaddress
 import re
 from urllib.parse import urlparse
+
+
+_WRAPPERS = "`\"'"
+
+
+def _canonical_ip(text):
+    """Canonical text of an IP address or CIDR ('[2001:0db8::1]' -> '2001:db8::1'),
+    or None if `text` is neither."""
+    t = text.strip()
+    if t.startswith("[") and "]" in t:
+        t = t[1:].replace("]", "", 1)
+    try:
+        if "/" in t:
+            return str(ipaddress.ip_network(t, strict=False))
+        return str(ipaddress.ip_address(t))
+    except ValueError:
+        return None
 
 
 def _host_of(target):
@@ -25,9 +51,45 @@ def _host_of(target):
         t = "//" + t
     try:
         parsed = urlparse(t)
-        return (parsed.hostname or "").lower().rstrip(".")
+        host = (parsed.hostname or "").lower().rstrip(".")
     except ValueError:
         return ""
+    return _canonical_ip(host) or host
+
+
+def _normalize_rule(rule):
+    """Reduce one scope rule to the form `_match` understands.
+
+    Returns (rule, warning). `warning` is None when nothing was lost; otherwise a
+    human-readable note that the rule was widened to its whole host, or that it
+    still cannot match any host. Regex rules (`re:`) are returned untouched.
+    """
+    raw = rule
+    t = rule.strip().strip(_WRAPPERS).rstrip(",;").strip().strip(_WRAPPERS)
+    if not t or t[:3].lower() == "re:":
+        return t, None
+    ip = _canonical_ip(t)
+    if ip:
+        return ip, None
+    try:
+        parsed = urlparse(t if "://" in t or t.startswith("//") else "//" + t)
+        host = (parsed.hostname or "").rstrip(".")
+        port = parsed.port
+    except ValueError:
+        return t.lower(), f"rule {raw!r} is not a valid host and will never match"
+    if not host or any(c.isspace() for c in host) or "*" in host[2:] or \
+            (host.startswith("*") and not host.startswith("*.")):
+        return (host or t).lower(), f"rule {raw!r} is not a valid host and will never match"
+    lost = []
+    if port is not None:
+        lost.append(f"port {port}")
+    if parsed.path not in ("", "/") or parsed.query or parsed.fragment:
+        lost.append("path")
+    host = _canonical_ip(host) or host
+    if lost:
+        return host, (f"rule {raw!r} names a {' and '.join(lost)}, but scope is enforced "
+                      f"per host, so it applies to every URL on {host}")
+    return host, None
 
 
 def _match(pattern, host):
@@ -40,11 +102,16 @@ def _match(pattern, host):
         except re.error:
             return False
     p = p.lower()
-    if "/" in p and p.replace(".", "").replace("/", "").isdigit():  # CIDR
+    ip = _canonical_ip(p)
+    if ip:
         try:
-            return ipaddress.ip_address(host) in ipaddress.ip_network(p, strict=False)
+            addr = ipaddress.ip_address(host)
         except ValueError:
-            return False
+            return False                 # an IP rule never matches a hostname
+        if "/" in ip:
+            net = ipaddress.ip_network(ip)
+            return addr.version == net.version and addr in net
+        return addr == ipaddress.ip_address(ip)
     if p.startswith("*."):
         base = p[2:]
         return host.endswith("." + base)
@@ -54,15 +121,37 @@ def _match(pattern, host):
 
 class Scope:
     def __init__(self, in_scope, out_of_scope=None, seeds=None, name="engagement"):
-        self.in_scope = [p for p in (in_scope or []) if p.strip()]
-        self.out_of_scope = [p for p in (out_of_scope or []) if p.strip()]
+        self.warnings = []
+        self.in_scope = self._normalize_all(in_scope, "in-scope")
+        self.out_of_scope = self._normalize_all(out_of_scope, "out-of-scope")
         self.seeds = seeds or []
         self.name = name
+
+    def _normalize_all(self, rules, kind):
+        out = []
+        for rule in rules or []:
+            norm, warning = _normalize_rule(rule)
+            if not norm:
+                continue
+            if norm[:3].lower() == "re:":
+                try:
+                    re.compile(norm[3:])
+                except re.error as exc:
+                    if kind == "out-of-scope":
+                        # Deny wins: a deny rule that cannot be evaluated must not be skipped.
+                        raise ValueError(f"invalid out-of-scope regex {rule!r}: {exc}; refusing to "
+                                         f"build a scope whose deny rule cannot be enforced") from None
+                    warning = f"regex {rule!r} does not compile ({exc}) and will never match"
+            if warning:
+                self.warnings.append(f"{kind} {warning}")
+            out.append(norm)
+        return out
 
     @classmethod
     def load(cls, path):
         import json
-        d = json.load(open(path))
+        with open(path, encoding="utf-8") as fh:
+            d = json.load(fh)
         return cls(d.get("in_scope", []), d.get("out_of_scope", []),
                    d.get("seeds", []), d.get("name", "engagement"))
 
@@ -109,23 +198,15 @@ def _selftest():
     s2 = Scope(in_scope=["*.test.example.com"])
     assert s2.in_scope_host("a.test.example.com")
     assert not s2.in_scope_host("test.example.com")
+    # deny rules pasted with a port / scheme / IPv6 CIDR must still deny (never fail open)
+    s3 = Scope(in_scope=["example.com", "re:.*"],
+               out_of_scope=["admin.example.com:8443", "https://ops.example.com/", "2001:db8::/32"])
+    assert not s3.in_scope_host("https://admin.example.com:8443/")
+    assert not s3.in_scope_host("https://ops.example.com/x")
+    assert not s3.in_scope_host("http://[2001:db8::1]/")
+    assert s3.in_scope_host("https://api.example.com/")
     print("scope.py self-test: PASS")
 
-
-def _rule_from_token(token):
-    """Normalize one scope.md bullet token into a host rule.
-
-    `https://app.example.com/login?x=1` -> `app.example.com`.
-    Explicit-rule forms (`re:`, CIDR, `*.host`) and already-bare hosts are kept as-is.
-    """
-    t = token.strip()
-    if t[:3].lower() == "re:" or ("://" not in t and not t.startswith("//")):
-        return t
-    try:
-        host = urlparse(t if "://" in t else "//" + t).hostname or ""
-    except ValueError:
-        return t
-    return host or t
 
 def _scope_from_md(path):
     """Build a Scope from a scaffolded scope.md (the `hunt` template).
@@ -134,9 +215,8 @@ def _scope_from_md(path):
     Takes the first whitespace token of each bullet (so '- api.example.com — note'
     yields 'api.example.com'). Skips placeholder bullets like '(paste ... here)'.
     A token written as a URL (the common paste-from-program-page form,
-    '- https://app.example.com/login — main app') is reduced to its host, because
-    every rule is matched against the host anyway; leaving the scheme in made the
-    rule match nothing and the whole engagement default-deny.
+    '- https://app.example.com/login — main app') is reduced to its host by
+    `Scope`, which normalizes rules from every source the same way.
     """
     in_scope, out_scope, section = [], [], None
     with open(path, encoding="utf-8") as fh:
@@ -162,12 +242,13 @@ def _scope_from_md(path):
                     pat = pat[2:-2]   # bullet written in bold, e.g. '**api.example.com**'
                 if not pat or pat.startswith("(") or pat.startswith("["):
                     continue          # placeholder text, not a real pattern
-                (in_scope if section == "in" else out_scope).append(_rule_from_token(pat))
+                (in_scope if section == "in" else out_scope).append(pat)
     return Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
 
 
 def _main(argv=None):
     import argparse
+    import sys
     ap = argparse.ArgumentParser(
         prog="scope.py",
         description="Deterministic in-scope check (deny wins, default deny).")
@@ -185,14 +266,20 @@ def _main(argv=None):
         _selftest()
         return 0
 
-    if args.md:
-        scope = _scope_from_md(args.md)
-    elif args.scope_file:
-        scope = Scope.load(args.scope_file)
-    elif args.in_scope or args.out_of_scope:
-        scope = Scope(in_scope=args.in_scope, out_of_scope=args.out_of_scope)
-    else:
+    if not (args.md or args.scope_file or args.in_scope or args.out_of_scope):
         ap.error("provide --md, --scope-file, or --in-scope/--out-of-scope patterns")
+    try:
+        if args.md:
+            scope = _scope_from_md(args.md)
+        elif args.scope_file:
+            scope = Scope.load(args.scope_file)
+        else:
+            scope = Scope(in_scope=args.in_scope, out_of_scope=args.out_of_scope)
+    except ValueError as exc:
+        print(f"scope error: {exc}", file=sys.stderr)
+        return 2
+    for warning in scope.warnings:
+        print(f"scope warning: {warning}", file=sys.stderr)
 
     if not args.targets:
         ap.error("no targets given")
