@@ -15,40 +15,94 @@ This is exactly the technique that surfaces a SPA's real API endpoints by hand (
 unauthenticated chat/LLM route buried in a bundle). Classification is a cheap keyword
 heuristic (the agent is reserved for the HUNT phase, where judgment is needed).
 
-stdlib-only fallback; uses `requests` if available (gzip/redirects handled cleanly).
+stdlib-only fallback; uses `requests` if available. Redirects are followed hop by hop,
+and only while the next hop is in scope (see `_follow`).
 """
+import gzip
 import re
+import urllib.error
+import urllib.request
 from shutil import which
 from urllib.parse import urljoin, urlparse
 
 _UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
+MAX_REDIRECTS = 5
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None                          # surface the 3xx; _follow decides whether to go on
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect())
+
+
+def _get_once_urllib(url, timeout=20):
+    """One stdlib GET, redirects NOT followed. -> (status, body, headers, location)."""
+    req = urllib.request.Request(url, headers={"User-Agent": _UA, "Accept-Encoding": "gzip"})
+    try:
+        r = _OPENER.open(req, timeout=timeout)
+    except urllib.error.HTTPError as e:
+        r = e                                # 3xx/4xx/5xx still carry headers and a body
+    except Exception:
+        return 0, "", {}, ""
+    try:
+        with r:
+            data = r.read()
+        if r.headers.get("Content-Encoding") == "gzip":
+            data = gzip.decompress(data)
+        hdrs = {k.lower(): v for k, v in r.headers.items()}
+        return r.status, data.decode("utf-8", "replace"), hdrs, hdrs.get("location", "")
+    except Exception:
+        return 0, "", {}, ""
+
+
 try:
     import requests
     _SESS = requests.Session()
     _SESS.headers["User-Agent"] = _UA
 
-    def _get(url, timeout=20):
+    def _get_once(url, timeout=20):
+        """One GET via requests, redirects NOT followed. -> (status, body, headers, location)."""
         try:
-            r = _SESS.get(url, timeout=timeout, allow_redirects=True)
-            return r.text, r.url, {k.lower(): v for k, v in r.headers.items()}
+            r = _SESS.get(url, timeout=timeout, allow_redirects=False)
+            hdrs = {k.lower(): v for k, v in r.headers.items()}
+            return r.status_code, r.text, hdrs, hdrs.get("location", "")
         except Exception:
-            return "", url, {}
+            return 0, "", {}, ""
 except ImportError:                          # stdlib fallback
-    import gzip
-    import urllib.request
+    _get_once = _get_once_urllib
 
-    def _get(url, timeout=20):
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": _UA, "Accept-Encoding": "gzip"})
-            r = urllib.request.urlopen(req, timeout=timeout)
-            data = r.read()
-            if r.headers.get("Content-Encoding") == "gzip":
-                data = gzip.decompress(data)
-            return data.decode("utf-8", "replace"), r.geturl(), {k.lower(): v for k, v in r.headers.items()}
-        except Exception:
-            return "", url, {}
+
+def _follow(fetch_once, url, timeout, allow):
+    """Run `fetch_once` and follow redirects ONLY to URLs `allow` accepts.
+
+    Recon runs unattended, so an in-scope seed that redirects to an out-of-scope host
+    (SSO, a deny-listed admin host, a third party) must not be fetched. `allow` is the
+    scope predicate; None means follow nothing. A redirect that is not followed is
+    returned as-is, so the caller sees the 3xx of the last in-scope URL.
+    -> (status, body, headers, final_url)
+    """
+    current = url
+    for _ in range(MAX_REDIRECTS + 1):
+        status, body, hdrs, location = fetch_once(current, timeout)
+        if not (300 <= status < 400 and location):
+            break
+        nxt = urljoin(current, location)
+        if allow is None or not allow(nxt):
+            break
+        current = nxt
+    return status, body, hdrs, current
+
+
+def _get(url, timeout=20, allow=None):
+    """GET url -> (body, final_url, headers); redirects followed only while `allow(next_url)`."""
+    status, body, hdrs, final = _follow(_get_once, url, timeout, allow)
+    if status == 0:
+        return "", url, {}
+    return body, final, hdrs
 
 JS_SRC = re.compile(r'<script[^>]+src=["\']([^"\']+\.js[^"\']*)["\']', re.I)
 REL_API = re.compile(
@@ -140,13 +194,13 @@ def spa_recon(scope, seeds=None, max_js=20, interesting_only=True, log=print):
     for seed in (seeds or scope.seeds):
         if not scope.in_scope_host(seed):
             log(f"recon: seed {seed} not in scope — skip"); continue
-        html, final, hdrs = _get(seed)
+        html, final, hdrs = _get(seed, allow=scope.in_scope_host)
         base = f"{urlparse(final).scheme}://{urlparse(final).netloc}"
         if not seed_base:
             seed_base = base
         log(f"recon: fetched {seed} ({len(html)} bytes, server={hdrs.get('server','?')})")
         for p in ("/robots.txt", "/sitemap.xml"):
-            t, _, _ = _get(base + p)
+            t, _, _ = _get(base + p, allow=scope.in_scope_host)
             for a, b in re.findall(r'(?:Allow|Disallow):\s*(\S+)|<loc>([^<]+)</loc>', t):
                 pp = a or b
                 if pp:
@@ -163,7 +217,7 @@ def spa_recon(scope, seeds=None, max_js=20, interesting_only=True, log=print):
                           "params": INPUT_NAME.findall(fm)})
 
     for ju in list(js_urls)[:max_js]:
-        js, _, _ = _get(ju)
+        js, _, _ = _get(ju, allow=scope.in_scope_host)
         if js:
             js_base = f"{urlparse(ju).scheme}://{urlparse(ju).netloc}"
             _mine(js, found_rel, found_abs, js_base)
@@ -374,21 +428,30 @@ def _katana_urls(scope, log, depth=2, timeout=150):
     return urls
 
 
-def _probe(url, timeout=12):
-    """GET url, return (status_code, body). Status-aware (unlike _get)."""
+def _curl_once(url, timeout=12):
+    """One curl GET, redirects NOT followed. -> (status, body, headers, location)."""
     import subprocess
     try:
-        out = subprocess.run(["curl", "-s", "-m", str(timeout), "-L", "-w", "\\n__ST__%{http_code}", url],
+        out = subprocess.run(["curl", "-s", "-m", str(timeout),
+                              "-w", "\\n__ST__%{http_code} %{redirect_url}", url],
                              capture_output=True, text=True, timeout=timeout + 5).stdout
-        if "__ST__" in out:
-            body, st = out.rsplit("__ST__", 1)
-            return (int(st.strip()) if st.strip().isdigit() else 0), body
-        return 0, out
     except Exception:
-        return 0, ""
+        return 0, "", {}, ""
+    if "__ST__" not in out:
+        return 0, out, {}, ""
+    body, tail = out.rsplit("__ST__", 1)
+    code, _, location = tail.strip().partition(" ")
+    return (int(code) if code.isdigit() else 0), body, {}, location.strip()
 
 
-def prune_inert_params(items, log=print):
+def _probe(url, timeout=12, allow=None):
+    """GET url, return (status_code, body). Status-aware (unlike _get).
+    Redirects are followed only while `allow(next_url)` (the scope check)."""
+    status, body, _, _ = _follow(_curl_once, url, timeout, allow)
+    return status, body
+
+
+def prune_inert_params(items, log=print, allow=None):
     """Drop param items whose ENDPOINT is dead (>=400) or whose PARAM is inert (no effect on the
     response beyond echoing itself). Deterministic: marker-normalized body-diff vs the no-param
     baseline — removing the marker first neutralizes the canonical/og:url reflection trap. Keeps
@@ -399,7 +462,7 @@ def prune_inert_params(items, log=print):
         base_path = it.get("url", "").split("?", 1)[0]
         param = it.get("param", "")
         if base_path not in base_cache:
-            base_cache[base_path] = _probe(base_path)
+            base_cache[base_path] = _probe(base_path, allow=allow)
         bcode, bbody = base_cache[base_path]
         if bcode == 0:
             kept.append(it)                            # probe FAILED (network/curl) — can't judge; keep, don't prune
@@ -408,7 +471,7 @@ def prune_inert_params(items, log=print):
         if bcode >= 400:
             dead += 1
             continue                                   # genuinely dead endpoint (real HTTP >= 400)
-        tcode, tbody = _probe(f"{base_path}?{param}={marker}")
+        tcode, tbody = _probe(f"{base_path}?{param}={marker}", allow=allow)
         if tcode == 0:
             kept.append(it)                            # param probe failed — keep rather than silently drop
             failed += 1
@@ -490,9 +553,11 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
             req = urllib.request.Request(url, data=data, method=m.upper(),
                                          headers={"Accept": "application/json", "Content-Type": "application/json"})
             try:
-                code = urllib.request.urlopen(req, timeout=10).status
+                # never follow: a redirect could leave scope, and the login page it lands on
+                # would be graded "200 UNAUTH"
+                code = _OPENER.open(req, timeout=10).status
             except urllib.error.HTTPError as e:
-                code = e.code
+                code = e.code                  # incl. 3xx: a redirect to login IS enforcement
             except Exception:
                 code = 0
             n += 1
@@ -523,11 +588,14 @@ def platform_recon(scope, log=print):
     for seed in scope.seeds:
         u = urlparse(seed if "://" in seed else "https://" + seed)
         base = f"{u.scheme or 'https'}://{u.hostname}"
+        if not scope.in_scope_host(base):
+            log(f"platform: seed {seed} not in scope — skip")
+            continue
         if base in seen:
             continue
         seen.add(base)
         for wk in WELLKNOWN:
-            code, body = _probe(base + wk)
+            code, body = _probe(base + wk, allow=scope.in_scope_host)
             if code != 200:
                 continue
             b = body.lstrip()
@@ -574,8 +642,11 @@ def openapi_recon(scope, log=print, *, allow_intrusive=False):
         host = seed.rstrip("/")
         if "://" not in host:
             host = "https://" + host
+        if not scope.in_scope_host(host):
+            log(f"openapi: seed {seed} not in scope — skip")
+            continue
         for op_path in OPENAPI_PATHS:
-            code, body = _probe(host + op_path)
+            code, body = _probe(host + op_path, allow=scope.in_scope_host)
             if code != 200 or not body.lstrip().startswith("{"):
                 continue
             try:
@@ -632,7 +703,7 @@ def gather_params(scope, log=print, max_items=80):
             seen.add(key)
             items.append({"url": f"{base}?{p}=FUZZ", "param": p, "method": "GET", "source": src[u]})
     log(f"params: {len(items)} unique (endpoint,param) pair(s) from gau+katana after noise filter")
-    return prune_inert_params(items[:max_items], log)
+    return prune_inert_params(items[:max_items], log, allow=scope.in_scope_host)
 
 
 if __name__ == "__main__":

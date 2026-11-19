@@ -49,6 +49,14 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Engine recon no longer follows redirects off scope** (`engine/recon.py`). `spa_recon` fetched
+  seeds with redirects on, then requested `/robots.txt` and `/sitemap.xml` on whatever origin the
+  redirect landed on (an SSO provider, a deny-listed host, a third party) with no scope check;
+  `_probe` ran `curl -L`; `platform_recon` / `openapi_recon` probed seeds without checking them.
+  Every recon fetch now follows redirects hop by hop, and only while the next hop is in scope
+  (`_follow`, max 5 hops); out-of-scope seeds are skipped. The OpenAPI auth sweep no longer follows
+  redirects at all, which also fixes a false positive: a `302 → /login` used to be graded
+  "200 UNAUTH" from the login page. Same class of bug as the `cbh` fix in #149, in the engine.
 - `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
   `surfaces:`) broke strict YAML / Codex. Also genericized lab/harness-specific language in the new
   skills for cross-harness portability.
