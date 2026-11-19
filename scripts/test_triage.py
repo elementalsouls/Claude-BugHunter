@@ -17,7 +17,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
-from cbh.cli import cmd_triage  # noqa: E402
+from cbh.cli import cmd_triage, say  # noqa: E402
 
 
 def test_triage():
@@ -88,7 +88,7 @@ def test_triage():
         res_fail = cmd_triage(argparse.Namespace(finding=p4))
         assert res_fail == 2, f"Expected 2 (KILL) for missing request, got {res_fail}"
 
-    print("\n✓ test_triage passed: all assertions verified.")
+    say("\n✓ test_triage passed: all assertions verified.")
 
 
 if __name__ == "__main__":
