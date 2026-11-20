@@ -172,7 +172,7 @@ Expected: PASS / no diff — the added prose altered no counted number or regex 
 - [ ] **Step 3: Confirm no skills touched + leak-clean**
 
 Run: `git diff --name-only` → only `commands/hunt.md` (plus Task 1 files already committed). No `skills/**` path (skill-lint not triggered).
-Run: `git diff | grep -iE "shree|bangur|yhep|yamaha|hostettler"` → no matches.
+Run: `python3 scripts/scan_identifiers.py` (the leak-guard) over the diff → no matches.
 
 - [ ] **Step 4: Commit**
 
