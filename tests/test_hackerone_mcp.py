@@ -6,6 +6,7 @@ authenticated path (parsing + bounded pagination) that cannot be reached live
 without a real token.
 """
 import importlib.util
+import io
 import json
 import os
 import unittest
@@ -35,6 +36,15 @@ class _Resp:
 
 def _urlopen_returning(payload):
     return lambda req, timeout=None: _Resp(payload)
+
+
+def _urlopen_raising(code):
+    def _raise(req, timeout=None):
+        err = h1.urllib.error.HTTPError(getattr(req, "full_url", "x"), code, "", {},
+                                        io.BytesIO(b""))
+        err.close()  # avoid a ResourceWarning from the unclosed body fp
+        raise err
+    return _raise
 
 
 NO_CREDS = {k: v for k, v in os.environ.items()
@@ -67,13 +77,14 @@ class ToolGatingTests(unittest.TestCase):
     def test_public_only_without_credentials(self):
         with patch.dict(os.environ, NO_CREDS, clear=True):
             names = [s["name"] for s, _ in h1._tools()]
-        self.assertEqual(names, ["search_disclosed_reports", "get_program", "get_program_scope"])
+        self.assertEqual(names, ["search_disclosed_reports", "get_program",
+                                 "get_program_scope", "get_report"])
 
     def test_auth_tools_appear_with_credentials(self):
         with patch.dict(os.environ, CREDS, clear=True):
             names = [s["name"] for s, _ in h1._tools()]
         self.assertIn("list_my_reports", names)
-        self.assertEqual(len(names), 6)
+        self.assertEqual(len(names), 7)
 
     def test_calling_auth_tool_without_creds_is_invalid_params(self):
         with patch.dict(os.environ, NO_CREDS, clear=True):
@@ -163,6 +174,59 @@ class AuthPathTests(unittest.TestCase):
              patch.object(h1.urllib.request, "urlopen", fake):
             h1.list_my_programs({"limit": 10_000})
         self.assertLessEqual(calls["n"], h1._MAX_PAGES)
+
+
+_FULL_REPORT = {
+    "id": 826361, "url": "https://hackerone.com/reports/826361",
+    "title": "SSRF in import", "severity_rating": "high", "substate": "resolved",
+    "is_published": True, "disclosed_at": "2020-03-01T00:00:00.000Z",
+    "has_bounty?": True, "formatted_bounty": "$10,000",
+    "vulnerability_information": "x" * 4576,
+    # sensitive keys that MUST be dropped from the whitelist:
+    "reporter": {"username": "secret"}, "team": {"handle": "acme"},
+    "voters": [1, 2], "is_triager?": False, "can_view_report": True,
+    "abilities": {}, "attachments": [],
+}
+
+
+class GetReportTests(unittest.TestCase):
+    def test_full_body_whitelist(self):
+        with patch.object(h1.urllib.request, "urlopen", _urlopen_returning(_FULL_REPORT)):
+            out = h1.get_report({"id": 826361})
+        self.assertEqual(out["id"], 826361)
+        self.assertEqual(out["severity"], "high")
+        self.assertEqual(out["substate"], "resolved")
+        self.assertEqual(out["bounty"], "$10,000")
+        self.assertEqual(out["body_len"], 4576)
+        self.assertNotIn("note", out)
+
+    def test_sensitive_keys_excluded(self):
+        with patch.object(h1.urllib.request, "urlopen", _urlopen_returning(_FULL_REPORT)):
+            out = h1.get_report({"url": "https://hackerone.com/reports/826361"})
+        for k in ("reporter", "team", "voters", "is_triager?", "can_view_report",
+                  "abilities", "attachments"):
+            self.assertNotIn(k, out)
+
+    def test_empty_body_gets_note_and_no_bounty(self):
+        thin = dict(_FULL_REPORT, vulnerability_information="")
+        thin["has_bounty?"] = False
+        with patch.object(h1.urllib.request, "urlopen", _urlopen_returning(thin)):
+            out = h1.get_report({"id": 1189367})
+        self.assertEqual(out["body_len"], 0)
+        self.assertIn("note", out)
+        self.assertNotIn("bounty", out)
+
+    def test_404_raises_toolerror(self):
+        with patch.object(h1.urllib.request, "urlopen", _urlopen_raising(404)):
+            with self.assertRaises(h1.ToolError):
+                h1.get_report({"id": 99})
+
+    def test_bad_input_raises_invalidparams(self):
+        for args in ({}, {"id": 1, "url": "https://hackerone.com/reports/2"},
+                     {"id": "../etc"},
+                     {"url": "https://hackerone.com/reports/notanumber"}):
+            with self.assertRaises(h1.InvalidParams):
+                h1.get_report(args)
 
 
 if __name__ == "__main__":
