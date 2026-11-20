@@ -1,16 +1,16 @@
 # =====================================================================
-# install.ps1 — Install Claude-BugHunter bundle (Windows / PowerShell)
+# install.ps1 - Install Claude-BugHunter bundle (Windows / PowerShell)
 #
 # Native Windows port of install.sh. No WSL, no bash required.
 # Requires: Windows PowerShell 5.1+ or PowerShell 7+.
 #
-# DEFAULT (no flags): installs into ~\.claude\ for Claude Code —
+# DEFAULT (no flags): installs into ~\.claude\ for Claude Code -
 #   - skills\*        -> ~\.claude\skills\
 #   - commands\*.md   -> ~\.claude\commands\
 #   - scripts\hunt.ps1 -> ~\.claude\scripts\hunt.ps1 + dot-sourced from
 #                         the PowerShell profile ($PROFILE) automatically
 #
-# MULTI-HARNESS FLAGS (skills only — the 82 SKILL.md files. Slash commands,
+# MULTI-HARNESS FLAGS (skills only - the 82 SKILL.md files. Slash commands,
 # the plugin marketplace, and the /hunt engine are Claude-Code-specific and do
 # NOT port; other harnesses get the knowledge, not the orchestration):
 #   -Agents        force-copy skills -> ~\.agents\skills\  (Codex; OpenCode reads ~\.claude)
@@ -27,7 +27,7 @@
 #                  selected harnesses (opt-in; carries HACKERONE_API_* env if set)
 #   -NormalizeFrontmatter
 #                  strip non-standard keys (sources/report_count) from the NON-Claude
-#                  copies — only needed if a harness rejects unknown frontmatter keys
+#                  copies - only needed if a harness rejects unknown frontmatter keys
 #   -NoProfile     don't modify any PowerShell profile; just print the dot-source line
 #   -Uninstall     remove this bundle's footprint via the install manifest; skills a
 #                  sibling bundle (e.g. claude-osint) still owns are kept
