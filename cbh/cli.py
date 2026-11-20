@@ -84,7 +84,13 @@ def color(s: str, c: str) -> str:
 
 
 def say(s: str = ""):
-    print(s)
+    try:
+        print(s)
+    except UnicodeEncodeError:
+        # Windows consoles default to a legacy code page (e.g. cp1252) that can't
+        # encode the ✓/✗/→/• symbols used throughout the CLI output.
+        enc = sys.stdout.encoding or "ascii"
+        print(s.encode(enc, errors="replace").decode(enc))
 
 
 def section(title: str):
