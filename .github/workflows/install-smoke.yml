@@ -133,6 +133,31 @@ jobs:
             }
           }
           if ($failed) { exit 1 }
+      - name: Windows PowerShell 5.1 loads the .ps1 files (#183)
+        # Windows PowerShell 5.1 reads a .ps1 that has no UTF-8 BOM in the ANSI
+        # code page, so a non-ASCII character such as an em dash is misread and
+        # can end a string early. The step above runs PowerShell 7, which reads
+        # UTF-8 either way, so it can't catch this.
+        shell: powershell
+        run: |
+          $failed = $false
+          foreach ($f in @('scripts/install.ps1','scripts/install-community-skills.ps1','scripts/hunt.ps1')) {
+            # Encoding.Default is the ANSI code page here; a BOM still wins, as when 5.1 loads a script.
+            $text = [System.IO.File]::ReadAllText((Resolve-Path $f), [System.Text.Encoding]::Default)
+            $errs = $null
+            [System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$null, [ref]$errs) | Out-Null
+            if ($errs -and $errs.Count -gt 0) {
+              $errs | ForEach-Object { Write-Host "FAIL $f : $($_.Message)" }
+              $failed = $true
+            } else {
+              Write-Host "OK $f"
+            }
+          }
+          if ($failed) { exit 1 }
+          . ./scripts/hunt.ps1
+          if (-not (Get-Command hunt -ErrorAction SilentlyContinue)) {
+            throw "dot-sourcing hunt.ps1 did not define hunt"
+          }
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
