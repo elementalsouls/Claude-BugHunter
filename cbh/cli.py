@@ -743,12 +743,16 @@ def parse_finding_metadata(text: str) -> dict:
     headings_only = _mask_report_fences(body)
     sections = {
         "summary": ("summary", "description"),
-        "steps": ("steps", "reproduction", "reproduce", "poc"),
+        "steps": ("steps", "reproduction", "reproduce", "proof of concept", "proof", "poc"),
         "impact": ("impact",),
         "remediation": ("remediation", "fix", "mitigation"),
     }
     for key, headings in sections.items():
-        pattern = r"^##[ \t]*(?:" + "|".join(headings) + r")[ \t]*\n(.*?)(?=^#{1,2}(?!#)|\Z)"
+        # keyword may be followed by more words on the heading line (e.g.
+        # "## Steps to reproduce"); require a space before them so it does not
+        # match mid-word ("## Stepsister").
+        pattern = (r"^##[ \t]*(?:" + "|".join(headings)
+                   + r")(?:[ \t][^\n]*)?[ \t]*\n(.*?)(?=^#{1,2}(?!#)|\Z)")
         match = re.search(pattern, headings_only, re.I | re.M | re.S)
         if match and not md.get(key):
             start, end = match.span(1)
@@ -763,7 +767,7 @@ def parse_finding_metadata(text: str) -> dict:
     return md
 
 
-def render_report(md: dict, platform: str) -> str:
+def render_report(md: dict, platform: str, reporter: str = None) -> str:
     """Render a report draft using the report-writing + bugcrowd-reporting style.
     Built with plain string concatenation to avoid textwrap.dedent issues with
     multi-line interpolated content."""
@@ -774,7 +778,9 @@ def render_report(md: dict, platform: str) -> str:
     impact = md.get("impact") or "(fill in — concrete dollar / PII / state impact)"
     remediation = md.get("remediation") or "(fill in)"
     asset = md.get("asset") or md.get("endpoint") or "(fill in)"
-    user = os.environ.get("USER") or os.environ.get("USERNAME") or "researcher"
+    # Never leak the OS login name into a public draft (#190): take the handle
+    # from --reporter / CBH_REPORTER, else a placeholder the operator fills in.
+    user = reporter or os.environ.get("CBH_REPORTER") or "(your handle)"
     today = datetime.date.today().isoformat()
 
     if platform == "bugcrowd":
@@ -870,7 +876,8 @@ def cmd_report(args: argparse.Namespace) -> int:
         say(color(f"  finding not found: {finding_path}", "red"))
         return 2
     md = parse_finding_metadata(finding_path.read_text(encoding="utf-8"))
-    draft = render_report(md, args.platform)
+    platform = "h1" if args.platform == "hackerone" else args.platform
+    draft = render_report(md, platform, reporter=getattr(args, "reporter", None))
     if args.out:
         out_path = Path(args.out).resolve()
         cwd = Path.cwd().resolve()
@@ -1008,7 +1015,11 @@ def main() -> int:
     p_report = sub.add_parser("report", help="emit a report draft")
     p_report.add_argument("finding", help="path to finding markdown file")
     p_report.add_argument("--platform", default="h1",
-                          choices=["h1", "bugcrowd", "intigriti", "immunefi"])
+                          choices=["h1", "hackerone", "bugcrowd", "intigriti", "immunefi"],
+                          help="target platform ('hackerone' is an alias of 'h1')")
+    p_report.add_argument("--reporter", default=None,
+                          help="your platform handle for the Reporter line "
+                               "(or set CBH_REPORTER); omitted -> placeholder")
     p_report.add_argument("--out", help="write draft to this path (else print to stdout)")
     p_report.set_defaults(func=cmd_report)
 
