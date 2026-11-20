@@ -1,4 +1,4 @@
-# =====================================================================
+﻿# =====================================================================
 # hunt — bug-bounty engagement scaffolding (Windows / PowerShell port)
 #
 # Native Windows port of scripts/hunt.sh. No WSL, no bash required.

@@ -1,4 +1,4 @@
-# =====================================================================
+﻿# =====================================================================
 # install.ps1 — Install Claude-BugHunter bundle (Windows / PowerShell)
 #
 # Native Windows port of install.sh. No WSL, no bash required.

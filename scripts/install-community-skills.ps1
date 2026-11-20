@@ -1,4 +1,4 @@
-# =====================================================================
+﻿# =====================================================================
 # install-community-skills.ps1 — OPTIONAL: refresh vendored skills from upstream
 #
 # Native Windows port of install-community-skills.sh. No WSL, no bash.
