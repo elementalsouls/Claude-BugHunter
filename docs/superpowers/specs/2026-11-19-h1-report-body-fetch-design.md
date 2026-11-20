@@ -148,7 +148,8 @@ testing)** — the hunt-time altitude where probing begins:
 
 > When testing a vuln-class on a program, call
 > `search_disclosed_reports(query=<vuln-class>, program=<handle>)`, then
-> `get_report(<top result's id>)`, read the write-up, and mirror the exact
+> `get_report(url=<top result's url>)` (search surfaces `url`, not a bare id),
+> read the write-up, and mirror the exact
 > technique/bypass on the live target. If the body is thin/empty, fall back to the
 > distilled pattern.
 

@@ -221,12 +221,26 @@ class GetReportTests(unittest.TestCase):
             with self.assertRaises(h1.ToolError):
                 h1.get_report({"id": 99})
 
-    def test_bad_input_raises_invalidparams(self):
+    def test_bad_input_raises_toolerror(self):
+        # bad arguments use the same recoverable ToolError channel as every other tool
         for args in ({}, {"id": 1, "url": "https://hackerone.com/reports/2"},
                      {"id": "../etc"},
-                     {"url": "https://hackerone.com/reports/notanumber"}):
-            with self.assertRaises(h1.InvalidParams):
+                     {"url": "https://hackerone.com/reports/notanumber"},
+                     {"url": "https://hackerone.com/reports/826361/activity"},
+                     {"id": "²"},   # superscript 2: isdigit() True but int() would raise
+                     {"id": "٣"},   # Arabic-Indic 3: isdigit() True but not our report id
+                     {"id": "-5"}):
+            with self.assertRaises(h1.ToolError):
                 h1.get_report(args)
+
+    def test_url_variants_parse_to_id(self):
+        for u in ("https://hackerone.com/reports/826361",
+                  "https://hackerone.com/reports/826361/",
+                  "https://hackerone.com/reports/826361?x=1",
+                  "https://hackerone.com/reports/826361#foo"):
+            with patch.object(h1.urllib.request, "urlopen", _urlopen_returning(_FULL_REPORT)):
+                out = h1.get_report({"url": u})
+            self.assertEqual(out["id"], 826361)
 
 
 if __name__ == "__main__":

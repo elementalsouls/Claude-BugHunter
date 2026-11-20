@@ -303,13 +303,15 @@ def get_report(args):
     has_id = rid_arg is not None and str(rid_arg).strip() != ""
     has_url = bool(url)
     if has_id == has_url:  # neither, or both
-        raise InvalidParams("get_report needs exactly one of 'id' or 'url'")
+        raise ToolError("get_report needs exactly one of 'id' or 'url'")
     if has_id:
         s = str(rid_arg).strip()
     else:
         s = str(url).strip().rstrip("/").rsplit("/", 1)[-1].split("?")[0].split("#")[0]
-    if not s.isdigit():
-        raise InvalidParams("report id must be numeric")
+    # isascii guard: str.isdigit() is True for unicode superscripts/other-script digits
+    # that int() would reject or silently reparse to a different number.
+    if not (s.isascii() and s.isdigit()):
+        raise ToolError("report id must be numeric")
 
     d = _report_json(int(s))
     body = d.get("vulnerability_information") or ""
