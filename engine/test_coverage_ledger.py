@@ -33,7 +33,7 @@ def _run(base, phases):
                        capture_output=True, text=True)
     assert r.returncode == 0, f"engine failed:\n{r.stdout}\n{r.stderr}"
     d = os.path.join(base, ".mock", "demo-local")
-    return json.load(open(os.path.join(d, "state.json"))), open(os.path.join(d, "report.md")).read()
+    return json.load(open(os.path.join(d, "state.json"), encoding="utf-8")), open(os.path.join(d, "report.md"), encoding="utf-8").read()
 
 
 def test_full_run_records_every_pair():
@@ -52,13 +52,13 @@ def test_gap_reaches_the_report_file():
     with tempfile.TemporaryDirectory() as t:
         _run(t, "recon,rank,map,hunt,validate,report")
         d = os.path.join(t, ".mock", "demo-local")
-        st = json.load(open(os.path.join(d, "state.json")))
+        st = json.load(open(os.path.join(d, "state.json"), encoding="utf-8"))
         # mark one genuinely-discovered pair blocked, then re-report
         host, cls = sorted(closure.expected_coverage(st))[0]
         item = next(it for it in st["surface"]
                     if closure._host(it["url"]) == host and it["vuln_class"] == cls)
         st["coverage_by_item"][Engagement._key(item)] = {"verdict": "blocked", "note": "edge 403 — needs allowlisted IP"}
-        json.dump(st, open(os.path.join(d, "state.json"), "w"))
+        json.dump(st, open(os.path.join(d, "state.json"), "w", encoding="utf-8"))
         _, rep = _run(t, "report")
         assert "Coverage: **INCOMPLETE**" in rep
         assert "do not read as passing" in rep
@@ -93,7 +93,7 @@ def test_legacy_state_upgrades():
         os.makedirs(os.path.join(t, "old"))
         json.dump({"name": "old", "created": "x", "phase": "map", "targets": [], "surface": [],
                    "tested": [], "candidates": [], "confirmed": []},
-                  open(os.path.join(t, "old", "state.json"), "w"))
+                  open(os.path.join(t, "old", "state.json"), "w", encoding="utf-8"))
         assert Engagement(t, "old").state["coverage"] == {}
     print("  ok  pre-ledger engagements load without migration")
 

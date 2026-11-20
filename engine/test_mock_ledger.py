@@ -24,7 +24,7 @@ class MockLedgerTests(unittest.TestCase):
                 [sys.executable, str(ENGINE_DIR / "engine.py"), "--mock", "--hunt", "--use-memory",
                  "--scope", str(ENGINE_DIR / "engagement.example.json"), "--base", base],
                 env={**os.environ, "BUGHUNTER_MEMORY_DIR": str(ledger)},
-                capture_output=True, text=True, check=True,
+                capture_output=True, text=True, check=True, encoding="utf-8",
             )
             self.assertNotIn("skipped via ledger", result.stdout)
             self.assertIn("CONFIRMED idor", result.stdout)
@@ -42,7 +42,7 @@ class MockLedgerTests(unittest.TestCase):
             report.write_text("live report", encoding="utf-8")
             command = [sys.executable, str(ENGINE_DIR / "engine.py"), "--mock", "--hunt",
                        "--scope", str(ENGINE_DIR / "engagement.example.json"), "--base", base]
-            subprocess.run(command, check=True, capture_output=True, text=True)
+            subprocess.run(command, check=True, capture_output=True, text=True, encoding="utf-8")
             self.assertEqual(state.read_text(encoding="utf-8"), '{"phase":"recon","marker":"live"}')
             self.assertEqual(report.read_text(encoding="utf-8"), "live report")
             self.assertFalse((live / "engine.log").exists())
