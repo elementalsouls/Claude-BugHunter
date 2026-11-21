@@ -129,11 +129,11 @@ def gql_vars(query: str, variables: dict) -> dict:
 
 def lookup_program(handle: str) -> Optional[str]:
     data = gql_vars(TEAM_LOOKUP_QUERY, {"handle": handle})
-    team = data.get("data", {}).get("team")
+    team = (data.get("data") or {}).get("team")
     if not team:
         print(f"[!] Program '{handle}' not found or is private", file=sys.stderr)
         return None
-    print(f"[+] {team['handle']} → id={team['_id']}, name={team['name']}")
+    print(f"[+] {team['handle']} → id={team['_id']}, name={team['name']}", file=sys.stderr)
     return team["_id"]
 
 
@@ -141,21 +141,35 @@ def build_page_query(args, after: Optional[str] = None) -> str:
     """
     Build an inline GraphQL query for one page of results.
 
-    H1 crash rules (discovered empirically):
+    H1 crash/schema rules (discovered empirically):
     - substate filter + sort + report fields  → CRASH
     - disclosed_at field + substate filter    → CRASH
     - named variables + substate filter + report fields → CRASH
+    - terms: {team_id: ...} is no longer searchable on CompleteHacktivityReportIndex
 
     Strategy:
+    - Program filter (--program): query_string: "team_handle:<handle>" (supports sort & pagination)
     - Pure sort (no --program): no substate filter, sort works fine
-    - Program filter: substate filter, no sort, client-side sort
+    - Default (no --program, no sort): substate filter, no sort
     """
     has_sort = args.top_voted or args.top_bounty
-    has_program = bool(args.program_id)
+    program = (getattr(args, "program", None) or "").strip()
+    has_program = bool(program)
 
     after_str = f', after: "{_escape(after)}"' if after else ""
 
-    if has_sort and not has_program:
+    if has_program:
+        sort_str = ""
+        if has_sort:
+            sort_field = "votes" if args.top_voted else "total_awarded_amount"
+            sort_str = f', sort: {{field: "{sort_field}", direction: DESC}}'
+        return (
+            f'{{ search(index: CompleteHacktivityReportIndex, '
+            f'query_string: "team_handle:{_escape(program)}", '
+            f'first: {PAGE_SIZE}{after_str}{sort_str}) '
+            f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
+        )
+    elif has_sort:
         # Sort-only mode: no substate filter, works without crashing
         sort_field = "votes" if args.top_voted else "total_awarded_amount"
         return (
@@ -164,14 +178,10 @@ def build_page_query(args, after: Optional[str] = None) -> str:
             f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
         )
     else:
-        # Filter mode: substate + optional team filter, no sort
-        filter_parts = ['terms: {substate: ["resolved"]}']
-        if has_program:
-            filter_parts.append(f'terms: {{team_id: ["{_escape(str(args.program_id))}"]}}')
-        filter_str = ", ".join(f"{{{p}}}" for p in filter_parts)
+        # Filter mode: substate filter, no sort
         return (
             f'{{ search(index: CompleteHacktivityReportIndex, '
-            f'query: {{bool: {{filter: [{filter_str}]}}}}, '
+            f'query: {{bool: {{filter: [{{terms: {{substate: ["resolved"]}}}}]}}}}, '
             f'first: {PAGE_SIZE}{after_str}) '
             f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
         )
@@ -245,7 +255,7 @@ def apply_client_filters(nodes: list[dict], args) -> list[dict]:
 def client_sort(results: list[dict], args) -> list[dict]:
     """Apply client-side sort when server-side sort was skipped (filter mode)."""
     has_sort = args.top_voted or args.top_bounty
-    has_program = bool(args.program_id)
+    has_program = bool((getattr(args, "program", None) or "").strip())
 
     if has_sort and has_program:
         key = "votes" if args.top_voted else "total_awarded_amount"
@@ -359,8 +369,13 @@ def main():
         return
 
     args.program_id = None
-    if args.program:
-        args.program_id = lookup_program(args.program)
+    if args.program is not None:
+        handle = args.program.strip()
+        if not handle:
+            print("[!] --program requires a non-empty handle", file=sys.stderr)
+            sys.exit(1)
+        args.program = handle
+        args.program_id = lookup_program(handle)
         if not args.program_id:
             sys.exit(1)
 
