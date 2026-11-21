@@ -39,7 +39,7 @@ class Engagement:
 
     def _load(self):
         if os.path.isfile(self.state_path):
-            s = json.load(open(self.state_path))
+            s = json.load(open(self.state_path, encoding="utf-8"))
             for k, v in self._fresh_defaults().items():   # forward-compat with pre-ledger engagements
                 s.setdefault(k, v)
             return s
@@ -47,14 +47,19 @@ class Engagement:
 
     def save(self):
         tmp = self.state_path + ".tmp"
-        json.dump(self.state, open(tmp, "w"), indent=2)
+        json.dump(self.state, open(tmp, "w", encoding="utf-8"), indent=2)
         os.replace(tmp, self.state_path)
 
     def log(self, msg):
         line = f"{_now()}  {msg}"
-        with open(self.log_path, "a") as f:
+        with open(self.log_path, "a", encoding="utf-8") as f:
             f.write(line + "\n")
-        print("  " + msg, flush=True)
+        try:
+            print("  " + msg, flush=True)
+        except UnicodeEncodeError:
+            # A non-UTF-8 console (Windows cp1252) must not crash the run; the
+            # full line is already in the UTF-8 log file.
+            print("  " + msg.encode("ascii", "replace").decode("ascii"), flush=True)
 
     # ---- phase ----
     def set_phase(self, phase):

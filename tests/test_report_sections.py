@@ -1,6 +1,7 @@
 import argparse
 import io
 import os
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -63,11 +64,48 @@ Actual impact.
         self.assertIn("## Impact\nFake impact.", metadata["steps"])
         self.assertTrue(metadata["steps"].endswith("After the sample."))
 
-    def test_render_report_uses_username_when_user_unset(self):
-        env = {"USERNAME": "win_researcher"}
+    def test_reporter_line_does_not_leak_os_login(self):
+        # #190: the Reporter line must not carry the machine's OS account name.
+        env = {"USER": "osloginname", "USERNAME": "win_osloginname"}
         with patch.dict(os.environ, env, clear=True):
-            report = cli.render_report({"title": "Test Finding"}, "hackerone")
-            self.assertIn("**Reporter:** win_researcher", report)
+            report = cli.render_report({"title": "Test Finding"}, "h1")
+        self.assertNotIn("osloginname", report)
+        self.assertIn("**Reporter:** (your handle)", report)
+
+    def test_reporter_from_cbh_reporter_env(self):
+        with patch.dict(os.environ, {"CBH_REPORTER": "handle_from_env"}, clear=True):
+            report = cli.render_report({"title": "T"}, "h1")
+        self.assertIn("**Reporter:** handle_from_env", report)
+
+    def test_reporter_from_argument_overrides_env(self):
+        with patch.dict(os.environ, {"CBH_REPORTER": "env_handle"}, clear=True):
+            report = cli.render_report({"title": "T"}, "h1", reporter="arg_handle")
+        self.assertIn("**Reporter:** arg_handle", report)
+
+    def test_steps_to_reproduce_heading_is_parsed(self):
+        # #190: heading keyword followed by more words must still match.
+        t = "---\nseverity: High\n---\n# T\n\n## Steps to reproduce\n1. curl x\n"
+        self.assertEqual(cli.parse_finding_metadata(t)["steps"], "1. curl x")
+
+    def test_proof_of_concept_heading_is_parsed(self):
+        t = "# T\n\n## Proof of concept\ndo the thing\n"
+        self.assertEqual(cli.parse_finding_metadata(t)["steps"], "do the thing")
+
+    def test_steps_keyword_not_matched_midword(self):
+        # '## Stepsister' must not be treated as a steps section.
+        md = cli.parse_finding_metadata("# T\n\n## Stepsister\nnope\n")
+        self.assertEqual(md["steps"], "")
+
+    def test_platform_hackerone_alias_accepted(self):
+        # #190: --platform hackerone should be accepted (alias of h1), not rejected.
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "finding.md"
+            f.write_text("# T\n## Summary\nx\n", encoding="utf-8")
+            argv = ["cbh", "report", str(f), "--platform", "hackerone"]
+            with patch.object(sys, "argv", argv), redirect_stdout(io.StringIO()) as out:
+                rc = cli.main()
+        self.assertEqual(rc, 0)
+        self.assertIn("**Reporter:**", out.getvalue())
 
     def test_cmd_report_creates_parent_dirs_and_writes_utf8(self):
         finding_content = """# Unicode Finding — café & 特殊文字

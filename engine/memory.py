@@ -168,7 +168,7 @@ def _write_rollup(host, tech_stack, tested, confirmed):
     prev = {}
     if os.path.exists(p):
         try:
-            prev = json.load(open(p))
+            prev = json.load(open(p, encoding="utf-8"))
         except Exception:
             prev = {}
     hc_conf = [f for f in confirmed if _host(f.get("url", "")) == host]
@@ -182,7 +182,7 @@ def _write_rollup(host, tech_stack, tested, confirmed):
                       for f in hc_conf],
     }
     tmp = p + ".tmp"
-    json.dump(doc, open(tmp, "w"), indent=2)
+    json.dump(doc, open(tmp, "w", encoding="utf-8"), indent=2)
     os.replace(tmp, p)
 
 
@@ -235,7 +235,7 @@ def skip_decision(host, tech_stack, item):
 
 def rollup(host):
     p = os.path.join(_root(), "targets", f"{host}.json")
-    return json.load(open(p)) if os.path.exists(p) else None
+    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else None
 
 
 def gc(action="report", max_mb=10, keep=KEEP, root=None):
@@ -273,7 +273,7 @@ def _selftest():
         negs = _read(os.path.join(d, "negatives.jsonl"))
         assert any(n["vuln_class"] == "xss" for n in negs)          # xss tested, not confirmed -> negative
         assert not any(n["vuln_class"] == "idor" for n in negs)     # idor confirmed -> no negative
-        assert json.load(open(os.path.join(d, "targets", "a.com.json")))["sessions"] == 1
+        assert json.load(open(os.path.join(d, "targets", "a.com.json"), encoding="utf-8"))["sessions"] == 1
         # skip_decision: known-confirmed carries the finding
         skip_res = skip_decision("a.com", ["nextjs"], {"url": "http://a.com/x", "param": "id", "vuln_class": "idor"})
         assert skip_res["skip"] and skip_res["reason"] == "known-confirmed" and skip_res["carry"]["verdict"]["real"] is True

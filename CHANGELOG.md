@@ -56,7 +56,7 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   tested. Every rule from every source is now normalized to its host once, in `Scope`; IPv6
   addresses and CIDRs are supported; an uncompilable out-of-scope regex raises instead of being
   skipped; rules widened to their host or unable to match are reported as `scope warning:` lines
-  by `scope.py` and the engine log. `Scope.load` reads `scope.json` as UTF-8.
+  by `scope.py` and the engine log.
 - `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
   `surfaces:`) broke strict YAML / Codex. Also genericized lab/harness-specific language in the new
   skills for cross-harness portability.

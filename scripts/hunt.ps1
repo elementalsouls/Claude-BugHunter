@@ -1,5 +1,5 @@
 # =====================================================================
-# hunt — bug-bounty engagement scaffolding (Windows / PowerShell port)
+# hunt - bug-bounty engagement scaffolding (Windows / PowerShell port)
 #
 # Native Windows port of scripts/hunt.sh. No WSL, no bash required.
 # Adds a `hunt` function that creates a per-target working folder under
@@ -61,7 +61,7 @@ function hunt {
 
     # ============== CLAUDE.md ==============
     $claudeBody = @'
-**Platform:** [TBD — Bugcrowd / HackerOne / Intigriti / Immunefi / private]
+**Platform:** [TBD - Bugcrowd / HackerOne / Intigriti / Immunefi / private]
 **Program URL:** [paste the program page URL here]
 
 ## Quick context for Claude
@@ -69,33 +69,33 @@ function hunt {
 This folder is the working directory for a single bug-bounty engagement.
 Files in this folder:
 
-- `scope.md` — parsed scope, OOS list, focus areas, bounty bands
-- `findings/` — one markdown file per finding draft (naming: `finding-<NN>-<short-name>.md`)
-- `submissions.txt` — submission IDs tracker (used for chain cross-references)
-- `evidence/` — screenshots, HARs, raw transcripts (gitignored — never share)
-- `notes.md` — running notes, leads, dead ends, hypotheses
+- `scope.md` - parsed scope, OOS list, focus areas, bounty bands
+- `findings/` - one markdown file per finding draft (naming: `finding-<NN>-<short-name>.md`)
+- `submissions.txt` - submission IDs tracker (used for chain cross-references)
+- `evidence/` - screenshots, HARs, raw transcripts (gitignored - never share)
+- `notes.md` - running notes, leads, dead ends, hypotheses
 
 ## Workflow
 
-1. **Plan** — fill in `scope.md` from the program page. Use the `bb-methodology`
+1. **Plan** - fill in `scope.md` from the program page. Use the `bb-methodology`
    and `osint-methodology` skills. Note Focus Areas and Bounty bands.
 
-2. **Recon** — `offensive-osint`, `web2-recon`, and `bb-local-toolkit` for
+2. **Recon** - `offensive-osint`, `web2-recon`, and `bb-local-toolkit` for
    discovery. Pipe Burp through every browser session for proxy history.
 
-3. **Hunt** — `web2-vuln-classes` (or per-class `hunt-*` skills if installed)
+3. **Hunt** - `web2-vuln-classes` (or per-class `hunt-*` skills if installed)
    plus `security-arsenal` for payloads.
 
-4. **Validate** — run `/triage` on every lead BEFORE drafting a report.
+4. **Validate** - run `/triage` on every lead BEFORE drafting a report.
    Apply the 7-Question Gate from `triage-validation`.
 
-5. **Capture evidence** — `evidence-hygiene` BEFORE any screenshot.
+5. **Capture evidence** - `evidence-hygiene` BEFORE any screenshot.
    Cookies / PII / HARs all redacted per protocol.
 
-6. **Report** — `report-writing` for the body template. `bugcrowd-reporting`
+6. **Report** - `report-writing` for the body template. `bugcrowd-reporting`
    if filing on Bugcrowd (VRT search, severity request, OOS rebuttals).
 
-7. **Track** — append every submitted finding's UUID to `submissions.txt`
+7. **Track** - append every submitted finding's UUID to `submissions.txt`
    so chained reports can cross-reference each other.
 
 ## Engagement-specific rules
@@ -108,11 +108,11 @@ Files in this folder:
 
 ## Useful commands during the engagement
 
-- `/scope <asset>` — verify a specific asset is in scope
-- `/triage` — quick 7-Question Gate on a finding
-- `/validate` — full 4-gate finding validator
-- `/report` — draft a submission-ready report
-- `/remember` — log a finding to hunt memory
+- `/scope <asset>` - verify a specific asset is in scope
+- `/triage` - quick 7-Question Gate on a finding
+- `/validate` - full 4-gate finding validator
+- `/report` - draft a submission-ready report
+- `/remember` - log a finding to hunt memory
 '@
     $claudeMd = "# Engagement: $Target`r`n`r`n**Target:** $Target`r`n**Started:** $today`r`n" + $claudeBody
     Write-HuntFile (Join-Path $dir 'CLAUDE.md') $claudeMd
@@ -133,7 +133,7 @@ Files in this folder:
 
 ## Focus areas
 
-- (paste Focus Areas / accepted impacts list — these are the highest-leverage targets)
+- (paste Focus Areas / accepted impacts list - these are the highest-leverage targets)
 
 ## Bounty bands
 
@@ -147,7 +147,7 @@ Files in this folder:
 
 ## Engagement rules / safe harbor
 
-- (paste any researcher-conduct rules — testing-account requirements,
+- (paste any researcher-conduct rules - testing-account requirements,
   rate-limit caps, no-DoS clauses, KYC posture, contact email, etc.)
 
 ## Account / testing setup
@@ -163,12 +163,12 @@ Files in this folder:
 > Note any OOS clauses that might be miscategorized against your findings.
 > Use this to draft `In-scope justification` paragraphs proactively.
 
-- (e.g., "Rate limiting on non-authentication endpoints" — applies to
+- (e.g., "Rate limiting on non-authentication endpoints" - applies to
   non-auth endpoints only; verify_password / OTP / token-validate are auth)
-- (e.g., "User Enumeration with low-risk info" — applies only when info
+- (e.g., "User Enumeration with low-risk info" - applies only when info
   enumerated is low-risk; real-name PII is NOT low-risk)
 '@
-    Write-HuntFile (Join-Path $dir 'scope.md') ("# Scope — $Target" + $scopeBody)
+    Write-HuntFile (Join-Path $dir 'scope.md') ("# Scope - $Target" + $scopeBody)
 
     # ============== submissions.txt ==============
     $subBody = @'
@@ -180,7 +180,7 @@ Files in this folder:
 # back to chained primitives.
 
 '@
-    Write-HuntFile (Join-Path $dir 'submissions.txt') ("# Submissions tracker — $Target" + "`r`n" + $subBody)
+    Write-HuntFile (Join-Path $dir 'submissions.txt') ("# Submissions tracker - $Target" + "`r`n" + $subBody)
 
     # ============== findings/README.md ==============
     $findingsReadme = @'
@@ -207,7 +207,7 @@ Each finding file should have:
 6. Submission UUID (once filed)
 7. Triager dialogue / status updates
 '@
-    Write-HuntFile (Join-Path $dir 'findings\README.md') ("# Findings — $Target" + $findingsReadme)
+    Write-HuntFile (Join-Path $dir 'findings\README.md') ("# Findings - $Target" + $findingsReadme)
 
     # ============== notes.md ==============
     $notesBody = @'
@@ -226,11 +226,11 @@ Each finding file should have:
 ## Tooling / setup notes for this target
 
 '@
-    Write-HuntFile (Join-Path $dir 'notes.md') ("# Notes — $Target" + $notesBody)
+    Write-HuntFile (Join-Path $dir 'notes.md') ("# Notes - $Target" + $notesBody)
 
     # ============== .gitignore ==============
     $gitignore = @'
-# Never commit raw evidence — contains live cookies, PII, HARs
+# Never commit raw evidence - contains live cookies, PII, HARs
 evidence/
 
 # Common artifact extensions
@@ -254,7 +254,7 @@ Thumbs.db
 
     # ============== recon manifest ingestion (optional) ==============
     # If `cbh recon <target>` produced a manifest, seed scope + notes from it.
-    # Resolve from: 2nd arg → $HUNT_MANIFEST → .\recon\<target>\manifest.json.
+    # Resolve from: 2nd arg -> $HUNT_MANIFEST -> .\recon\<target>\manifest.json.
     $manifestPath = $Manifest
     if ([string]::IsNullOrWhiteSpace($manifestPath) -and $env:HUNT_MANIFEST) {
         $manifestPath = $env:HUNT_MANIFEST
@@ -278,7 +278,7 @@ Thumbs.db
 
             $hosts = @($recon.assets | Where-Object { $_.url -and $_.host })
             $ranked = @($recon.ranked_surface | Where-Object { $_.url -or $_.host })
-            $scopeLines = @('', '', '## Recon-seeded live hosts (from cbh manifest — VERIFY in-scope before testing)', '')
+            $scopeLines = @('', '', '## Recon-seeded live hosts (from cbh manifest - VERIFY in-scope before testing)', '')
             $scopeLines += $hosts | ForEach-Object { "- $($_.host)" }
             $noteLines = @('', '', '## Ranked surface (from recon manifest)', '')
             $noteLines += foreach ($item in $ranked) {
