@@ -278,7 +278,7 @@ Thumbs.db
 
             $hosts = @($recon.assets | Where-Object { $_.url -and $_.host })
             $ranked = @($recon.ranked_surface | Where-Object { $_.url -or $_.host })
-            $scopeLines = @('', '', '## Recon-seeded live hosts (from cbh manifest - VERIFY in-scope before testing)', '')
+            $scopeLines = @('', '', '## Recon-seeded live hosts (from cbh manifest - UNVERIFIED, not scope rules: check each against the program before testing)', '')
             $scopeLines += $hosts | ForEach-Object { "- $($_.host)" }
             $noteLines = @('', '', '## Ranked surface (from recon manifest)', '')
             $noteLines += foreach ($item in $ranked) {

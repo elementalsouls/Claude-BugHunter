@@ -49,6 +49,13 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Scope (security): recon-seeded hosts no longer become in-scope rules.** `hunt <target> <manifest>`
+  appends passive-recon hosts to `scope.md` under `## Recon-seeded live hosts (… VERIFY in-scope before
+  testing)`. `engine/scope.py --md` (what `/scope` runs) opened a section on any heading that *contained*
+  "in-scope", so every unverified host became an in-scope rule and default-deny no longer applied to
+  them. A heading now opens a scope section only when its label starts or ends with the scope phrase
+  (`## In scope`, `## In-Scope Assets`, `## Assets in scope`); existing `scope.md` files with the old
+  heading are parsed correctly. `hunt.sh` / `hunt.ps1` also write a heading that no longer says "in-scope".
 - `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
   `surfaces:`) broke strict YAML / Codex. Also genericized lab/harness-specific language in the new
   skills for cross-harness portability.
