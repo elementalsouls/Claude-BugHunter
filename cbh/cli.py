@@ -875,7 +875,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     if not finding_path.exists():
         say(color(f"  finding not found: {finding_path}", "red"))
         return 2
-    md = parse_finding_metadata(finding_path.read_text(encoding="utf-8"))
+    md = parse_finding_metadata(finding_path.read_text(encoding="utf-8-sig"))
     platform = "h1" if args.platform == "hackerone" else args.platform
     draft = render_report(md, platform, reporter=getattr(args, "reporter", None))
     if args.out:
