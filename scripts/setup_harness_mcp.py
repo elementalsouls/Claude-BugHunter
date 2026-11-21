@@ -15,11 +15,13 @@ Usage:
     # pick servers (default is burp, for backward compatibility) and harnesses:
     python3 scripts/setup_harness_mcp.py [--burp] [--hackerone] \
         [--opencode] [--codex] [--hermes] [--antigravity] [--dry-run]
+    # wire the Burp extension's Streamable HTTP endpoint directly (no stdio proxy):
+    python3 scripts/setup_harness_mcp.py --burp-url http://127.0.0.1:9876/mcp --opencode
     # optional overrides if burp auto-discovery fails:
     python3 scripts/setup_harness_mcp.py --burp --opencode --command java --arg -jar --arg /path/mcp-proxy-all.jar
 
 Schema notes (verified against each tool's docs, mid-2026):
-  - OpenCode     ~/.config/opencode/opencode.json  →  mcp.<name> = {type:"local", command:[...], enabled:true}   (JSON — written here)
+  - OpenCode     ~/.config/opencode/opencode.json  →  mcp.servers.<name> = {type:"local"|"remote", ...}  (JSON — written here)
   - Codex        ~/.codex/config.toml              →  [mcp_servers.<name>] command/args/env                      (TOML — appended here)
   - Hermes       ~/.hermes/config.yaml             →  MCP block (schema not independently verified) — we PRINT the
                  command + the Hermes MCP guide instead of blind-writing YAML.
@@ -100,21 +102,25 @@ def read_json_config(path, harness, server_key):
     return cfg
 
 
-def write_opencode(cmd, args, env, dry, name="burp"):
+def write_opencode(cmd, args, env, dry, name="burp", url=None):
     path = os.path.expanduser("~/.config/opencode/opencode.json")
     cfg = read_json_config(path, "OpenCode", "mcp")
     if cfg is None:
         return False
     cfg.setdefault("$schema", "https://opencode.ai/config.json")
-    mcp = cfg.setdefault("mcp", {})
-    entry = {"type": "local", "command": [cmd] + args, "enabled": True}
-    if env:
-        entry["environment"] = env
-    if mcp.get(name) == entry:
+    # OpenCode V2 keeps server names under mcp.servers — not directly under mcp.
+    servers = cfg.setdefault("mcp", {}).setdefault("servers", {})
+    if url:
+        entry = {"type": "remote", "url": url, "oauth": False}
+    else:
+        entry = {"type": "local", "command": [cmd] + args}
+        if env:
+            entry["environment"] = env
+    if servers.get(name) == entry:
         print(f"  = OpenCode: {name} MCP already configured (no change).")
         return
-    mcp[name] = entry
-    print(f"  → OpenCode: set mcp.{name} in {path}")
+    servers[name] = entry
+    print(f"  → OpenCode: set mcp.servers.{name} in {path}")
     if dry:
         print("      [dry-run] " + json.dumps(entry))
         return
@@ -125,14 +131,17 @@ def write_opencode(cmd, args, env, dry, name="burp"):
     print(f"  ✓ OpenCode {name} MCP written.")
 
 
-def write_codex(cmd, args, env, dry, name="burp"):
+def write_codex(cmd, args, env, dry, name="burp", url=None):
     path = os.path.expanduser("~/.codex/config.toml")
     existing = open(path, encoding="utf-8").read() if os.path.isfile(path) else ""
     if f"[mcp_servers.{name}]" in existing:
         print(f"  = Codex: [mcp_servers.{name}] already present (no change).")
         return
-    lines = ["", f"[mcp_servers.{name}]", f"command = {toml_str(cmd)}",
-             "args = [" + ", ".join(toml_str(a) for a in args) + "]"]
+    if url:
+        lines = ["", f"[mcp_servers.{name}]", f"url = {toml_str(url)}"]
+    else:
+        lines = ["", f"[mcp_servers.{name}]", f"command = {toml_str(cmd)}",
+                 "args = [" + ", ".join(toml_str(a) for a in args) + "]"]
     if env:
         lines.append("")
         lines.append(f"[mcp_servers.{name}.env]")
@@ -211,18 +220,25 @@ def write_antigravity(cmd, args, env, dry, name="burp"):
     print(f"  ✓ AntiGravity {name} MCP written.")
 
 
-def _wire(name, cmd, args, env, a):
+def _wire(name, cmd, args, env, a, url=None):
     """Write one server into every selected harness. Returns True on a hard failure."""
-    print(f"{name} MCP source: {cmd} {' '.join(args)}{'  (dry-run)' if a.dry_run else ''}")
+    source = url if url else f"{cmd} {' '.join(args)}"
+    print(f"{name} MCP source: {source}{'  (dry-run)' if a.dry_run else ''}")
     failed = False
     if a.opencode:
-        failed = (write_opencode(cmd, args, env, a.dry_run, name) is False) or failed
+        failed = (write_opencode(cmd, args, env, a.dry_run, name, url) is False) or failed
     if a.codex:
-        write_codex(cmd, args, env, a.dry_run, name)
+        write_codex(cmd, args, env, a.dry_run, name, url)
     if a.hermes:
-        write_hermes(cmd, args, env, a.dry_run, name)
+        if url:
+            print(f"  ℹ Hermes: configure the remote URL manually: {url}")
+        else:
+            write_hermes(cmd, args, env, a.dry_run, name)
     if a.antigravity:
-        failed = (write_antigravity(cmd, args, env, a.dry_run, name) is False) or failed
+        if url:
+            print(f"  ℹ AntiGravity: configure the remote URL manually: {url}")
+        else:
+            failed = (write_antigravity(cmd, args, env, a.dry_run, name) is False) or failed
     return failed
 
 
@@ -235,6 +251,9 @@ def main():
     ap.add_argument("--hermes", action="store_true")
     ap.add_argument("--antigravity", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--burp-url", metavar="URL",
+                    help="Burp MCP Streamable HTTP endpoint, e.g. http://127.0.0.1:9876/mcp "
+                         "(no stdio proxy needed for OpenCode/Codex)")
     ap.add_argument("--command")
     ap.add_argument("--arg", action="append", default=[])
     a = ap.parse_args()
@@ -248,29 +267,34 @@ def main():
         return 0
 
     # Resolve sources first so a burp-discovery failure doesn't half-wire hackerone.
-    sources = []
+    sources = []  # (name, (command, args, env, url))
     if want_burp:
-        if a.command:
-            sources.append(("burp", (a.command, a.arg, {})))
+        if a.burp_url:
+            sources.append(("burp", (None, [], {}, a.burp_url)))
+        elif a.command:
+            sources.append(("burp", (a.command, a.arg, {}, None)))
         else:
             found = discover_burp()
             if found:
-                sources.append(("burp", found))
+                sources.append(("burp", (found[0], found[1], found[2], None)))
             else:
                 print("✗ Could not find a 'burp' MCP server in ~/.claude.json.")
-                print("  Pass it explicitly, e.g.:")
+                print("  Wire the extension's HTTP endpoint directly instead, e.g.:")
+                print("    --burp-url http://127.0.0.1:9876/mcp")
+                print("  Or pass a stdio command explicitly, e.g.:")
                 print("    --command java --arg -jar --arg ~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar --arg --sse-url --arg http://127.0.0.1:9876")
                 if not want_hackerone:
                     return 1
                 print("  → continuing with hackerone only.")
     if want_hackerone:
-        sources.append(("hackerone", hackerone_source()))
+        hcmd, hargs, henv = hackerone_source()
+        sources.append(("hackerone", (hcmd, hargs, henv, None)))
 
     if not sources:
         return 1
     failed = False
-    for name, (cmd, args, env) in sources:
-        failed = _wire(name, cmd, args, env, a) or failed
+    for name, (cmd, args, env, url) in sources:
+        failed = _wire(name, cmd, args, env, a, url) or failed
     return int(failed)
 
 

@@ -64,7 +64,7 @@ pwsh ./scripts/install.ps1 -AntiGravity # + Google AntiGravity (~/.gemini/config
 
 ## Burp MCP on other harnesses
 
-Your Burp MCP is a stdio command, so it translates 1:1. `--burp-mcp` (`-BurpMcp`, with a harness flag) wires it automatically by translating your **existing** Claude Code Burp definition (from `~/.claude.json`) — it backs up each config first:
+Your Burp MCP can be a stdio command or an HTTP endpoint. `--burp-mcp` (`-BurpMcp`, with a harness flag) wires it automatically by translating your **existing** Claude Code Burp definition (from `~/.claude.json`) — it backs up each config first. If you don't have a Claude-side definition (e.g. you installed PortSwigger's MCP Server BApp directly), pass its Streamable HTTP endpoint with `--burp-url http://127.0.0.1:9876/mcp` instead — OpenCode and Codex connect to it directly, no stdio proxy jar needed:
 
 ```bash
 # macOS / Linux
@@ -83,14 +83,17 @@ Or do it manually (replace the jar path / port with yours):
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "burp": {
-      "type": "local",
-      "command": ["java", "-jar", "~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar", "--sse-url", "http://127.0.0.1:9876"],
-      "enabled": true
+    "servers": {
+      "burp": {
+        "type": "remote",
+        "url": "http://127.0.0.1:9876/mcp",
+        "oauth": false
+      }
     }
   }
 }
 ```
+For a stdio proxy instead, use `"type": "local"` with `"command": ["java", "-jar", "~/.BurpSuite/mcp-proxy/mcp-proxy-all.jar", "--sse-url", "http://127.0.0.1:9876"]` inside the same `mcp.servers.burp` object. OpenCode V2 does **not** accept server names directly under `mcp`, and uses `disabled` rather than `enabled`. Check with `opencode mcp list`.
 
 **Codex** — `~/.codex/config.toml`
 ```toml
@@ -127,11 +130,13 @@ Or manually (replace `/path/to/Claude-BugHunter` with your clone):
 **OpenCode** — `~/.config/opencode/opencode.json`
 ```json
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "hackerone": {
-      "type": "local",
-      "command": ["python3", "/path/to/Claude-BugHunter/mcp/hackerone/server.py"],
-      "enabled": true
+    "servers": {
+      "hackerone": {
+        "type": "local",
+        "command": ["python3", "/path/to/Claude-BugHunter/mcp/hackerone/server.py"]
+      }
     }
   }
 }
