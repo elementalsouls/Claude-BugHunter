@@ -127,6 +127,29 @@ def _rule_from_token(token):
         return t
     return host or t
 
+
+_IN_LABEL = re.compile(r"(?:^in[ -]scope\b|\bin[ -]scope$)")
+_OUT_LABEL = re.compile(r"(?:^out[ -]of[ -]scope\b|\bout[ -]of[ -]scope$)")
+
+
+def _section_of(heading):
+    """'in' / 'out' when a markdown heading opens a scope section, else None.
+
+    The label must START or END with the scope phrase ('## In scope', '## In-Scope
+    Assets', '## Assets in scope'). A heading that merely mentions it mid-sentence is
+    not a scope section: the `hunt` scaffolder used to append unverified recon hosts
+    under '## Recon-seeded live hosts (... VERIFY in-scope before testing)', and a
+    substring match turned every one of them into an in-scope rule.
+    """
+    label = re.sub(r"[\s:*_`]+$", "", re.sub(r"^[#\s*_`]+", "", heading.lower()))
+    label = re.sub(r"\s*\([^)]*\)$", "", label)          # trailing '(web)' / '(from …)' note
+    if _OUT_LABEL.search(label):
+        return "out"
+    if _IN_LABEL.search(label):
+        return "in"
+    return None
+
+
 def _scope_from_md(path):
     """Build a Scope from a scaffolded scope.md (the `hunt` template).
 
@@ -144,10 +167,9 @@ def _scope_from_md(path):
             low = line.strip().lower()
             if low.startswith("#"):
                 hashes = len(low) - len(low.lstrip("#"))
-                if "out of scope" in low or "out-of-scope" in low:
-                    section = "out"
-                elif "in scope" in low or "in-scope" in low:
-                    section = "in"
+                heading_section = _section_of(low)
+                if heading_section:
+                    section = heading_section
                 elif hashes <= 2:
                     section = None     # a peer-level section (## Focus areas, etc.)
                 # deeper sub-headings (### Web, #### APIs) keep the current section
