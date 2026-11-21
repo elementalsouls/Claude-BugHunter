@@ -1,7 +1,7 @@
 {
   "name": "claude-bughunter",
   "version": "2.1.0",
-  "description": "83-skill bug-hunting & external red-team bundle — 58 hunt-* web/vuln-class + framework skills, enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and HackerOne MCP integration.",
+  "description": "97-skill bug-hunting & external red-team bundle — 58 hunt-* web/vuln-class + framework skills, 14 workflow/orchestration skills (autopilot, hunt, recon, triage, validate, report, scope, surface, chain), enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and HackerOne MCP integration.",
   "author": {
     "name": "Sachin Sharma",
     "url": "https://github.com/elementalsouls"
@@ -23,8 +23,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Claude BugHunter",
-    "shortDescription": "83-skill bug-hunting & external red-team bundle",
-    "longDescription": "83-skill bug-hunting & external red-team bundle — 58 hunt-* web/vuln-class + framework skills, enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and HackerOne MCP integration.",
+    "shortDescription": "97-skill bug-hunting & external red-team bundle",
+    "longDescription": "97-skill bug-hunting & external red-team bundle — 58 hunt-* web/vuln-class + framework skills, 14 workflow/orchestration skills (autopilot, hunt, recon, triage, validate, report, scope, surface, chain), enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and HackerOne MCP integration.",
     "developerName": "Sachin Sharma",
     "category": "Security",
     "capabilities": [

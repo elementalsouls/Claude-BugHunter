@@ -41,6 +41,18 @@ class PluginManifestsTests(unittest.TestCase):
 
         self.assertEqual(codex_mp["plugins"][0]["name"], codex["name"])
 
+    def test_commands_are_available_as_skills(self):
+        commands_dir = os.path.join(REPO, "commands")
+        skills_dir = os.path.join(REPO, "skills")
+        for fname in sorted(os.listdir(commands_dir)):
+            if not fname.endswith(".md"):
+                continue
+            name = fname[:-3]
+            self.assertTrue(
+                os.path.isfile(os.path.join(skills_dir, name, "SKILL.md")),
+                f"command '{name}' missing matching skills/{name}/SKILL.md for Gemini/Codex",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

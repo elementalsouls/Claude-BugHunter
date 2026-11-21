@@ -6,9 +6,9 @@ description: Run the Claude-BugHunter skills on OpenCode, Codex, Hermes Agent, a
 
 # Multi-harness install
 
-The 83 skills are plain **Agent Skills** (`SKILL.md` = `name` + `description` frontmatter + Markdown). That format is an open standard, so the *knowledge* runs on more than Claude Code. This page shows how to install it on **OpenCode**, **OpenAI Codex CLI**, **Hermes Agent**, and **Google AntiGravity**.
+The 97 skills (including the 14 workflow/orchestration skills such as `autopilot`, `hunt`, `recon`, `triage`, `validate`, `report`, `scope`, `surface`, and `chain`) are plain **Agent Skills** (`SKILL.md` = `name` + `description` frontmatter + Markdown). That format is an open standard, so they run on more than Claude Code. This page shows how to install them on **OpenCode**, **OpenAI Codex CLI**, **Hermes Agent**, **Gemini CLI**, and **Google AntiGravity**.
 
-> **What ports and what doesn't.** The **83 skills** (payloads, methodology, bypass tables, disclosed-report patterns) port to every harness below. The **`/hunt` slash commands, the plugin marketplace, and the `hunt-dispatch` subagent routing are Claude-Code-specific** and do **not** port — other harnesses get the knowledge, not the orchestration engine. **Burp MCP** ports to all of them (it's just an MCP server).
+> **What ports and what doesn't.** All **97 skills** (payloads, methodology, bypass tables, disclosed-report patterns, and the workflow guides like `autopilot`, `hunt`, `recon`, `triage`, `validate`, `report`) port to every harness below. The **Claude Code `commands/*.md` slash triggers, the Claude plugin marketplace, and `engine/agent.py`'s headless `claude -p` runner are Claude-Code-specific** (`cbh` CLI and `engine/scope.py` / `engine/memory.py` work directly from any terminal). **Burp MCP** and **HackerOne MCP** port to all of them.
 
 ## Compatibility matrix (verified mid-2026)
 
@@ -29,7 +29,7 @@ The 83 skills are plain **Agent Skills** (`SKILL.md` = `name` + `description` fr
 The repository includes native plugin manifests for **Google AntiGravity** (`.gemini-plugin/plugin.json` + `mcp_config.json`), **Gemini CLI** (`gemini-extension.json`), and **OpenAI Codex** (`.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` + `.mcp.json`), so you can install the bundle directly as a plugin without copying files manually:
 
 ```bash
-# Google AntiGravity (loads all 83 skills, converts the 15 commands to skills, wires HackerOne MCP)
+# Google AntiGravity (loads all 97 skills incl. autopilot/hunt/recon/triage/validate, wires HackerOne MCP)
 agy plugin install https://github.com/elementalsouls/Claude-BugHunter
 # or from a local clone:
 agy plugin install /path/to/Claude-BugHunter
@@ -79,7 +79,7 @@ pwsh ./scripts/install.ps1 -AntiGravity # + Google AntiGravity (~/.gemini/config
 ```
 
 - **OpenCode** already reads `~/.claude/skills/`, so the plain installer (no flags) is enough for OpenCode — you don't need `--agents`/`-Agents` for it. That flag exists mainly for **Codex** (which reads only `~/.agents/skills/`).
-  - *Caveat (verified):* OpenCode reads **both** `~/.claude/skills/` and `~/.agents/skills/`. If both are populated (e.g. you ran `--all`/`-All` for Codex too), OpenCode logs harmless `duplicate skill name` warnings and loads one copy — all 83 skills still work. Only populate `~/.agents/skills/` if you actually use Codex.
+  - *Caveat (verified):* OpenCode reads **both** `~/.claude/skills/` and `~/.agents/skills/`. If both are populated (e.g. you ran `--all`/`-All` for Codex too), OpenCode logs harmless `duplicate skill name` warnings and loads one copy — all 97 skills still work. Only populate `~/.agents/skills/` if you actually use Codex.
 - **Codex is the strict parser** (verified by testing): it hard-rejects descriptions > 1024 chars and invalid YAML, where Claude/OpenCode/Hermes/AntiGravity are lenient. So the installer **auto-truncates** any description > 1024 to ≤1024 **only in the `~/.agents/skills` (Codex) copy** — your `~/.claude`, `~/.hermes`, and `~/.gemini/config/skills` copies keep the full descriptions (incl. non-English trigger words). The install logs which were truncated (today: the 3 aggregator router skills). `--normalize-frontmatter` (`-NormalizeFrontmatter`) additionally strips the non-standard `sources:`/`report_count:` keys (optional — Codex tolerates them).
 
 ## Burp MCP on other harnesses

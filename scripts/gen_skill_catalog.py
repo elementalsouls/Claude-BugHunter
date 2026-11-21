@@ -31,6 +31,9 @@ GROUPS = [
     ("Reporting & validation", lambda n: n in {
         "report-writing", "triage-validation", "bugcrowd-reporting", "evidence-hygiene",
         "redteam-report-template", "mid-engagement-ir-detection"}),
+    ("Workflow & orchestration", lambda n: n in {
+        "autopilot", "chain", "hunt", "intel", "memory-gc", "pickup", "recon",
+        "remember", "report", "scope", "surface", "token-scan", "triage", "validate"}),
 ]
 
 
