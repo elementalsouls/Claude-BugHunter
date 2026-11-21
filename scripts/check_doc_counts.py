@@ -62,7 +62,7 @@ CHECKS = [
     ("README.md", r"\*\*(\d+) skills\*\*, auto-loaded", "total", "'What's inside' intro"),
     ("README.md", r"(\d+) `hunt-\*` skills curated from", "hunt", "'Hunt webapps' bullet"),
     ("README.md", r"Also ships \*\*(\d+) slash commands\*\*", "commands", "documentation table footer"),
-    ("README.md", r"\(8 of (\d+) skills \+ (\d+) slash commands\)", ("total", "commands"), "vendored-foundation credit"),
+    ("README.md", r"\(19 of (\d+) skills \+ (\d+) slash commands\)", ("total", "commands"), "vendored-foundation credit"),
     ("SECURITY.md", r"installing (\d+) `SKILL\.md` files", "total", "supply-chain-trust intro"),
     ("USAGE.md", r"the (\d+)-skill Claude-BugHunter bundle", "total", "doc intro"),
     ("USAGE.md", r"copies (\d+) skills \+ (\d+) commands into Claude Code", ("total", "commands"), "quickstart code block"),

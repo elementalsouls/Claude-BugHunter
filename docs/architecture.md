@@ -4,15 +4,15 @@ The Claude-BugHunter bundle maps to a 6-phase workflow that supports both bug hu
 
 ## Primary view — phase-by-phase architecture
 
-83 skills mapped to 6 phases, with a 58-skill `hunt-*` sub-stack, an 8-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
+97 skills mapped to 6 phases, with a 58-skill `hunt-*` sub-stack, 14 workflow/orchestration skills, an 8-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
 
 ![architecture overview](assets/architecture-overview.svg)
 
-The "Source" column in the per-phase tables below tags each skill: **`original`** = author's work in this repo, `community` = community-contributed (v3), `vendored` = from [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) (MIT). Of 83 skills: 55 original, 20 community (v3), 8 vendored.
+The "Source" column in the per-phase tables below tags each skill: **`original`** = author's work in this repo, `community` = community-contributed (v3), `vendored` = from [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) (MIT). Of 97 skills: 58 original, 20 community (v3), 19 vendored.
 
 ## Alternate view — 3-layer capability stack
 
-The same 83 skills, regrouped by **role in an engagement** rather than by phase. Methodology + Recon (bottom) feeds the Hunt Arsenal (middle), which produces findings that flow up through Ship It (top) to a paid submission or client deliverable.
+The same 97 skills, regrouped by **role in an engagement** rather than by phase. Methodology + Recon (bottom) feeds the Hunt Arsenal (middle), which produces findings that flow up through Ship It (top) to a paid submission or client deliverable.
 
 ![capability map](assets/capability-map.svg)
 
