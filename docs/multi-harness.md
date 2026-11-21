@@ -24,6 +24,26 @@ The 83 skills are plain **Agent Skills** (`SKILL.md` = `name` + `description` fr
 
 ## Install
 
+### Native plugin install (Google AntiGravity · Gemini CLI · Codex)
+
+The repository includes native plugin manifests for **Google AntiGravity** (`.gemini-plugin/plugin.json` + `mcp_config.json`), **Gemini CLI** (`gemini-extension.json`), and **OpenAI Codex** (`.codex-plugin/plugin.json` + `.agents/plugins/marketplace.json` + `.mcp.json`), so you can install the bundle directly as a plugin without copying files manually:
+
+```bash
+# Google AntiGravity (loads all 83 skills, converts the 15 commands to skills, wires HackerOne MCP)
+agy plugin install https://github.com/elementalsouls/Claude-BugHunter
+# or from a local clone:
+agy plugin install /path/to/Claude-BugHunter
+
+# Gemini CLI
+gemini extensions install https://github.com/elementalsouls/Claude-BugHunter
+
+# OpenAI Codex CLI (from a local clone or Git URL)
+codex plugin marketplace add /path/to/Claude-BugHunter
+codex plugin add claude-bughunter@elementalsouls
+```
+
+### Skill-copy installer (all harnesses)
+
 One command installs the skills to every harness's path (copy install; existing skills are backed up outside the loading path):
 
 ```bash

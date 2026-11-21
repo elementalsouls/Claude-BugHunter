@@ -1,0 +1,20 @@
+{
+  "name": "elementalsouls",
+  "interface": {
+    "displayName": "ElementalSoul Security"
+  },
+  "plugins": [
+    {
+      "name": "claude-bughunter",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Security"
+    }
+  ]
+}
