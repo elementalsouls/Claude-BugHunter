@@ -653,8 +653,22 @@ TRIAGE_QUESTIONS = [
      ["leaked", "exfiltrated", "rce", "data:", "credential", "session-id", "cookie:",
       "admin email", "production", "oob callback", "interactsh"]),
     ("Q7", "Is this not on the never-submit list?",
-     ["self-xss", "rate-limit only", "click-jacking", "csrf on logout", "missing security headers"]),
+     ["self-xss", "rate-limit only", "click-jacking", "clickjacking", "csrf on logout", "missing security headers"]),
 ]
+
+# Q3 disqualifiers: scope/asset wording does not count as affirmative evidence
+# when the finding itself says the asset is unverified, unknown, or out of scope.
+Q3_NEGATION_SIGNALS = [
+    "out of scope", "not in scope", "not verified", "unverified",
+    "unknown", "possibly", "maybe", "unclear",
+]
+Q3_SCOPE_WORDS = ("scope", "target:", "asset:")
+
+
+def _scope_negated(text: str) -> bool:
+    # Only scope/asset lines may negate Q3; "Impact: unclear" or "previously unknown" must not.
+    scope_lines = [line for line in text.splitlines() if any(w in line for w in Q3_SCOPE_WORDS)]
+    return any(neg in line for line in scope_lines for neg in Q3_NEGATION_SIGNALS)
 
 
 def cmd_triage(args: argparse.Namespace) -> int:
@@ -672,6 +686,8 @@ def cmd_triage(args: argparse.Namespace) -> int:
     for qid, question, signals in TRIAGE_QUESTIONS:
         # Q7 is INVERTED: presence of a "never-submit" signal = answer is "NO" (kill)
         hit = any(s.lower() in text for s in signals)
+        if qid == "Q3" and hit and _scope_negated(text):
+            hit = False
         if qid == "Q7":
             answer = "NO — finding matches never-submit category" if hit else "YES"
             ok = not hit
