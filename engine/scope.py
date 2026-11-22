@@ -40,11 +40,16 @@ def _match(pattern, host):
         except re.error:
             return False
     p = p.lower()
-    if "/" in p and p.replace(".", "").replace("/", "").isdigit():  # CIDR
+    if "/" in p:                                   # CIDR (IPv4 or IPv6)
         try:
-            return ipaddress.ip_address(host) in ipaddress.ip_network(p, strict=False)
+            net = ipaddress.ip_network(p, strict=False)
         except ValueError:
-            return False
+            net = None
+        if net is not None:
+            try:
+                return ipaddress.ip_address(host) in net   # family mismatch -> False
+            except ValueError:
+                return False
     if p.startswith("*."):
         base = p[2:]
         return host.endswith("." + base)
