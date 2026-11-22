@@ -227,6 +227,13 @@ def _wire(name, cmd, args, env, a):
 
 
 def main():
+    # Windows/non-UTF-8 consoles default stdout to cp1252, which crashes on the
+    # check/cross/arrow glyphs this script prints. Force UTF-8 (see #180).
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser()
     ap.add_argument("--burp", action="store_true", help="wire the Burp MCP (default if no server flag given)")
     ap.add_argument("--hackerone", action="store_true", help="wire the in-repo HackerOne MCP")

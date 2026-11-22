@@ -127,35 +127,57 @@ def gql_vars(query: str, variables: dict) -> dict:
         sys.exit(1)
 
 
-def lookup_program(handle: str) -> Optional[str]:
+def lookup_program(handle: str) -> Optional[dict]:
+    """Resolve a program handle to its team record, or None if not found/private.
+
+    Returns the team dict so the caller can use the canonical `handle` H1 stores
+    (TeamLookup is case-insensitive, but the hacktivity query_string is not, so
+    `--program Shopify` must query the canonical `shopify`, not the raw input)."""
     data = gql_vars(TEAM_LOOKUP_QUERY, {"handle": handle})
-    team = data.get("data", {}).get("team")
+    team = (data.get("data") or {}).get("team")
     if not team:
         print(f"[!] Program '{handle}' not found or is private", file=sys.stderr)
         return None
-    print(f"[+] {team['handle']} → id={team['_id']}, name={team['name']}")
-    return team["_id"]
+    # Progress goes to stderr so --json stdout stays clean and pipeable (jq).
+    print(f"[+] {team['handle']} → id={team['_id']}, name={team['name']}", file=sys.stderr)
+    return team
 
 
 def build_page_query(args, after: Optional[str] = None) -> str:
     """
     Build an inline GraphQL query for one page of results.
 
-    H1 crash rules (discovered empirically):
+    H1 crash/schema rules (discovered empirically):
     - substate filter + sort + report fields  → CRASH
     - disclosed_at field + substate filter    → CRASH
     - named variables + substate filter + report fields → CRASH
+    - terms: {team_id: ...} is no longer searchable on CompleteHacktivityReportIndex
 
     Strategy:
+    - Program filter (--program): query_string "team_handle:<handle>" (supports sort + pagination)
     - Pure sort (no --program): no substate filter, sort works fine
-    - Program filter: substate filter, no sort, client-side sort
+    - Default: substate filter, no sort
     """
     has_sort = args.top_voted or args.top_bounty
     has_program = bool(args.program_id)
 
     after_str = f', after: "{_escape(after)}"' if after else ""
 
-    if has_sort and not has_program:
+    if has_program:
+        # H1 dropped team_id filtering; query_string with team_handle works and
+        # still accepts sort + pagination.
+        sort_str = ""
+        if has_sort:
+            sort_field = "votes" if args.top_voted else "total_awarded_amount"
+            sort_str = f', sort: {{field: "{sort_field}", direction: DESC}}'
+        qs = _escape(f"team_handle:{args.program}")
+        return (
+            f'{{ search(index: CompleteHacktivityReportIndex, '
+            f'query_string: "{qs}", '
+            f'first: {PAGE_SIZE}{after_str}{sort_str}) '
+            f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
+        )
+    elif has_sort:
         # Sort-only mode: no substate filter, works without crashing
         sort_field = "votes" if args.top_voted else "total_awarded_amount"
         return (
@@ -164,14 +186,10 @@ def build_page_query(args, after: Optional[str] = None) -> str:
             f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
         )
     else:
-        # Filter mode: substate + optional team filter, no sort
-        filter_parts = ['terms: {substate: ["resolved"]}']
-        if has_program:
-            filter_parts.append(f'terms: {{team_id: ["{_escape(str(args.program_id))}"]}}')
-        filter_str = ", ".join(f"{{{p}}}" for p in filter_parts)
+        # Default filter mode: substate only, no sort
         return (
             f'{{ search(index: CompleteHacktivityReportIndex, '
-            f'query: {{bool: {{filter: [{filter_str}]}}}}, '
+            f'query: {{bool: {{filter: [{{terms: {{substate: ["resolved"]}}}}]}}}}, '
             f'first: {PAGE_SIZE}{after_str}) '
             f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
         )
@@ -359,10 +377,16 @@ def main():
         return
 
     args.program_id = None
-    if args.program:
-        args.program_id = lookup_program(args.program)
-        if not args.program_id:
+    if args.program is not None:
+        handle = args.program.strip()
+        if not handle:
+            print("[!] --program requires a non-empty handle", file=sys.stderr)
             sys.exit(1)
+        team = lookup_program(handle)
+        if not team:
+            sys.exit(1)
+        args.program = team["handle"]        # canonical handle for the query_string
+        args.program_id = team["_id"]
 
     nodes = fetch_all_pages(args)
     results = apply_client_filters(nodes, args)

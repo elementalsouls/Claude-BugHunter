@@ -49,12 +49,32 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **`cbh triage` 7-Question Gate — three false-verdict paths** (built in-house, reporters credited):
+  Q1 matched a bare method word anywhere in the text, so prose like `target application`
+  (contains `get `) or `input validation` passed Q1 with no request — Q1 now requires a method
+  followed by a path or URL (or `curl` / `HTTP/1.1`) (reported by @dajiaohuang, #209); Q7's
+  never-submit list caught `click-jacking` but not `clickjacking` (reported by @Ethereal49, #197);
+  Q3 answered YES on scope wording even when the finding itself said *out of scope* / *unverified*
+  — a scope/asset line carrying a negation no longer counts as in-scope evidence (reported by
+  @Ethereal49, #197).
+- **`cbh report` dropped frontmatter behind a UTF-8 BOM** — a BOM written by some Windows editors
+  sat before the `---` fence, so severity/asset fell back to defaults. `parse_finding_metadata`
+  now strips a leading BOM at the shared chokepoint. Reported by @jazzpher (#200).
+- **`cbh` / `setup_harness_mcp.py` crashed on non-UTF-8 Windows consoles** — the gate glyphs
+  (✓/✗/→/—) raised `UnicodeEncodeError` under cp1252. Both entrypoints now reconfigure stdout/stderr
+  to UTF-8, matching `engine/engine.py`. Reported by @Sahilkumar-r (#180).
+- **`h1_reference.py --program` returned nothing** — `CompleteHacktivityReportIndex` no longer
+  accepts `terms: {team_id: ...}`; switched to `query_string: "team_handle:<handle>"`, which filters
+  correctly and composes with `--top-voted`/`--top-bounty`. Lookup progress moved to stderr so
+  `--json` stdout stays pipeable. Two independent reports converged here: @roonnnnyyyyyy (#206) and
+  @flipcyde101 (#202).
 - **Scope: out-of-scope rules no longer fail open** (`engine/scope.py`). A deny rule written with
   a port (`admin.example.com:8443`), a scheme in `scope.json` / `--out-of-scope`
   (`https://admin.example.com`), a path, a trailing dot, a trailing comma, or as an IPv6 CIDR
   matched no host, so the host fell through to a broader in-scope rule (`example.com`) and was
   tested. Every rule from every source is now normalized to its host once, in `Scope`; IPv6
-  addresses and CIDRs are supported; an uncompilable out-of-scope regex raises instead of being
+  addresses and CIDRs are supported, and a CIDR written as a URL (`https://10.0.0.0/24`) keeps its
+  prefix; an uncompilable out-of-scope regex raises instead of being
   skipped; rules widened to their host or unable to match are reported as `scope warning:` lines
   by `scope.py` and the engine log.
 - `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
