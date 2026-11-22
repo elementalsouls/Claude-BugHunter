@@ -759,6 +759,7 @@ def parse_finding_metadata(text: str) -> dict:
     """Best-effort parse of YAML-ish frontmatter + section content."""
     md = {"title": "", "severity": "Medium", "asset": "", "endpoint": "",
           "summary": "", "steps": "", "impact": "", "remediation": ""}
+    text = text.lstrip("﻿")  # a UTF-8 BOM would push `---` off the start (#200)
     # YAML frontmatter
     m = re.match(r"^---\n(.*?)\n---\n(.*)", text, re.S)
     body = text
