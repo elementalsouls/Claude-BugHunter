@@ -96,9 +96,26 @@ class Scope:
     def __init__(self, in_scope, out_of_scope=None, seeds=None, name="engagement"):
         self.warnings = []
         self.in_scope = [self._norm(p) for p in (in_scope or []) if p.strip()]
-        self.out_of_scope = [self._norm(p) for p in (out_of_scope or []) if p.strip()]
+        self.out_of_scope = [self._validate_out_regex(self._norm(p))
+                             for p in (out_of_scope or []) if p.strip()]
         self.seeds = seeds or []
         self.name = name
+
+    def _validate_out_regex(self, rule):
+        """An out-of-scope deny rule must not fail open. A bad re: regex would match
+        nothing silently, so warn loudly and re-admit it as a literal host rule — the
+        run continues with scope still enforcing something (softer than hard-stopping)."""
+        if rule[:3].lower() != "re:":
+            return rule
+        try:
+            re.compile(rule[3:])
+            return rule
+        except re.error as err:
+            literal = _normalize_rule(rule[3:])
+            self.warnings.append(
+                f"out-of-scope regex {rule!r} is invalid: {err} — treating as a literal "
+                f"host rule {literal!r}; fix it to restore regex matching")
+            return literal
 
     def _norm(self, rule):
         normalized = _normalize_rule(rule)
