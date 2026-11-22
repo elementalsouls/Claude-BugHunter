@@ -289,6 +289,10 @@ def _main(argv=None):
     if not args.targets:
         ap.error("no targets given")
 
+    import sys
+    for w in getattr(scope, "warnings", []):
+        print(f"scope: warning: {w}", file=sys.stderr)
+
     worst = 0
     for t in args.targets:
         reason = scope.reject_reason(t)

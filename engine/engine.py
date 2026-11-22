@@ -64,6 +64,8 @@ class Engine:
         self.eng.log(f"engine start | scope={self.scope.name} in={self.scope.in_scope} "
                      f"out={self.scope.out_of_scope} seeds={self.scope.seeds} mock={mock} "
                      f"intrusive={'ALLOWED' if allow_intrusive else 'READ-ONLY (default)'}")
+        for w in getattr(self.scope, "warnings", []):
+            self.eng.log(f"scope: warning: {w}")
 
     # ---------------- rules of engagement (injected into every agent) ----------------
     def _roe(self):
