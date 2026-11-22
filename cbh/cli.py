@@ -638,9 +638,14 @@ def cmd_classify(args: argparse.Namespace) -> int:
 # ============================================================
 # triage — run the 7-Question Gate against a finding markdown
 # ============================================================
+# Q1 asks for a real request, so a method only counts when a request-target follows it.
+# The bare words used to match inside prose ("tarGET APPlication", "inPUT validation"),
+# which let an untested finding answer Q1 YES.
+_REQUEST_LINE = re.compile(r"\b(?:get|post|put|patch|delete)[ \t]+(?:/|https?://)")
+
 TRIAGE_QUESTIONS = [
     ("Q1", "Can an attacker use this RIGHT NOW with a real HTTP request?",
-     ["curl ", "POST ", "GET ", "HTTP/1.1", "PUT ", "DELETE ", "PATCH "]),
+     ["curl ", "HTTP/1.1", _REQUEST_LINE]),
     ("Q2", "Is the impact on the program's accepted-impact list?",
      ["impact:", "severity:", "p1", "p2", "p3", "p4", "critical", "high", "medium", "low"]),
     ("Q3", "Is the asset in scope?",
@@ -657,6 +662,13 @@ TRIAGE_QUESTIONS = [
 ]
 
 
+def _signal_hit(signal, text: str) -> bool:
+    """Match one triage signal: a compiled pattern when the signal is a regex, else a substring."""
+    if isinstance(signal, re.Pattern):
+        return signal.search(text) is not None
+    return signal.lower() in text
+
+
 def cmd_triage(args: argparse.Namespace) -> int:
     finding_path = Path(args.finding)
     if not finding_path.exists():
@@ -671,7 +683,7 @@ def cmd_triage(args: argparse.Namespace) -> int:
     answers = []
     for qid, question, signals in TRIAGE_QUESTIONS:
         # Q7 is INVERTED: presence of a "never-submit" signal = answer is "NO" (kill)
-        hit = any(s.lower() in text for s in signals)
+        hit = any(_signal_hit(s, text) for s in signals)
         if qid == "Q7":
             answer = "NO — finding matches never-submit category" if hit else "YES"
             ok = not hit

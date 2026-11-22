@@ -65,6 +65,45 @@ class TriageGateTests(unittest.TestCase):
             res = cli.cmd_triage(argparse.Namespace(finding="nonexistent_finding.md"))
         self.assertEqual(res, 2)
 
+    def test_prose_containing_a_method_name_is_not_request_evidence(self):
+        """Q1 wants a real request. "tarGET APPlication" and "inPUT validation" are prose."""
+        content = """# Test Finding
+- Target application: acme portal (in scope)
+- Severity: high (impact: critical data leak)
+- Attacker: low-priv session
+- Not duplicate: novel report
+- Proof: theoretical explanation without requests
+- Evidence: leaked credential
+- Notes: the input validation looks wrong
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p = Path(tmpdir) / "prose_q1.md"
+            p.write_text(content, encoding="utf-8")
+            out = io.StringIO()
+            with redirect_stdout(out):
+                res = cli.cmd_triage(argparse.Namespace(finding=str(p)))
+        self.assertEqual(res, 2)
+        self.assertIn("✗ Q1", out.getvalue())
+
+    def test_lowercase_request_line_still_satisfies_q1(self):
+        """A real request-target after the method counts, in any case."""
+        content = """# Test Finding
+- Target: http://example.com (in scope)
+- Severity: high (impact: critical data leak)
+- Attacker: low-priv session
+- Not duplicate: novel report
+- Proof: get /api/v1/data?user=7
+- Evidence: leaked credential
+"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p = Path(tmpdir) / "lowercase_q1.md"
+            p.write_text(content, encoding="utf-8")
+            out = io.StringIO()
+            with redirect_stdout(out):
+                res = cli.cmd_triage(argparse.Namespace(finding=str(p)))
+        self.assertEqual(res, 0)
+        self.assertIn("✓ Q1", out.getvalue())
+
     def test_never_submit_signal_kills_finding(self):
         content = """# Test Finding
 - Target: http://example.com (in scope)
