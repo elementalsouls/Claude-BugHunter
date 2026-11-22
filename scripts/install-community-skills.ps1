@@ -1,5 +1,5 @@
 # =====================================================================
-# install-community-skills.ps1 — OPTIONAL: refresh vendored skills from upstream
+# install-community-skills.ps1 - OPTIONAL: refresh vendored skills from upstream
 #
 # Native Windows port of install-community-skills.sh. No WSL, no bash.
 # Requires: git, Windows PowerShell 5.1+ or PowerShell 7+.

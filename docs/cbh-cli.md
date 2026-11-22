@@ -182,11 +182,13 @@ The gate matches keyword signals per question; absence-of-evidence is treated as
 - Q6 missing "leaked / exfiltrated / oob callback" → impact is "technically possible" only
 - Q7 hit on "self-xss / rate-limit only / clickjacking" → automatic KILL
 
-### `cbh report <finding.md> [--platform h1|bugcrowd|intigriti|immunefi] [--out path]`
+### `cbh report <finding.md> [--platform h1|hackerone|bugcrowd|intigriti|immunefi] [--reporter handle] [--out path]`
 
 ```bash
 cbh report findings/idor-2026-05-15.md --platform bugcrowd --out submissions/h1-draft.md
 ```
+
+`--platform hackerone` is an alias of `h1`. The **Reporter** line comes from `--reporter`, else the `CBH_REPORTER` environment variable, else a `(your handle)` placeholder — it never uses your OS login name.
 
 Parses the finding's YAML frontmatter + section headings, emits a platform-specific draft:
 

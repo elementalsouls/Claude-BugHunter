@@ -48,6 +48,7 @@ SERVER_INFO = {"name": "hackerone", "version": "1.0.0"}
 HACKER_API = "https://api.hackerone.com/v1/hackers"
 TIMEOUT = 25
 MAX_LIMIT = 50
+_THIN_BODY = 200  # bodies shorter than this trigger the distilled-pattern fallback note
 SEVERITIES = ["none", "low", "medium", "high", "critical"]
 
 
@@ -75,6 +76,21 @@ def _graphql(query):
         raise ToolError("HackerOne GraphQL error: " + "; ".join(
             str(err.get("message")) for err in data["errors"]))
     return data.get("data") or {}
+
+
+def _report_json(rid):
+    """GET the public, keyless legacy report resource. Returns the parsed dict."""
+    req = urllib.request.Request(f"https://hackerone.com/reports/{int(rid)}.json",
+                                 headers=HEADERS, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            return json.loads(resp.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise ToolError("report not found or not disclosed")
+        raise ToolError(f"HackerOne returned HTTP {e.code}")
+    except (urllib.error.URLError, TimeoutError, ValueError) as e:
+        raise ToolError(f"HackerOne report fetch failed: {e}")
 
 
 def _credentials():
@@ -281,6 +297,43 @@ def list_my_reports(args):
     return {"returned": len(reports), "reports": reports}
 
 
+def get_report(args):
+    """Fetch a disclosed report's write-up body + public-metadata whitelist (keyless)."""
+    rid_arg, url = args.get("id"), args.get("url")
+    has_id = rid_arg is not None and str(rid_arg).strip() != ""
+    has_url = bool(url)
+    if has_id == has_url:  # neither, or both
+        raise ToolError("get_report needs exactly one of 'id' or 'url'")
+    if has_id:
+        s = str(rid_arg).strip()
+    else:
+        s = str(url).strip().rstrip("/").rsplit("/", 1)[-1].split("?")[0].split("#")[0]
+    # isascii guard: str.isdigit() is True for unicode superscripts/other-script digits
+    # that int() would reject or silently reparse to a different number.
+    if not (s.isascii() and s.isdigit()):
+        raise ToolError("report id must be numeric")
+
+    d = _report_json(int(s))
+    body = d.get("vulnerability_information") or ""
+    out = {
+        "id": d.get("id"),
+        "url": d.get("url"),
+        "title": d.get("title"),
+        "severity": d.get("severity_rating"),
+        "substate": d.get("substate"),
+        "is_published": d.get("is_published"),
+        "disclosed_at": d.get("disclosed_at"),
+        "body": body,
+        "body_len": len(body),
+    }
+    if d.get("has_bounty?"):
+        out["bounty"] = d.get("formatted_bounty")
+    if len(body) < _THIN_BODY:
+        out["note"] = ("no/thin public body — fall back to the distilled pattern "
+                       "in docs/disclosed-reports/")
+    return out
+
+
 # ─── Tool table ──────────────────────────────────────────────────────────────
 
 _PROGRAM = {"type": "string", "description": "HackerOne program handle, e.g. 'gitlab'."}
@@ -315,6 +368,15 @@ PUBLIC_TOOLS = [
                              "description": "Include the full policy text (can be long)."}},
           "required": ["program"]},
       "annotations": _RO}, get_program_scope),
+    ({"name": "get_report",
+      "description": "Fetch a disclosed HackerOne report's full write-up body and public metadata by id "
+                     "or url. Read-only, keyless. Use it when testing a vuln class to read the real "
+                     "precedent report's reproduction steps and bypasses before mirroring them on a live "
+                     "target. Returns a note when the public body is thin or empty.",
+      "inputSchema": {"type": "object", "properties": {
+          "id": {"type": "integer", "description": "Report id, e.g. 826361."},
+          "url": {"type": "string", "description": "Report url, e.g. https://hackerone.com/reports/826361."}}},
+      "annotations": _RO}, get_report),
 ]
 
 AUTH_TOOLS = [
