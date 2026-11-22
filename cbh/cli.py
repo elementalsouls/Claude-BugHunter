@@ -638,9 +638,15 @@ def cmd_classify(args: argparse.Namespace) -> int:
 # ============================================================
 # triage — run the 7-Question Gate against a finding markdown
 # ============================================================
+# Q1 asks for a real request, so a bare method word only counts when a
+# request-target (a path or URL) follows it. Plain substrings like "GET " used
+# to match inside prose ("tarGET application", "inPUT validation"), letting an
+# untested finding answer Q1 YES.
+_REQUEST_LINE = re.compile(r"\b(?:get|post|put|patch|delete)[ \t]+(?:/|https?://)")
+
 TRIAGE_QUESTIONS = [
     ("Q1", "Can an attacker use this RIGHT NOW with a real HTTP request?",
-     ["curl ", "POST ", "GET ", "HTTP/1.1", "PUT ", "DELETE ", "PATCH "]),
+     ["curl ", "http/1.1", _REQUEST_LINE]),
     ("Q2", "Is the impact on the program's accepted-impact list?",
      ["impact:", "severity:", "p1", "p2", "p3", "p4", "critical", "high", "medium", "low"]),
     ("Q3", "Is the asset in scope?",
@@ -653,8 +659,29 @@ TRIAGE_QUESTIONS = [
      ["leaked", "exfiltrated", "rce", "data:", "credential", "session-id", "cookie:",
       "admin email", "production", "oob callback", "interactsh"]),
     ("Q7", "Is this not on the never-submit list?",
-     ["self-xss", "rate-limit only", "click-jacking", "csrf on logout", "missing security headers"]),
+     ["self-xss", "rate-limit only", "click-jacking", "clickjacking",
+      "csrf on logout", "missing security headers"]),
 ]
+
+# Q3 disqualifiers: scope/asset wording is not affirmative evidence when the
+# finding itself says the asset is unverified, unknown, or out of scope. Only a
+# scope/asset line may negate Q3 — "Impact: unclear" or "previously unknown"
+# must not.
+_Q3_NEGATIONS = ["out of scope", "not in scope", "not verified", "unverified",
+                 "unknown", "possibly", "maybe", "unclear"]
+_Q3_SCOPE_WORDS = ("scope", "target:", "asset:")
+
+
+def _signal_hit(signal, text: str) -> bool:
+    """One triage signal: a compiled pattern searches, a string is a substring."""
+    if isinstance(signal, re.Pattern):
+        return signal.search(text) is not None
+    return signal.lower() in text
+
+
+def _q3_scope_negated(text: str) -> bool:
+    scope_lines = [ln for ln in text.splitlines() if any(w in ln for w in _Q3_SCOPE_WORDS)]
+    return any(neg in ln for ln in scope_lines for neg in _Q3_NEGATIONS)
 
 
 def cmd_triage(args: argparse.Namespace) -> int:
@@ -671,7 +698,9 @@ def cmd_triage(args: argparse.Namespace) -> int:
     answers = []
     for qid, question, signals in TRIAGE_QUESTIONS:
         # Q7 is INVERTED: presence of a "never-submit" signal = answer is "NO" (kill)
-        hit = any(s.lower() in text for s in signals)
+        hit = any(_signal_hit(s, text) for s in signals)
+        if qid == "Q3" and hit and _q3_scope_negated(text):
+            hit = False  # scope words present, but the finding disavows the scope
         if qid == "Q7":
             answer = "NO — finding matches never-submit category" if hit else "YES"
             ok = not hit
