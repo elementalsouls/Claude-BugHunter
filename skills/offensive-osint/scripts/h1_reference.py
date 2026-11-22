@@ -133,7 +133,8 @@ def lookup_program(handle: str) -> Optional[str]:
     if not team:
         print(f"[!] Program '{handle}' not found or is private", file=sys.stderr)
         return None
-    print(f"[+] {team['handle']} → id={team['_id']}, name={team['name']}")
+    # Write progress to stderr so --json stdout remains clean and parseable (e.g., via jq)
+    print(f"[+] {team['handle']} → id={team['_id']}, name={team['name']}", file=sys.stderr)
     return team["_id"]
 
 
@@ -145,13 +146,14 @@ def build_page_query(args, after: Optional[str] = None) -> str:
     - substate filter + sort + report fields  → CRASH
     - disclosed_at field + substate filter    → CRASH
     - named variables + substate filter + report fields → CRASH
+    - terms: {team_id: ...}                  → REJECTED (team_id is no longer searchable)
 
     Strategy:
     - Pure sort (no --program): no substate filter, sort works fine
-    - Program filter: substate filter, no sort, client-side sort
+    - Program filter: query_string with team_handle:<handle>, no sort, client-side sort
     """
     has_sort = args.top_voted or args.top_bounty
-    has_program = bool(args.program_id)
+    has_program = bool(args.program)
 
     after_str = f', after: "{_escape(after)}"' if after else ""
 
@@ -163,15 +165,20 @@ def build_page_query(args, after: Optional[str] = None) -> str:
             f'first: {PAGE_SIZE}{after_str}, sort: {{field: "{sort_field}", direction: DESC}}) '
             f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
         )
-    else:
-        # Filter mode: substate + optional team filter, no sort
-        filter_parts = ['terms: {substate: ["resolved"]}']
-        if has_program:
-            filter_parts.append(f'terms: {{team_id: ["{_escape(str(args.program_id))}"]}}')
-        filter_str = ", ".join(f"{{{p}}}" for p in filter_parts)
+    elif has_program:
+        # H1 schema no longer allows filtering by team_id; use query_string with team_handle instead
+        qs = _escape(f"team_handle:{args.program}")
         return (
             f'{{ search(index: CompleteHacktivityReportIndex, '
-            f'query: {{bool: {{filter: [{filter_str}]}}}}, '
+            f'query_string: "{qs}", '
+            f'first: {PAGE_SIZE}{after_str}) '
+            f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
+        )
+    else:
+        # Default filter mode: substate filter, no sort
+        return (
+            f'{{ search(index: CompleteHacktivityReportIndex, '
+            f'query: {{bool: {{filter: [{{terms: {{substate: ["resolved"]}}}}]}}}}, '
             f'first: {PAGE_SIZE}{after_str}) '
             f'{{ total_count pageInfo {{ endCursor }} nodes {{ {REPORT_FIELDS} }} }} }}'
         )
