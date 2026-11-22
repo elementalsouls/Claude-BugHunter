@@ -270,7 +270,7 @@ ranked = [
     and any(isinstance(item.get(key), str) and item[key] for key in ("url", "host"))
 ]
 with open(d + "/scope.md", "a", encoding="utf-8") as f:
-    f.write("\n## Recon-seeded live hosts (from cbh manifest — VERIFY in-scope before testing)\n\n")
+    f.write("\n## Recon-seeded live hosts (from cbh manifest — UNVERIFIED, add to In scope section before testing)\n\n")
     for h in hosts:
         f.write(f"- {h}\n")
 with open(d + "/notes.md", "a", encoding="utf-8") as f:

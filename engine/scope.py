@@ -184,6 +184,23 @@ def _selftest():
     print("scope.py self-test: PASS")
 
 
+def _section_of(heading):
+    """Return 'in'/'out' only when the heading's label STARTS or ENDS with a scope
+    phrase — not when it merely mentions one mid-sentence. A recon-seeded note
+    heading ('... VERIFY in-scope before testing') must not open the in-scope section
+    and silently promote passive recon hosts to scope rules (#198)."""
+    label = heading.lstrip("#").strip().strip("*`").strip()
+    label = re.sub(r"\s*\([^)]*\)\s*$", "", label)      # drop a trailing (note)
+    label = label.rstrip(":").strip().lower()
+    for phrase in ("out of scope", "out-of-scope"):
+        if label.startswith(phrase) or label.endswith(phrase):
+            return "out"
+    for phrase in ("in scope", "in-scope"):
+        if label.startswith(phrase) or label.endswith(phrase):
+            return "in"
+    return None
+
+
 def _scope_from_md(path):
     """Build a Scope from a scaffolded scope.md (the `hunt` template).
 
@@ -196,31 +213,49 @@ def _scope_from_md(path):
     rule match nothing and the whole engagement default-deny.
     """
     in_scope, out_scope, section = [], [], None
+    recon_hits, recon_label, recon_count = [], None, 0
     with open(path, encoding="utf-8") as fh:
         for line in fh:
             low = line.strip().lower()
             if low.startswith("#"):
+                if recon_label and recon_count:
+                    recon_hits.append((recon_label, recon_count))
+                recon_label, recon_count = None, 0
                 hashes = len(low) - len(low.lstrip("#"))
-                if "out of scope" in low or "out-of-scope" in low:
-                    section = "out"
-                elif "in scope" in low or "in-scope" in low:
-                    section = "in"
+                sec = _section_of(line.strip())
+                if sec is not None:
+                    section = sec
+                elif "scope" in low:
+                    # mentions scope but isn't a scope label (recon-seeded note heading)
+                    section, recon_label = None, line.strip().lstrip("#").strip()
                 elif hashes <= 2:
                     section = None     # a peer-level section (## Focus areas, etc.)
                 # deeper sub-headings (### Web, #### APIs) keep the current section
                 continue
             s = line.strip()
-            if section and (s.startswith("- ") or s.startswith("* ")):
-                tok = s[2:].strip().split()[0:1]
-                if not tok:
-                    continue
-                pat = tok[0].strip("`\"'")
-                if pat.startswith("**") and pat.endswith("**") and len(pat) > 4:
-                    pat = pat[2:-2]   # bullet written in bold, e.g. '**api.example.com**'
-                if not pat or pat.startswith("(") or pat.startswith("["):
-                    continue          # placeholder text, not a real pattern
-                (in_scope if section == "in" else out_scope).append(pat)
-    return Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
+            if not (s.startswith("- ") or s.startswith("* ")):
+                continue
+            if not section:
+                if recon_label:
+                    recon_count += 1      # a host listed under a recon-seeded note heading
+                continue
+            tok = s[2:].strip().split()[0:1]
+            if not tok:
+                continue
+            pat = tok[0].strip("`\"'")
+            if pat.startswith("**") and pat.endswith("**") and len(pat) > 4:
+                pat = pat[2:-2]   # bullet written in bold, e.g. '**api.example.com**'
+            if not pat or pat.startswith("(") or pat.startswith("["):
+                continue          # placeholder text, not a real pattern
+            (in_scope if section == "in" else out_scope).append(pat)
+    if recon_label and recon_count:
+        recon_hits.append((recon_label, recon_count))
+    scope = Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
+    for label, n in recon_hits:
+        scope.warnings.append(
+            f"{n} recon-seeded host(s) found under {label!r} — "
+            f"add them to '## In scope' to test them.")
+    return scope
 
 
 def _main(argv=None):
