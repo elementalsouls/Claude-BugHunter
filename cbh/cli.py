@@ -638,9 +638,21 @@ def cmd_classify(args: argparse.Namespace) -> int:
 # ============================================================
 # triage — run the 7-Question Gate against a finding markdown
 # ============================================================
+# Q1 asks for a real request, so a bare method word only counts when a
+# request-target (a path or URL) follows it. Plain substrings like "GET " used
+# to match inside prose ("tarGET application", "inPUT validation"), letting an
+# untested finding answer Q1 YES. The separator class allows the markdown a PoC
+# is usually written in — backticks and bold/italic around the method or path
+# (`GET /x`, **GET** /x, GET `/x`).
+# ponytail: heuristic ceiling — prose like "an attacker can get /admin" still
+#   reads as a request. Requiring HTTP/ or a scheme after the path would reject
+#   the common bare "GET /path?x=1" PoC (see test_lowercase_request_line), so a
+#   method+path match is the accepted floor; the human reads the verdict.
+_REQUEST_LINE = re.compile(r"\b(?:get|post|put|patch|delete)[ \t`*_]+(?:/|https?://)")
+
 TRIAGE_QUESTIONS = [
     ("Q1", "Can an attacker use this RIGHT NOW with a real HTTP request?",
-     ["curl ", "POST ", "GET ", "HTTP/1.1", "PUT ", "DELETE ", "PATCH "]),
+     ["curl ", "http/1.1", _REQUEST_LINE]),
     ("Q2", "Is the impact on the program's accepted-impact list?",
      ["impact:", "severity:", "p1", "p2", "p3", "p4", "critical", "high", "medium", "low"]),
     ("Q3", "Is the asset in scope?",
@@ -653,8 +665,39 @@ TRIAGE_QUESTIONS = [
      ["leaked", "exfiltrated", "rce", "data:", "credential", "session-id", "cookie:",
       "admin email", "production", "oob callback", "interactsh"]),
     ("Q7", "Is this not on the never-submit list?",
-     ["self-xss", "rate-limit only", "click-jacking", "csrf on logout", "missing security headers"]),
+     ["self-xss", "rate-limit only", "click-jacking", "clickjacking",
+      "csrf on logout", "missing security headers"]),
 ]
+
+# Q3 disqualifiers: scope/asset wording is not affirmative evidence when the
+# finding itself disavows the asset. Two kinds of disavowal:
+#   - STRONG phrases ("out of scope", "excluded from scope") are unambiguous on
+#     any line, including prose ("this asset is out of scope").
+#   - WEAK words ("unknown", "unclear", "maybe") only disavow when they sit on a
+#     scope/asset/target line — otherwise "Impact: unclear scope of exposure" or
+#     "previously unknown" would wrongly kill an in-scope finding.
+# Hyphens are normalized to spaces first, so "out-of-scope" matches "out of scope".
+_Q3_STRONG = ("out of scope", "not in scope", "outside scope", "excluded from scope")
+_Q3_WEAK = ("not verified", "unverified", "unknown", "possibly", "maybe", "unclear")
+_Q3_SCOPE_KEYS = ("scope", "asset", "target", "affected asset", "in scope", "out of scope")
+
+
+def _signal_hit(signal, text: str) -> bool:
+    """One triage signal: a compiled pattern searches, a string is a substring."""
+    if isinstance(signal, re.Pattern):
+        return signal.search(text) is not None
+    return signal.lower() in text
+
+
+def _q3_scope_negated(text: str) -> bool:
+    for ln in text.splitlines():
+        norm = ln.replace("-", " ").lower()
+        if any(phrase in norm for phrase in _Q3_STRONG):
+            return True
+        key = norm.split(":", 1)[0].strip("*`•# ").strip()
+        if key in _Q3_SCOPE_KEYS and any(w in norm for w in _Q3_WEAK):
+            return True
+    return False
 
 
 def cmd_triage(args: argparse.Namespace) -> int:
@@ -671,7 +714,9 @@ def cmd_triage(args: argparse.Namespace) -> int:
     answers = []
     for qid, question, signals in TRIAGE_QUESTIONS:
         # Q7 is INVERTED: presence of a "never-submit" signal = answer is "NO" (kill)
-        hit = any(s.lower() in text for s in signals)
+        hit = any(_signal_hit(s, text) for s in signals)
+        if qid == "Q3" and hit and _q3_scope_negated(text):
+            hit = False  # scope words present, but the finding disavows the scope
         if qid == "Q7":
             answer = "NO — finding matches never-submit category" if hit else "YES"
             ok = not hit
@@ -730,6 +775,9 @@ def parse_finding_metadata(text: str) -> dict:
     """Best-effort parse of YAML-ish frontmatter + section content."""
     md = {"title": "", "severity": "Medium", "asset": "", "endpoint": "",
           "summary": "", "steps": "", "impact": "", "remediation": ""}
+    # A UTF-8 BOM would push `---` off the start, and Windows CRLF line endings
+    # (same platform) break the `^---\n` anchor — normalize both (#200).
+    text = text.lstrip("﻿").replace("\r\n", "\n")
     # YAML frontmatter
     m = re.match(r"^---\n(.*?)\n---\n(.*)", text, re.S)
     body = text
@@ -964,6 +1012,14 @@ def cmd_surface(args: argparse.Namespace) -> int:
 # Main dispatcher
 # ============================================================
 def main() -> int:
+    # Windows/non-UTF-8 consoles default stdout to the code page (cp1252), which
+    # crashes on the check/cross/arrow/em-dash glyphs the CLI prints. Force UTF-8
+    # (matches engine/engine.py:main).
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(
         prog="cbh",
         description=("claude-bughunter CLI — terminal-native deterministic runner.\n"
