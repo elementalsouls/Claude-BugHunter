@@ -7,6 +7,20 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Added
+- **`cbh scope import` — fill `scope.md` from the program's published scope** (README
+  roadmap item). `cbh scope import h1:<handle> -o scope.md` (also `bugcrowd:` / `intigriti:` /
+  `yeswehack:` or a program URL) reads public scopes from
+  [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data) with no API key;
+  `--json` takes the HackerOne MCP `get_my_program` / `get_program_scope` output for private
+  programs; `--text` parses pasted program-page lists and extracts researcher-conduct rules.
+  It fails closed: only unambiguous hosts, wildcards, IPs and CIDRs become rules, exact hosts
+  become anchored `re:^host$` rules (a bare host rule would admit every subdomain), and
+  path-limited assets, placeholders, free text and mid-label wildcards go to
+  `## Needs manual review` instead. Re-importing refreshes only the marked import blocks, so
+  hand-written rules survive. Checked against all 939 public programs in the dump: every rule
+  round-trips through `engine/scope.py`, no subdomain of an exact host is admitted, and every
+  deny rule rejects its host. The `hunt` scaffolders point at it. (`cbh/scope_import.py`,
+  `tests/test_scope_import.py`)
 - **Disclosed-report grounding, content-verified** — 28 `hunt-*` skills strengthened
   with cited public HackerOne disclosures. **433 distinct disclosed reports** are now
   individually cited across **36 pattern-library files** in `docs/disclosed-reports/`.
@@ -49,6 +63,10 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Scope (performance): `re:` rules are compiled once.** `engine/scope.py` called
+  `re.search` per rule per check, and `re` caches only ~512 patterns, so a scope with more
+  regex rules than that recompiled every rule on every check (~150 ms per check at 5,000
+  rules, vs ~3 ms now). (`engine/scope.py`, `engine/test_scope_regex_cache.py`)
 - `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
   `surfaces:`) broke strict YAML / Codex. Also genericized lab/harness-specific language in the new
   skills for cross-harness portability.

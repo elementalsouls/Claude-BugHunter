@@ -110,7 +110,7 @@ This mode is the most ergonomic — the LLM drives Burp via MCP while consulting
 
 ---
 
-## The five subcommands
+## The subcommands
 
 ### `cbh recon <target>` — passive recon + live-host probe
 
@@ -199,10 +199,59 @@ Parses the finding's YAML frontmatter + section headings, emits a platform-speci
 
 The draft will have `(fill in)` placeholders wherever the finding text didn't include the relevant section. **The CLI never invents content** — the operator owns each placeholder.
 
+### `cbh scope import <program> [-o scope.md]` — program scope → `scope.md`
+
+```bash
+cbh scope import h1:acme -o ~/Targets/acme/scope.md          # HackerOne
+cbh scope import bugcrowd:acme-mbb -o scope.md                # Bugcrowd (engagement slug)
+cbh scope import intigriti:acme/acmebbp -o scope.md           # Intigriti (company/handle)
+cbh scope import https://yeswehack.com/programs/acme          # a program URL works too; no -o prints
+cbh scope import --json acme-scope.json -o scope.md           # HackerOne MCP output (private programs)
+pbpaste | cbh scope import --text - --name acme -o scope.md   # pasted program-page text
+```
+
+Fills the `## In scope` / `## Out of scope` sections that `engine/scope.py` (and `/scope`)
+enforce. Public programs come from [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data),
+an hourly MIT-licensed dump of HackerOne, Bugcrowd, Intigriti and YesWeHack scopes; the file is
+cached for 6 hours under `~/.cache/claude-bughunter/` (`--refresh` to force, `--data FILE` to use
+a local copy, `CBH_CACHE_DIR` to move the cache). No API key is needed. For a private HackerOne
+program, save the HackerOne MCP server's `get_my_program` (or `get_program_scope`) result to a
+file and pass it with `--json`.
+
+The importer **fails closed** — the scope gate is what the unattended engine trusts:
+
+| Program asset | Becomes |
+|---|---|
+| `app.example.com`, `https://app.example.com:8443/` | `re:^app\.example\.com$` — an exact-host rule. A bare `app.example.com` rule would also admit every subdomain. |
+| `*.example.com`, `http://*.example.com/*` | `*.example.com` (subdomains; the apex only if listed) |
+| `203.0.113.7`, `203.0.113.0/24`, `2001:db8::/48`, `198.51.100.0 - 198.51.100.255` | IP / CIDR rules (ranges become the covering CIDRs) |
+| `*.brand.{com,jp}`, `a.example.com,b.example.com` | one rule per item |
+| out-of-scope host of any type, out-of-scope `www.*.example.com` | a deny rule (mid-label wildcards as a regex) |
+| `https://api.example.com/v1/users` (a path) | **review**: scope is checked per host, so a path-limited asset is listed with a suggested rule, not imported. If the whole host is already in scope it is dropped as covered. |
+| out-of-scope `https://example.com/blog` | **review**: "do not test /blog" — a path-level exclusion the host check cannot enforce |
+| `<your-tenant>.example.com`, `app[.staging].example.com`, free text, `co.uk`, mid-label in-scope wildcards, redacted entries | **review** |
+| mobile app IDs, source code, hardware, executables | `## Other assets`, for reference |
+
+Imported bullets sit between `<!-- cbh-import:start -->` / `<!-- cbh-import:end -->`. Running the
+import again against an existing `scope.md` replaces only those blocks: rules you added by hand,
+Focus areas, and the recon-seeded hosts section are kept, and the template's `(paste …)`
+placeholders are removed. The bounty eligibility, max severity (or Intigriti tier) and program
+instruction ride along on each rule line. `--text` also extracts researcher-conduct rules (rate
+limits, required headers, automation and DoS clauses, test-account domains) into
+`## Engagement rules / safe harbor` for you to verify.
+
+Checked against every public program in bounty-targets-data (939 programs, 52,947 assets):
+97.5% of HackerOne host assets, 91% of Intigriti, 90% of YesWeHack and 68% of Bugcrowd (whose
+public dump redacts some targets) become rules; the rest are path-limited, placeholder or
+free-text entries listed for review. For all 939, every rule round-trips through
+`engine/scope.py`, every declared asset is admitted, no subdomain of an exact host is admitted,
+every deny rule rejects its host, and re-importing is a no-op.
+
 ## Composition example — full engagement loop
 
 ```bash
 # Day 1 — intake
+cbh scope import h1:target -o ~/Targets/target/scope.md   # then read "## Needs manual review"
 cbh recon target.com
 # → recon/target.com/RECON_SUMMARY.md
 

@@ -10,13 +10,23 @@ Default deny: anything not matching an in-scope pattern is out of scope.
 Pattern forms (matched against the URL's host):
   example.com        -> the apex AND any subdomain (example.com, api.example.com)
   *.example.com      -> any subdomain (NOT the bare apex)
-  api.example.com    -> that exact host
+  api.example.com    -> that host AND its subdomains (same rule as example.com)
+  re:^api\\.example\\.com$          -> exactly that host (what `cbh scope import` writes)
   10.0.0.0/8         -> any IP in the CIDR (IPv4)
   re:^staging[0-9]+\\.example\\.com$   -> explicit regex (prefix re:)
 """
+import functools
 import ipaddress
 import re
 from urllib.parse import urlparse
+
+
+@functools.lru_cache(maxsize=None)
+def _regex(pattern):
+    """Compile a `re:` rule once per process. `re`'s own cache holds ~512 patterns, so
+    a scope with more regex rules than that (an imported program lists one exact-host
+    rule per asset) recompiled every rule on every check: ~70x slower at 5,000 rules."""
+    return re.compile(pattern, re.IGNORECASE)
 
 
 def _host_of(target):
@@ -36,7 +46,7 @@ def _match(pattern, host):
         return False
     if p[:3].lower() == "re:":
         try:
-            return re.search(p[3:], host, re.IGNORECASE) is not None
+            return _regex(p[3:]).search(host) is not None
         except re.error:
             return False
     p = p.lower()

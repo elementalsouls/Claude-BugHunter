@@ -2,7 +2,7 @@
 """
 cbh — claude-bughunter CLI.
 
-Bridges the repo's skill content into a real runner. Five subcommands compose
+Bridges the repo's skill content into a real runner. These subcommands compose
 the engagement loop:
 
   cbh recon <target>           passive subdomain enum + live-host probe + URL
@@ -19,6 +19,11 @@ the engagement loop:
                                / KILL with reason.
   cbh report <finding.md>      emit a report draft (H1 / Bugcrowd / Intigriti /
                                Immunefi templates) based on finding metadata.
+  cbh scope import <program>   build or refresh scope.md from a program's
+                               published scope (h1:/bugcrowd:/intigriti:/
+                               yeswehack:<handle>, HackerOne MCP JSON, or
+                               pasted program text). Ambiguous entries are
+                               listed for manual review, never made rules.
 
 Stdlib + optional `requests`. No build step. Drop on PATH:
 
@@ -961,6 +966,71 @@ def cmd_surface(args: argparse.Namespace) -> int:
 
 
 # ============================================================
+# scope import — program scope -> scope.md
+# ============================================================
+def cmd_scope_import(args: argparse.Namespace) -> int:
+    from cbh import scope_import as si
+
+    def warn(msg: str):
+        print(f"[scope] {msg}", file=sys.stderr)
+
+    sources = [x for x in (args.ref, args.json, args.text) if x]
+    if len(sources) != 1:
+        print("[error] give exactly one source: a program reference (h1:<handle>, "
+              "bugcrowd:<handle>, intigriti:<handle>, yeswehack:<handle> or a program URL), "
+              "--json FILE, or --text FILE ('-' for stdin)", file=sys.stderr)
+        return 2
+    try:
+        if args.ref:
+            platform, handle = si.parse_ref(args.ref)
+            if args.data:
+                data = json.loads(Path(args.data).read_text(encoding="utf-8"))
+                where = args.data
+            else:
+                data, where = si.load_platform(platform, refresh=args.refresh, log=warn)
+            rec = si.find_program(platform, data, handle)
+            program = si.program_from_record(platform, rec)
+            program.source = "bounty-targets-data"
+            if program.platform == "hackerone" and rec.get("submission_state") not in (None, "open"):
+                warn(f"program submission state is {rec.get('submission_state')!r}")
+            warn(f"{program.platform}/{program.handle} from {where}")
+        elif args.json:
+            program = si.program_from_json(json.loads(Path(args.json).read_text(encoding="utf-8")))
+            program.source = "HackerOne MCP / JSON"
+        else:
+            raw = sys.stdin.read() if args.text == "-" else Path(args.text).read_text(encoding="utf-8")
+            program = si.program_from_text(raw, name=args.name or "program")
+            program.source = "pasted program text"
+    except (ValueError, LookupError, RuntimeError, OSError) as e:
+        print(f"[error] {e}", file=sys.stderr)
+        return 1
+
+    s = program.summary()
+    if args.out:
+        out = Path(args.out).expanduser()
+        if out.exists():
+            text = si.merge(out.read_text(encoding="utf-8"), program)
+            action = "updated"
+        else:
+            out.parent.mkdir(parents=True, exist_ok=True)
+            text = si.render(program, title=args.name)
+            action = "wrote"
+        out.write_text(text, encoding="utf-8")
+        warn(f"{action} {out}")
+    else:
+        sys.stdout.write(si.render(program, title=args.name))
+    warn(f"{s['in_rules']} in-scope rule(s), {s['out_rules']} out-of-scope rule(s), "
+         f"{s['review']} entr{'y' if s['review'] == 1 else 'ies'} to review by hand, "
+         f"{s['other']} non-host asset(s)"
+         + (f", {s['covered']} path-limited asset(s) already covered" if s["covered"] else ""))
+    if s["review"]:
+        warn("entries under '## Needs manual review' are NOT rules until you move them")
+    if s["in_rules"] == 0:
+        warn("no in-scope host rules: default deny will reject every target")
+    return 0
+
+
+# ============================================================
 # Main dispatcher
 # ============================================================
 def main() -> int:
@@ -978,6 +1048,7 @@ def main() -> int:
               cbh classify "https://api.target.com/v1/users/42?next=https://evil.com"
               cbh triage findings/idor-2026-05-15.md
               cbh report findings/idor-2026-05-15.md --platform bugcrowd --out draft.md
+              cbh scope import h1:acme -o ~/Targets/acme/scope.md
 
             For LLM-driven hunting with full skill context, use the slash commands
             inside Claude Code: /hunt /recon /triage /report /validate /chain /autopilot
@@ -1022,6 +1093,32 @@ def main() -> int:
                                "(or set CBH_REPORTER); omitted -> placeholder")
     p_report.add_argument("--out", help="write draft to this path (else print to stdout)")
     p_report.set_defaults(func=cmd_report)
+
+    p_scope = sub.add_parser("scope", help="program scope tools (import a program's scope into scope.md)")
+    scope_sub = p_scope.add_subparsers(dest="scope_command", required=True)
+    p_import = scope_sub.add_parser(
+        "import", help="build or refresh scope.md from a program's published scope",
+        description=("Build or refresh an engagement scope.md from a bug bounty program's scope. "
+                     "Public HackerOne / Bugcrowd / Intigriti / YesWeHack programs come from "
+                     "bounty-targets-data (no API key). Only unambiguous hosts, wildcards, IPs "
+                     "and CIDRs become rules; everything else is listed for manual review."))
+    p_import.add_argument("ref", nargs="?",
+                          help="h1:<handle>, bugcrowd:<handle>, intigriti:<handle>, "
+                               "yeswehack:<handle>, or a program URL")
+    p_import.add_argument("--json", metavar="FILE",
+                          help="HackerOne MCP get_program_scope / get_my_program output "
+                               "(private programs), or one bounty-targets-data record")
+    p_import.add_argument("--text", metavar="FILE",
+                          help="program-page text with In scope / Out of scope lists ('-' = stdin)")
+    p_import.add_argument("-o", "--out", metavar="SCOPE_MD",
+                          help="scope.md to write; an existing file is refreshed in place, "
+                               "keeping hand-written rules (default: print to stdout)")
+    p_import.add_argument("--name", help="title for a new scope.md / name for --text input")
+    p_import.add_argument("--data", metavar="FILE",
+                          help="use a local bounty-targets-data dump instead of downloading it")
+    p_import.add_argument("--refresh", action="store_true",
+                          help="re-download the dump even if the cached copy is fresh (<6h)")
+    p_import.set_defaults(func=cmd_scope_import)
 
     args = parser.parse_args()
     return args.func(args)
