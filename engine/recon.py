@@ -541,7 +541,7 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
             req = urllib.request.Request(url, data=data, method=m.upper(),
                                          headers={"Accept": "application/json", "Content-Type": "application/json"})
             try:
-                code = urllib.request.urlopen(req, timeout=10).status
+                code = _OPENER.open(req, timeout=10).status   # no-redirect: a 302 to /login grades as itself
             except urllib.error.HTTPError as e:
                 code = e.code
             except Exception:

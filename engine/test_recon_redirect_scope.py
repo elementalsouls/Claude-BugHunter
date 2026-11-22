@@ -76,6 +76,36 @@ class _RedirectHandler(BaseHTTPRequestHandler):
         pass
 
 
+class _AuthRedirectHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith("/login"):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"login page")
+        else:                                   # a secured op redirects to login = enforced
+            self.send_response(302)
+            self.send_header("Location", "/login")
+            self.end_headers()
+
+    def log_message(self, *a):
+        pass
+
+
+class AuthSweepRedirectTests(unittest.TestCase):
+    def setUp(self):
+        self.srv = HTTPServer(("127.0.0.1", 0), _AuthRedirectHandler)
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        self.base = "http://127.0.0.1:%d" % self.srv.server_address[1]
+
+    def tearDown(self):
+        self.srv.shutdown()
+
+    def test_302_to_login_is_enforcement_not_bypass(self):
+        spec = {"security": [{"s": []}], "paths": {"/secure": {"get": {}}}}
+        broken = recon.auth_enforcement_sweep(spec, self.base, log=lambda *a, **k: None)
+        self.assertEqual(broken, [], "a 302 to /login was graded as broken auth")
+
+
 class OpenerNoRedirectTests(unittest.TestCase):
     def setUp(self):
         self.srv = HTTPServer(("127.0.0.1", 0), _RedirectHandler)
