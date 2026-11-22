@@ -9,13 +9,13 @@ tracked text file and compares against scripts/.identifier-denylist.sha256 (plus
 optional gitignored scripts/.identifier-denylist.local), the same mechanism and
 same denylist file lint_skills.py uses. Plaintext names never live in the repo.
 
-FAILS CLOSED: a missing or empty denylist is an error (exit 2), not a silent pass —
-unlike lint_skills.py, which prints a NOTE and exits 0 when the denylist is absent.
+FAILS CLOSED: missing, empty, unreadable, or malformed denylist configuration
+is an error (exit 2), not a silent pass.
 
 Exit codes:
   0  clean
   1  one or more banned identifiers found
-  2  fail-closed: no denylist loaded (missing/empty)
+  2  fail-closed: denylist missing, empty, unreadable, or malformed
 
 Stdlib only — no pip install needed in CI.
 
@@ -34,6 +34,7 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCRIPTS_DIR = os.path.join(REPO, "scripts")
 WORD_RE = re.compile(r"[a-z0-9]+")
+SHA256_RE = re.compile(r"[0-9a-fA-F]{64}")
 
 # Binary / non-text extensions we never scan (denylist shingles are text-only).
 BINARY_EXT = {
@@ -53,10 +54,15 @@ def load_denylist():
     sha_file = os.path.join(SCRIPTS_DIR, ".identifier-denylist.sha256")
     if os.path.exists(sha_file):
         with open(sha_file, encoding="utf-8") as fh:
-            for line in fh:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    hashes.add(line.lower())
+            for lineno, line in enumerate(fh, 1):
+                digest = line.strip()
+                if not digest or digest.startswith("#"):
+                    continue
+                if not SHA256_RE.fullmatch(digest):
+                    raise ValueError(
+                        f"{os.path.basename(sha_file)}:{lineno}: expected a SHA-256 hex digest"
+                    )
+                hashes.add(digest.lower())
     local = os.path.join(SCRIPTS_DIR, ".identifier-denylist.local")
     if os.path.exists(local):
         with open(local, encoding="utf-8") as fh:
@@ -139,7 +145,14 @@ def scan_staged_blob(oid, denylist):
 
 
 def main(argv):
-    denylist = load_denylist()
+    try:
+        denylist = load_denylist()
+    except (OSError, UnicodeError):
+        print("ERROR scan_identifiers: unable to read the denylist.", file=sys.stderr)
+        return 2
+    except ValueError as exc:
+        print(f"ERROR scan_identifiers: {exc}", file=sys.stderr)
+        return 2
     if not denylist:
         msg = ("scan_identifiers: FAIL-CLOSED — no denylist loaded "
                "(scripts/.identifier-denylist.sha256 missing or empty). "
