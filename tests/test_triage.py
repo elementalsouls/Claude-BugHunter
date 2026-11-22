@@ -136,6 +136,21 @@ class TriageGateTests(unittest.TestCase):
         self.assertEqual(res, 0)
         self.assertIn("✓ Q1", out)
 
+    def test_markdown_wrapped_request_satisfies_q1(self):
+        """A PoC written in markdown — backtick-wrapped or bold method — is a real request."""
+        for proof in ("`GET /api/v1/x`", "**GET** /api/v1/x", "GET `/api/v1/x`"):
+            content = f"""# Test Finding
+- Target: http://example.com (in scope)
+- Severity: high (impact: critical data leak)
+- Attacker: low-priv session
+- Not duplicate: novel report
+- Proof: {proof}
+- Evidence: leaked credential
+"""
+            res, out = _run_triage(content)
+            self.assertEqual(res, 0, f"proof {proof!r} should satisfy Q1")
+            self.assertIn("✓ Q1", out)
+
     # ---- #197: Q7 clickjacking (no hyphen) and Q3 scope-negation ----
     def test_clickjacking_variants_hit_never_submit(self):
         for signal in ("clickjacking", "click-jacking"):
@@ -157,6 +172,30 @@ Impact: unclear
 
     def test_affirmative_scope_passes_q3(self):
         _, out = _run_triage("- Target: http://example.com (in scope)\n")
+        self.assertIn("✓ Q3", out)
+
+    def test_hyphenated_out_of_scope_fails_q3(self):
+        """'out-of-scope' (the common hyphenated spelling) must disavow scope too."""
+        content = """# IDOR on report endpoint
+- Asset: staging.example.com (out-of-scope)
+- Proof: GET /api/v1/reports/7 HTTP/1.1
+"""
+        _, out = _run_triage(content)
+        self.assertIn("✗ Q3", out)
+
+    def test_scope_word_in_non_scope_line_does_not_fail_q3(self):
+        """A negation word beside 'scope' on a non-scope line must not kill Q3."""
+        content = """# Test Finding
+- Target: http://example.com (in scope)
+- Severity: high (impact: critical data leak)
+- Attacker: low-priv session
+- Not duplicate: novel report
+- Proof: curl http://example.com/api/v1/data
+- Evidence: leaked credential
+- Impact: unclear scope of data exposure
+"""
+        res, out = _run_triage(content)
+        self.assertEqual(res, 0)
         self.assertIn("✓ Q3", out)
 
     def test_unrelated_negation_words_do_not_fail_q3(self):

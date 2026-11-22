@@ -127,7 +127,12 @@ def gql_vars(query: str, variables: dict) -> dict:
         sys.exit(1)
 
 
-def lookup_program(handle: str) -> Optional[str]:
+def lookup_program(handle: str) -> Optional[dict]:
+    """Resolve a program handle to its team record, or None if not found/private.
+
+    Returns the team dict so the caller can use the canonical `handle` H1 stores
+    (TeamLookup is case-insensitive, but the hacktivity query_string is not, so
+    `--program Shopify` must query the canonical `shopify`, not the raw input)."""
     data = gql_vars(TEAM_LOOKUP_QUERY, {"handle": handle})
     team = (data.get("data") or {}).get("team")
     if not team:
@@ -135,7 +140,7 @@ def lookup_program(handle: str) -> Optional[str]:
         return None
     # Progress goes to stderr so --json stdout stays clean and pipeable (jq).
     print(f"[+] {team['handle']} → id={team['_id']}, name={team['name']}", file=sys.stderr)
-    return team["_id"]
+    return team
 
 
 def build_page_query(args, after: Optional[str] = None) -> str:
@@ -377,10 +382,11 @@ def main():
         if not handle:
             print("[!] --program requires a non-empty handle", file=sys.stderr)
             sys.exit(1)
-        args.program = handle
-        args.program_id = lookup_program(handle)
-        if not args.program_id:
+        team = lookup_program(handle)
+        if not team:
             sys.exit(1)
+        args.program = team["handle"]        # canonical handle for the query_string
+        args.program_id = team["_id"]
 
     nodes = fetch_all_pages(args)
     results = apply_client_filters(nodes, args)

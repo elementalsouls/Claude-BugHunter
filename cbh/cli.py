@@ -641,8 +641,14 @@ def cmd_classify(args: argparse.Namespace) -> int:
 # Q1 asks for a real request, so a bare method word only counts when a
 # request-target (a path or URL) follows it. Plain substrings like "GET " used
 # to match inside prose ("tarGET application", "inPUT validation"), letting an
-# untested finding answer Q1 YES.
-_REQUEST_LINE = re.compile(r"\b(?:get|post|put|patch|delete)[ \t]+(?:/|https?://)")
+# untested finding answer Q1 YES. The separator class allows the markdown a PoC
+# is usually written in — backticks and bold/italic around the method or path
+# (`GET /x`, **GET** /x, GET `/x`).
+# ponytail: heuristic ceiling — prose like "an attacker can get /admin" still
+#   reads as a request. Requiring HTTP/ or a scheme after the path would reject
+#   the common bare "GET /path?x=1" PoC (see test_lowercase_request_line), so a
+#   method+path match is the accepted floor; the human reads the verdict.
+_REQUEST_LINE = re.compile(r"\b(?:get|post|put|patch|delete)[ \t`*_]+(?:/|https?://)")
 
 TRIAGE_QUESTIONS = [
     ("Q1", "Can an attacker use this RIGHT NOW with a real HTTP request?",
@@ -664,12 +670,16 @@ TRIAGE_QUESTIONS = [
 ]
 
 # Q3 disqualifiers: scope/asset wording is not affirmative evidence when the
-# finding itself says the asset is unverified, unknown, or out of scope. Only a
-# scope/asset line may negate Q3 — "Impact: unclear" or "previously unknown"
-# must not.
-_Q3_NEGATIONS = ["out of scope", "not in scope", "not verified", "unverified",
-                 "unknown", "possibly", "maybe", "unclear"]
-_Q3_SCOPE_WORDS = ("scope", "target:", "asset:")
+# finding itself disavows the asset. Two kinds of disavowal:
+#   - STRONG phrases ("out of scope", "excluded from scope") are unambiguous on
+#     any line, including prose ("this asset is out of scope").
+#   - WEAK words ("unknown", "unclear", "maybe") only disavow when they sit on a
+#     scope/asset/target line — otherwise "Impact: unclear scope of exposure" or
+#     "previously unknown" would wrongly kill an in-scope finding.
+# Hyphens are normalized to spaces first, so "out-of-scope" matches "out of scope".
+_Q3_STRONG = ("out of scope", "not in scope", "outside scope", "excluded from scope")
+_Q3_WEAK = ("not verified", "unverified", "unknown", "possibly", "maybe", "unclear")
+_Q3_SCOPE_KEYS = ("scope", "asset", "target", "affected asset", "in scope", "out of scope")
 
 
 def _signal_hit(signal, text: str) -> bool:
@@ -680,8 +690,14 @@ def _signal_hit(signal, text: str) -> bool:
 
 
 def _q3_scope_negated(text: str) -> bool:
-    scope_lines = [ln for ln in text.splitlines() if any(w in ln for w in _Q3_SCOPE_WORDS)]
-    return any(neg in ln for ln in scope_lines for neg in _Q3_NEGATIONS)
+    for ln in text.splitlines():
+        norm = ln.replace("-", " ").lower()
+        if any(phrase in norm for phrase in _Q3_STRONG):
+            return True
+        key = norm.split(":", 1)[0].strip("*`•# ").strip()
+        if key in _Q3_SCOPE_KEYS and any(w in norm for w in _Q3_WEAK):
+            return True
+    return False
 
 
 def cmd_triage(args: argparse.Namespace) -> int:
@@ -759,7 +775,9 @@ def parse_finding_metadata(text: str) -> dict:
     """Best-effort parse of YAML-ish frontmatter + section content."""
     md = {"title": "", "severity": "Medium", "asset": "", "endpoint": "",
           "summary": "", "steps": "", "impact": "", "remediation": ""}
-    text = text.lstrip("﻿")  # a UTF-8 BOM would push `---` off the start (#200)
+    # A UTF-8 BOM would push `---` off the start, and Windows CRLF line endings
+    # (same platform) break the `^---\n` anchor — normalize both (#200).
+    text = text.lstrip("﻿").replace("\r\n", "\n")
     # YAML frontmatter
     m = re.match(r"^---\n(.*?)\n---\n(.*)", text, re.S)
     body = text

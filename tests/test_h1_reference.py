@@ -7,6 +7,7 @@ import argparse
 import importlib.util
 import os
 import unittest
+from unittest.mock import patch
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _H1 = os.path.join(_REPO, "skills", "offensive-osint", "scripts", "h1_reference.py")
@@ -41,6 +42,21 @@ class BuildPageQueryTests(unittest.TestCase):
         q = h1.build_page_query(_args())
         self.assertIn('substate: ["resolved"]', q)
         self.assertNotIn("team_id", q)
+
+
+class LookupProgramTests(unittest.TestCase):
+    def test_returns_team_with_canonical_handle(self):
+        # TeamLookup is case-insensitive; the caller needs the canonical handle
+        # because the hacktivity query_string is not.
+        resp = {"data": {"team": {"_id": "42", "handle": "shopify", "name": "Shopify"}}}
+        with patch.object(h1, "gql_vars", return_value=resp):
+            team = h1.lookup_program("Shopify")
+        self.assertEqual(team["handle"], "shopify")
+        self.assertEqual(team["_id"], "42")
+
+    def test_returns_none_when_private_or_missing(self):
+        with patch.object(h1, "gql_vars", return_value={"data": {"team": None}}):
+            self.assertIsNone(h1.lookup_program("nope"))
 
 
 if __name__ == "__main__":

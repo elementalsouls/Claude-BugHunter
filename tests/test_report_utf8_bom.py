@@ -22,6 +22,15 @@ class ReportUtf8BomTests(unittest.TestCase):
                 self.assertEqual(md["asset"], "example.test")
                 self.assertEqual(md["title"], "Sample report")
 
+    def test_crlf_frontmatter_still_parses(self):
+        """Windows line endings (CRLF) — the same platform as the BOM — must parse too."""
+        finding = (
+            "﻿---\nseverity: High\nasset: crlf.test\n---\n# CRLF report\n"
+        ).replace("\n", "\r\n")
+        md = cli.parse_finding_metadata(finding)
+        self.assertEqual(md["severity"], "High")
+        self.assertEqual(md["asset"], "crlf.test")
+
 
 if __name__ == "__main__":
     unittest.main()
