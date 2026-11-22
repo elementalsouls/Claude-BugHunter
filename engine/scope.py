@@ -52,12 +52,62 @@ def _match(pattern, host):
     return host == p or host.endswith("." + p)
 
 
+def _is_cidr(rule):
+    try:
+        ipaddress.ip_network(rule, strict=False)
+        return "/" in rule
+    except ValueError:
+        return False
+
+
+def _normalize_rule(rule):
+    """Reduce any rule-source form to a host (or keep re:/wildcard/CIDR as-is).
+
+    `https://app.example.com:8443/login` -> `app.example.com`. Deny/allow rules are
+    matched against the URL's host, so a rule carrying a scheme/port/path matched
+    nothing and silently failed open — this is the one normalization point for every
+    source (scope.md, scope.json, CLI flags, osint/recon helpers).
+    """
+    r = rule.strip().strip("`\"'").rstrip(".,; ").strip()
+    if r[:3].lower() == "re:":
+        return r
+    low = r.lower()
+    if "://" in low:
+        low = low.split("://", 1)[1]
+    low = low.split("@")[-1]                       # drop userinfo
+    if _is_cidr(low.split()[0] if low.split() else low):
+        return low
+    wild = low.startswith("*.")
+    core = low[2:] if wild else low
+    try:
+        host = urlparse("//" + core).hostname or ""
+    except ValueError:
+        host = ""
+    host = (host or core.split("/")[0].split(":")[0]).rstrip(".")
+    return ("*." + host) if wild else host
+
+
 class Scope:
     def __init__(self, in_scope, out_of_scope=None, seeds=None, name="engagement"):
-        self.in_scope = [p for p in (in_scope or []) if p.strip()]
-        self.out_of_scope = [p for p in (out_of_scope or []) if p.strip()]
+        self.warnings = []
+        self.in_scope = [self._norm(p) for p in (in_scope or []) if p.strip()]
+        self.out_of_scope = [self._norm(p) for p in (out_of_scope or []) if p.strip()]
         self.seeds = seeds or []
         self.name = name
+
+    def _norm(self, rule):
+        normalized = _normalize_rule(rule)
+        if normalized[:3].lower() == "re:":
+            return normalized
+        body = rule.strip().strip("`\"'").rstrip(".,; ")
+        body = body.split("://", 1)[-1].split("@")[-1]
+        hostpart = body.split("/")[0]
+        had_path = "/" in body and not _is_cidr(normalized)
+        had_port = ":" in hostpart and not _is_cidr(normalized)
+        if had_path or had_port:
+            self.warnings.append(
+                f"scope rule {rule!r} widened to host {normalized!r} (scope is per-host)")
+        return normalized
 
     @classmethod
     def load(cls, path):
@@ -112,21 +162,6 @@ def _selftest():
     print("scope.py self-test: PASS")
 
 
-def _rule_from_token(token):
-    """Normalize one scope.md bullet token into a host rule.
-
-    `https://app.example.com/login?x=1` -> `app.example.com`.
-    Explicit-rule forms (`re:`, CIDR, `*.host`) and already-bare hosts are kept as-is.
-    """
-    t = token.strip()
-    if t[:3].lower() == "re:" or ("://" not in t and not t.startswith("//")):
-        return t
-    try:
-        host = urlparse(t if "://" in t else "//" + t).hostname or ""
-    except ValueError:
-        return t
-    return host or t
-
 def _scope_from_md(path):
     """Build a Scope from a scaffolded scope.md (the `hunt` template).
 
@@ -162,7 +197,7 @@ def _scope_from_md(path):
                     pat = pat[2:-2]   # bullet written in bold, e.g. '**api.example.com**'
                 if not pat or pat.startswith("(") or pat.startswith("["):
                     continue          # placeholder text, not a real pattern
-                (in_scope if section == "in" else out_scope).append(_rule_from_token(pat))
+                (in_scope if section == "in" else out_scope).append(pat)
     return Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
 
 
