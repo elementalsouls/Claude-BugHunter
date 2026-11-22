@@ -80,12 +80,19 @@ def _normalize_rule(rule):
     if not host or any(c.isspace() for c in host) or "*" in host[2:] or \
             (host.startswith("*") and not host.startswith("*.")):
         return (host or t).lower(), f"rule {raw!r} is not a valid host and will never match"
+    path = parsed.path
+    ip_host = _canonical_ip(host)
+    if ip_host:
+        # `https://10.0.0.0/24` or `10.0.0.0/24/` names a network: urlparse puts the
+        # prefix length in the path, so put it back rather than narrowing to one IP.
+        head, _, rest = path.strip("/").partition("/")
+        net = _canonical_ip(f"{ip_host}/{head}") if head.isdigit() else None
+        host, path = (net, rest) if net else (ip_host, path)
     lost = []
     if port is not None:
         lost.append(f"port {port}")
-    if parsed.path not in ("", "/") or parsed.query or parsed.fragment:
+    if path not in ("", "/") or parsed.query or parsed.fragment:
         lost.append("path")
-    host = _canonical_ip(host) or host
     if lost:
         return host, (f"rule {raw!r} names a {' and '.join(lost)}, but scope is enforced "
                       f"per host, so it applies to every URL on {host}")

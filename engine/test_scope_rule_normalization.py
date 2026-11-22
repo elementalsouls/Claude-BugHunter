@@ -96,6 +96,24 @@ class IpRuleTests(unittest.TestCase):
         self.assertTrue(scope.in_scope_host("http://[2001:0db8:0000::0001]/"))
         self.assertFalse(scope.in_scope_host("http://[2001:dead::1]/"))
 
+    def test_cidr_written_as_url_keeps_its_prefix(self):
+        # urlparse puts "/24" in the path; the rule must stay a network, not one IP
+        for rule in ("https://192.168.1.0/24", "192.168.1.0/24/", "http://192.168.1.0:8080/24",
+                     "`https://192.168.1.0/24`,"):
+            with self.subTest(rule=rule):
+                scope = Scope(["re:.*"], [rule])
+                self.assertEqual(scope.out_of_scope, ["192.168.1.0/24"])
+                self.assertFalse(scope.in_scope_host("http://192.168.1.5/"))
+                self.assertTrue(scope.in_scope_host("http://192.168.2.5/"))
+        scope = Scope(["re:.*"], ["https://[2001:db8::]/32"])
+        self.assertEqual(scope.out_of_scope, ["2001:db8::/32"])
+        self.assertFalse(scope.in_scope_host("http://[2001:db8::7]/"))
+
+    def test_ip_with_a_real_path_is_widened_to_the_ip_and_warned(self):
+        scope = Scope(["re:.*"], ["https://192.168.1.10/admin", "192.168.1.11/99"])
+        self.assertEqual(scope.out_of_scope, ["192.168.1.10", "192.168.1.11"])
+        self.assertEqual(len(scope.warnings), 2)
+
     def test_ipv4_rule_does_not_match_an_ipv6_host(self):
         self.assertFalse(Scope(["0.0.0.0/0"]).in_scope_host("http://[::1]/"))
 
