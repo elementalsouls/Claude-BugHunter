@@ -439,18 +439,22 @@ def _probe(url, timeout=12, allow=None):
     return _walk(one, url, allow)
 
 
-def prune_inert_params(items, log=print):
+def prune_inert_params(items, log=print, scope=None):
     """Drop param items whose ENDPOINT is dead (>=400) or whose PARAM is inert (no effect on the
     response beyond echoing itself). Deterministic: marker-normalized body-diff vs the no-param
     baseline — removing the marker first neutralizes the canonical/og:url reflection trap. Keeps
-    only live, processable params. (Active: ~1 request per unique endpoint + 1 per param.)"""
+    only live, processable params. (Active: ~1 request per unique endpoint + 1 per param.)
+
+    With a scope, in-scope redirects (http->https, trailing-slash/canonical) are followed so a live
+    parameterized endpoint behind a redirect is not mis-judged inert and silently dropped."""
+    allow = scope.in_scope_host if scope is not None else None
     kept, dead, inert, failed, base_cache = [], 0, 0, 0, {}
     marker = "zq9k7xp"
     for it in items:
         base_path = it.get("url", "").split("?", 1)[0]
         param = it.get("param", "")
         if base_path not in base_cache:
-            base_cache[base_path] = _probe(base_path)
+            base_cache[base_path] = _probe(base_path, allow=allow)
         bcode, bbody = base_cache[base_path]
         if bcode == 0:
             kept.append(it)                            # probe FAILED (network/curl) — can't judge; keep, don't prune
@@ -459,7 +463,7 @@ def prune_inert_params(items, log=print):
         if bcode >= 400:
             dead += 1
             continue                                   # genuinely dead endpoint (real HTTP >= 400)
-        tcode, tbody = _probe(f"{base_path}?{param}={marker}")
+        tcode, tbody = _probe(f"{base_path}?{param}={marker}", allow=allow)
         if tcode == 0:
             kept.append(it)                            # param probe failed — keep rather than silently drop
             failed += 1
@@ -687,7 +691,7 @@ def gather_params(scope, log=print, max_items=80):
             seen.add(key)
             items.append({"url": f"{base}?{p}=FUZZ", "param": p, "method": "GET", "source": src[u]})
     log(f"params: {len(items)} unique (endpoint,param) pair(s) from gau+katana after noise filter")
-    return prune_inert_params(items[:max_items], log)
+    return prune_inert_params(items[:max_items], log, scope=scope)
 
 
 if __name__ == "__main__":

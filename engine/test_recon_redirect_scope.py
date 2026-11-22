@@ -99,11 +99,48 @@ class AuthSweepRedirectTests(unittest.TestCase):
 
     def tearDown(self):
         self.srv.shutdown()
+        self.srv.server_close()
 
     def test_302_to_login_is_enforcement_not_bypass(self):
         spec = {"security": [{"s": []}], "paths": {"/secure": {"get": {}}}}
         broken = recon.auth_enforcement_sweep(spec, self.base, log=lambda *a, **k: None)
         self.assertEqual(broken, [], "a 302 to /login was graded as broken auth")
+
+
+class _RedirectingParamHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith("/r/"):                 # the followed destination
+            self.send_response(200)
+            self.end_headers()
+            q = self.path.split("?", 1)
+            body = b"BASE" + (("?" + q[1]).encode() if len(q) > 1 else b"")  # echo the param
+            self.wfile.write(body)
+        else:                                           # /r or /r?... -> 301 keeping the query
+            q = self.path.split("?", 1)
+            self.send_response(301)
+            self.send_header("Location", "/r/" + ("?" + q[1] if len(q) > 1 else ""))
+            self.end_headers()
+
+    def log_message(self, *a):
+        pass
+
+
+class PruneRedirectTests(unittest.TestCase):
+    def setUp(self):
+        self.srv = HTTPServer(("127.0.0.1", 0), _RedirectingParamHandler)
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        self.base = "http://127.0.0.1:%d" % self.srv.server_address[1]
+
+    def tearDown(self):
+        self.srv.shutdown()
+        self.srv.server_close()
+
+    @unittest.skipUnless(__import__("shutil").which("curl"), "curl required")
+    def test_prune_keeps_live_param_behind_in_scope_redirect(self):
+        scope = Scope(in_scope=["127.0.0.1"])
+        items = [{"url": self.base + "/r?p=FUZZ", "param": "p", "method": "GET", "source": "x"}]
+        kept = recon.prune_inert_params(items, log=lambda *a, **k: None, scope=scope)
+        self.assertEqual(len(kept), 1, "a live param behind an in-scope redirect was pruned")
 
 
 class OpenerNoRedirectTests(unittest.TestCase):
@@ -114,6 +151,7 @@ class OpenerNoRedirectTests(unittest.TestCase):
 
     def tearDown(self):
         self.srv.shutdown()
+        self.srv.server_close()
 
     def test_module_opener_does_not_follow_redirects(self):
         import urllib.error

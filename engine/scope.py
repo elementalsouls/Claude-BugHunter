@@ -84,6 +84,11 @@ def _normalize_rule(rule):
         return low
     wild = low.startswith("*.")
     core = low[2:] if wild else low
+    bare = core.strip("[]").split("%")[0]          # IPv6 may be bracketed or %zone-scoped
+    try:
+        return str(ipaddress.ip_address(bare))     # literal IP (incl. unbracketed IPv6)
+    except ValueError:
+        pass
     try:
         host = urlparse("//" + core).hostname or ""
     except ValueError:

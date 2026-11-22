@@ -60,6 +60,19 @@ class RuleNormalizationTests(unittest.TestCase):
         s = Scope(in_scope=["2001:db8::/32"])
         self.assertFalse(s.in_scope_host("https://10.1.2.3/"))
 
+    def test_bare_ipv6_host_rule_denies(self):
+        # #1 (review): a bare, unbracketed IPv6 single-host deny rule must not fail open.
+        s = Scope(in_scope=["2001:db8::/32"], out_of_scope=["2001:db8::1"])
+        self.assertFalse(s.in_scope_host("https://[2001:db8::1]/"))
+
+    def test_zoned_ipv6_host_rule_denies(self):
+        s = Scope(in_scope=["2001:db8::/32"], out_of_scope=["2001:db8::1%eth0"])
+        self.assertFalse(s.in_scope_host("https://[2001:db8::1]/"))
+
+    def test_bracketed_ipv6_host_rule_denies(self):
+        s = Scope(in_scope=["2001:db8::/32"], out_of_scope=["[2001:db8::1]"])
+        self.assertFalse(s.in_scope_host("https://[2001:db8::1]/"))
+
     # ---- Task 3: soft-fail an invalid out-of-scope regex ----
     def test_bad_out_of_scope_regex_warns_and_continues(self):
         s = Scope(in_scope=["example.com"], out_of_scope=["re:(unclosed"])
