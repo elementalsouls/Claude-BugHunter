@@ -4,17 +4,19 @@
 Run: python3 scripts/test_scan_identifiers.py   (exit 0 = pass)
 
 Loads the scanner as a module, points its denylist path at a temp dir, and
-asserts the three behaviors that matter:
+checks detection, staged snapshots, and invalid configuration:
   1. a planted identifier is caught  -> main() returns 1
   2. a clean file is not caught       -> main() returns 0
-  3. an empty/missing denylist fails CLOSED -> main() returns 2
+  3. an empty, missing, or malformed denylist fails CLOSED -> main() returns 2
 """
 import hashlib
 import importlib.util
+import io
 import os
 import subprocess
 import sys
 import tempfile
+from contextlib import redirect_stderr
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -39,7 +41,7 @@ def main():
         # Denylist with the hash of a fake identifier "acmecorp".
         banned = hashlib.sha256("acmecorp".encode()).hexdigest()
         with open(deny, "w") as fh:
-            fh.write("# test denylist\n" + banned + "\n")
+            fh.write("# test denylist\n" + banned.upper() + "\n")
 
         leak = os.path.join(tmp, "leak.md")
         with open(leak, "w") as fh:
@@ -80,6 +82,19 @@ def main():
         subprocess.run(["git", "-C", tmp, "add", "--", unicode_leak], check=True)
         assert mod.main([]) == 1, "expected tracked scan to inspect Unicode filename"
 
+        for prefix, invalid in (("", "b" * 63), (banned + "\n", "g" * 64)):
+            with open(deny, "w", encoding="utf-8") as fh:
+                fh.write("# test denylist\n" + prefix + invalid + "\n")
+            diagnostic = io.StringIO()
+            with redirect_stderr(diagnostic):
+                assert mod.main([clean]) == 2, "expected exit 2 on malformed digest"
+            lineno = 2 + bool(prefix)
+            assert f".identifier-denylist.sha256:{lineno}:" in diagnostic.getvalue()
+            assert invalid not in diagnostic.getvalue(), "do not echo invalid entries"
+        with open(deny, "wb") as fh:
+            fh.write(b"\xff\n")
+        with redirect_stderr(io.StringIO()):
+            assert mod.main([clean]) == 2, "expected exit 2 on unreadable denylist"
         # 4. fail-closed on empty denylist
         with open(deny, "w") as fh:
             fh.write("# comments only, no hashes\n")
