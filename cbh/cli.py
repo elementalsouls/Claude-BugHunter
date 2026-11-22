@@ -994,6 +994,14 @@ def cmd_surface(args: argparse.Namespace) -> int:
 # Main dispatcher
 # ============================================================
 def main() -> int:
+    # Windows/non-UTF-8 consoles default stdout to the code page (cp1252), which
+    # crashes on the check/cross/arrow/em-dash glyphs the CLI prints. Force UTF-8
+    # (matches engine/engine.py:main).
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     parser = argparse.ArgumentParser(
         prog="cbh",
         description=("claude-bughunter CLI — terminal-native deterministic runner.\n"
