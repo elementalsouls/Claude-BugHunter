@@ -73,12 +73,23 @@ def extract_json(text):
             continue
         if isinstance(value, (dict, list)):
             return value
-    for b in reversed(re.findall(r"(\[.*\]|\{.*\})", text, re.S)):
-        try:
-            return json.loads(b)
-        except Exception:
-            pass
-    return None
+    # No usable fence: decode each top-level JSON value in turn and keep the last.
+    # (A greedy `\{.*\}` regex spans from the first brace to the last, so an
+    # earlier `curl -d '{...}'` body made the final verdict unparseable.)
+    decoder, found, i = json.JSONDecoder(), None, 0
+    while i < len(text):
+        if text[i] in "[{":
+            try:
+                value, end = decoder.raw_decode(text, i)
+            except (ValueError, RecursionError):   # not JSON here, or nested too deep
+                i += 1
+                continue
+            if isinstance(value, (dict, list)):
+                found = value
+            i = end
+            continue
+        i += 1
+    return found
 
 
 if __name__ == "__main__":
