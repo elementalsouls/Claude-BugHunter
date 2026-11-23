@@ -58,7 +58,7 @@ pwsh ./scripts/install.ps1
 > script aborts with a `syntax error` and cannot fix itself.
 
 This copies:
-- All 83 skills → `~/.claude/skills/` (macOS/Linux) or `%USERPROFILE%\.claude\skills\` (Windows)
+- All 97 skills → `~/.claude/skills/` (macOS/Linux) or `%USERPROFILE%\.claude\skills\` (Windows)
 - All 15 slash commands → `~/.claude/commands/`
 - The `hunt` scaffolder → `~/.claude/scripts/hunt.sh` (sourced from your `.zshrc`/`.bashrc`) on macOS/Linux, or `~\.claude\scripts\hunt.ps1` (dot-sourced from your PowerShell `$PROFILE`) on Windows
 
@@ -86,7 +86,7 @@ pwsh ./scripts/install.ps1 -AntiGravity  # just Google AntiGravity
 pwsh ./scripts/install.ps1 -Agents -BurpMcp   # also wire your Burp MCP into those harnesses
 ```
 
-Slash commands, the plugin marketplace, and the `/hunt` engine are Claude-Code-only; other harnesses get the skill knowledge + Burp MCP. Full details and per-harness MCP snippets: [`docs/multi-harness.md`](docs/multi-harness.md).
+Slash commands, the plugin marketplace, and the `/hunt` engine are Claude-Code-only when using the copy installer; other harnesses get the skill knowledge + Burp MCP. For **Google AntiGravity**, **Gemini CLI**, and **Codex**, you can also install the repository directly as a native plugin (`agy plugin install`, `gemini extensions install`, `codex plugin add`). Full details and per-harness MCP snippets: [`docs/multi-harness.md`](docs/multi-harness.md).
 
 ## Step 3 — (Optional) Set up Burp MCP
 

@@ -1,0 +1,13 @@
+{
+  "name": "claude-bughunter",
+  "description": "97-skill bug-hunting & external red-team bundle — 58 hunt-* web/vuln-class + framework skills, 14 workflow/orchestration skills (autopilot, hunt, recon, triage, validate, report, scope, surface, chain), enterprise platform attack chains, recon/OSINT, reporting & validation gates, and Burp/HackerOne MCP integration.",
+  "version": "2.1.0",
+  "author": {
+    "name": "Sachin Sharma",
+    "url": "https://github.com/elementalsouls"
+  },
+  "homepage": "https://elementalsouls.github.io/Claude-BugHunter",
+  "repository": "https://github.com/elementalsouls/Claude-BugHunter",
+  "license": "MIT",
+  "logo": "assets/banner-v2.svg"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "claude-bughunter",
+  "version": "2.1.0",
+  "description": "97-skill bug-hunting & external red-team bundle — 58 hunt-* web/vuln-class + framework skills, 14 workflow/orchestration skills (autopilot, hunt, recon, triage, validate, report, scope, surface, chain), enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and HackerOne MCP integration.",
+  "mcpServers": {
+    "hackerone": {
+      "command": "python3",
+      "args": ["${extensionPath}${/}mcp${/}hackerone${/}server.py"]
+    }
+  }
+}

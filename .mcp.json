@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hackerone": {
+      "command": "python3",
+      "args": ["mcp/hackerone/server.py"]
+    }
+  }
+}
