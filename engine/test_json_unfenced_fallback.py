@@ -29,6 +29,16 @@ class UnfencedFallbackTests(unittest.TestCase):
     def test_single_object_unchanged(self):
         self.assertEqual(extract_json('text {"x": "y"} more'), {"x": "y"})
 
+    def test_truncated_array_is_not_a_verdict(self):
+        # a cut-off streamed array must not yield an inner element as the verdict;
+        # None re-runs the item, a wrong fragment is a silent bad verdict.
+        self.assertIsNone(extract_json('[{"vulnerable": false}, {"vulnerable": true'))
+
+    def test_deeply_nested_input_does_not_raise(self):
+        # CPython's C JSON scanner can raise RecursionError on deep nesting; the
+        # extractor must swallow it (return None), not propagate into the verdict path.
+        self.assertIsNone(extract_json("[" * 2000))
+
 
 if __name__ == "__main__":
     unittest.main()

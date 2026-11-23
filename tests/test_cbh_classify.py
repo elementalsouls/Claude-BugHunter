@@ -29,6 +29,14 @@ class ClassifyUrlTargetTests(unittest.TestCase):
         self.assertIn("hunt-auth-bypass", _pattern_hits("example.com/login"))
         self.assertIn("hunt-business-logic", _pattern_hits("/checkout"))
 
+    def test_schemeless_host_is_not_a_path_target(self):
+        # schemeless input: the host must not land in the path and fire a path rule
+        self.assertNotIn("hunt-rce", _pattern_hits("api.php.net/status"))
+        self.assertNotIn("hunt-aspnet", _pattern_hits("api.php.net/status"))
+
+    def test_schemeless_path_extension_still_matches(self):
+        self.assertIn("hunt-rce", _pattern_hits("example.com/upload.php"))
+
 
 if __name__ == "__main__":
     unittest.main()

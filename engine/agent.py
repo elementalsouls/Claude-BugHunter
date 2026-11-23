@@ -83,9 +83,12 @@ def extract_json(text):
         if text[i] in "[{":
             try:
                 value, end = dec.raw_decode(text, i)
-            except json.JSONDecodeError:
-                i += 1
-                continue
+            except (ValueError, RecursionError):
+                # A top-level bracket that won't parse is a truncated/garbled
+                # container: stop rather than descend into it and mistake an inner
+                # fragment for the verdict. (ValueError covers JSONDecodeError;
+                # RecursionError comes from deeply nested input in the C scanner.)
+                break
             if isinstance(value, (dict, list)):
                 last = value
             i = end

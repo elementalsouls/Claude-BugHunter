@@ -561,7 +561,9 @@ def classify_url(url: str) -> dict:
     skills = load_skill_descriptions()
     matches: dict[str, list[str]] = {}
 
-    parsed = urllib.parse.urlparse(url)
+    # Prefix // for schemeless input so the host lands in netloc, not path —
+    # otherwise `api.php.net/x` puts the host in parsed.path and `.php` fires.
+    parsed = urllib.parse.urlparse(url if "://" in url else "//" + url)
     raw = url
     # Match path patterns against the request target (path+query), never the host:
     # `//verify.example.com` otherwise supplies a leading `/verify` and false-triggers.
