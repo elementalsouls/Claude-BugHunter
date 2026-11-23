@@ -563,10 +563,13 @@ def classify_url(url: str) -> dict:
 
     parsed = urllib.parse.urlparse(url)
     raw = url
+    # Match path patterns against the request target (path+query), never the host:
+    # `//verify.example.com` otherwise supplies a leading `/verify` and false-triggers.
+    target = parsed.path + ("?" + parsed.query if parsed.query else "")
 
     # Pattern triggers
     for pattern, skill_names in URL_PATTERN_TO_SKILLS:
-        if re.search(pattern, raw, re.I):
+        if re.search(pattern, target, re.I):
             for s in skill_names:
                 matches.setdefault(s, []).append(f"URL matches /{pattern}/")
 
