@@ -7,6 +7,12 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Added
+- **PyPI publishing for the cbh CLI** — `.github/workflows/publish.yml` publishes
+  `claude-bughunter` to PyPI from `v*` tags via PyPI Trusted Publishing (OIDC, no
+  long-lived token). Install with `pipx install claude-bughunter` (shim `cbh`);
+  `python3 scripts/cbh.py` stays the zero-install path. The PyPI project and
+  trusted-publisher setup are still the maintainer's step — until then the publish
+  step fails without publishing anything.
 - **Disclosed-report grounding, content-verified** — 28 `hunt-*` skills strengthened
   with cited public HackerOne disclosures. **433 distinct disclosed reports** are now
   individually cited across **36 pattern-library files** in `docs/disclosed-reports/`.
