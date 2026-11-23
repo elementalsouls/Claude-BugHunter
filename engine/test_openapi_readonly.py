@@ -16,7 +16,7 @@ class OpenAPIReadOnlyTests(unittest.TestCase):
         for intrusive, methods in ((False, ["GET"]), (True, ["GET", "POST", "DELETE"])):
             with self.subTest(intrusive=intrusive), \
                  patch.object(recon, "_probe", return_value=(200, json.dumps(spec))), \
-                 patch("urllib.request.urlopen", return_value=Mock(status=401)) as request:
+                 patch.object(recon._OPENER, "open", return_value=Mock(status=401)) as request:
                 items = recon.openapi_recon(scope, log=Mock(), allow_intrusive=intrusive)
                 self.assertEqual({item["method"] for item in items}, {"GET", "POST", "DELETE"})
                 self.assertEqual([call.args[0].get_method() for call in request.call_args_list],

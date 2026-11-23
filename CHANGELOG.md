@@ -84,6 +84,18 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   correctly and composes with `--top-voted`/`--top-bounty`. Lookup progress moved to stderr so
   `--json` stdout stays pipeable. Two independent reports converged here: @roonnnnyyyyyy (#206) and
   @flipcyde101 (#202).
+- **Scope gate hardening (`engine/scope.py`, `engine/recon.py`)** — three independently
+  reported fail-open paths in the deterministic scope gate. (1) Out-of-scope rules written with a
+  scheme/port/path/trailing punctuation, a wildcard, or an IPv6 CIDR matched nothing and silently
+  failed open; every rule source is now normalized to a host in one place, IPv6 CIDRs are recognized,
+  and a bad `out-of-scope` regex warns and degrades to a literal host rule instead of silently
+  matching nothing (reported by @fairoz-539, #182). (2) A recon-seeded note heading
+  (`… VERIFY in-scope before testing`) matched the `in-scope` substring and promoted passive recon
+  hosts to scope rules; a section now opens only on a start/end scope label, and recon hosts are
+  surfaced as a hint (reported by @udarshmarthala, #198). (3) Recon HTTP fetches followed redirects
+  to any host and the auth sweep graded a `302 → /login` as broken auth; redirects are now followed
+  one hop at a time only while in scope, and the auth sweep no longer follows them (reported by
+  @fairoz-539, #181). All rule-source changes are visible through a new `Scope.warnings` channel.
 - `hunt-clickjacking`, `hunt-html-injection`: quoted the `description` — an unquoted `: ` (`Targets:`,
   `surfaces:`) broke strict YAML / Codex. Also genericized lab/harness-specific language in the new
   skills for cross-harness portability.

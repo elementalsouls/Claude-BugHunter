@@ -19,8 +19,9 @@ class EnumerationRootTests(unittest.TestCase):
             (["app.example.com"], ["https://app.example.com"], ["app.example.com"]),
             # IP literals produce no enumeration root
             (["127.0.0.1", "::1"], ["http://127.0.0.1", "http://[::1]"], []),
-            # non-domain rules (regex, path, port) are not roots
-            (["re:.*example.com", "example.com/path", "example.com:8080"], [], []),
+            # regex rules are not roots; path/port forms are normalized to the host
+            # by the scope gate (#205), so they DO contribute example.com as a root
+            (["re:.*example.com", "example.com/path", "example.com:8080"], [], ["example.com"]),
             # seed nothing covers → full hostname, lowercased, trailing dot stripped
             ([], ["https://App.Example.COM./"], ["app.example.com"]),
             # seed covered by two domains → shortest covering root plus both domains

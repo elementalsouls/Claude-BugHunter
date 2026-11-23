@@ -40,11 +40,16 @@ def _match(pattern, host):
         except re.error:
             return False
     p = p.lower()
-    if "/" in p and p.replace(".", "").replace("/", "").isdigit():  # CIDR
+    if "/" in p:                                   # CIDR (IPv4 or IPv6)
         try:
-            return ipaddress.ip_address(host) in ipaddress.ip_network(p, strict=False)
+            net = ipaddress.ip_network(p, strict=False)
         except ValueError:
-            return False
+            net = None
+        if net is not None:
+            try:
+                return ipaddress.ip_address(host) in net   # family mismatch -> False
+            except ValueError:
+                return False
     if p.startswith("*."):
         base = p[2:]
         return host.endswith("." + base)
@@ -52,12 +57,84 @@ def _match(pattern, host):
     return host == p or host.endswith("." + p)
 
 
+def _is_cidr(rule):
+    try:
+        ipaddress.ip_network(rule, strict=False)
+        return "/" in rule
+    except ValueError:
+        return False
+
+
+def _normalize_rule(rule):
+    """Reduce any rule-source form to a host (or keep re:/wildcard/CIDR as-is).
+
+    `https://app.example.com:8443/login` -> `app.example.com`. Deny/allow rules are
+    matched against the URL's host, so a rule carrying a scheme/port/path matched
+    nothing and silently failed open — this is the one normalization point for every
+    source (scope.md, scope.json, CLI flags, osint/recon helpers).
+    """
+    r = rule.strip().strip("`\"'").rstrip(".,; ").strip()
+    if r[:3].lower() == "re:":
+        return r
+    low = r.lower()
+    if "://" in low:
+        low = low.split("://", 1)[1]
+    low = low.split("@")[-1]                       # drop userinfo
+    if _is_cidr(low.split()[0] if low.split() else low):
+        return low
+    wild = low.startswith("*.")
+    core = low[2:] if wild else low
+    bare = core.strip("[]").split("%")[0]          # IPv6 may be bracketed or %zone-scoped
+    try:
+        return str(ipaddress.ip_address(bare))     # literal IP (incl. unbracketed IPv6)
+    except ValueError:
+        pass
+    try:
+        host = urlparse("//" + core).hostname or ""
+    except ValueError:
+        host = ""
+    host = (host or core.split("/")[0].split(":")[0]).rstrip(".")
+    return ("*." + host) if wild else host
+
+
 class Scope:
     def __init__(self, in_scope, out_of_scope=None, seeds=None, name="engagement"):
-        self.in_scope = [p for p in (in_scope or []) if p.strip()]
-        self.out_of_scope = [p for p in (out_of_scope or []) if p.strip()]
+        self.warnings = []
+        self.in_scope = [self._norm(p) for p in (in_scope or []) if p.strip()]
+        self.out_of_scope = [self._validate_out_regex(self._norm(p))
+                             for p in (out_of_scope or []) if p.strip()]
         self.seeds = seeds or []
         self.name = name
+
+    def _validate_out_regex(self, rule):
+        """An out-of-scope deny rule must not fail open. A bad re: regex would match
+        nothing silently, so warn loudly and re-admit it as a literal host rule — the
+        run continues with scope still enforcing something (softer than hard-stopping)."""
+        if rule[:3].lower() != "re:":
+            return rule
+        try:
+            re.compile(rule[3:])
+            return rule
+        except re.error as err:
+            literal = _normalize_rule(rule[3:])
+            self.warnings.append(
+                f"out-of-scope regex {rule!r} is invalid: {err} — treating as a literal "
+                f"host rule {literal!r}; fix it to restore regex matching")
+            return literal
+
+    def _norm(self, rule):
+        normalized = _normalize_rule(rule)
+        if normalized[:3].lower() == "re:":
+            return normalized
+        body = rule.strip().strip("`\"'").rstrip(".,; ")
+        body = body.split("://", 1)[-1].split("@")[-1]
+        hostpart = body.split("/")[0]
+        had_path = "/" in body and not _is_cidr(normalized)
+        had_port = ":" in hostpart and not _is_cidr(normalized)
+        if had_path or had_port:
+            self.warnings.append(
+                f"scope rule {rule!r} widened to host {normalized!r} (scope is per-host)")
+        return normalized
 
     @classmethod
     def load(cls, path):
@@ -112,20 +189,22 @@ def _selftest():
     print("scope.py self-test: PASS")
 
 
-def _rule_from_token(token):
-    """Normalize one scope.md bullet token into a host rule.
+def _section_of(heading):
+    """Return 'in'/'out' only when the heading's label STARTS or ENDS with a scope
+    phrase — not when it merely mentions one mid-sentence. A recon-seeded note
+    heading ('... VERIFY in-scope before testing') must not open the in-scope section
+    and silently promote passive recon hosts to scope rules (#198)."""
+    label = heading.lstrip("#").strip().strip("*`").strip()
+    label = re.sub(r"\s*\([^)]*\)\s*$", "", label)      # drop a trailing (note)
+    label = label.rstrip(":").strip().lower()
+    for phrase in ("out of scope", "out-of-scope"):
+        if label.startswith(phrase) or label.endswith(phrase):
+            return "out"
+    for phrase in ("in scope", "in-scope"):
+        if label.startswith(phrase) or label.endswith(phrase):
+            return "in"
+    return None
 
-    `https://app.example.com/login?x=1` -> `app.example.com`.
-    Explicit-rule forms (`re:`, CIDR, `*.host`) and already-bare hosts are kept as-is.
-    """
-    t = token.strip()
-    if t[:3].lower() == "re:" or ("://" not in t and not t.startswith("//")):
-        return t
-    try:
-        host = urlparse(t if "://" in t else "//" + t).hostname or ""
-    except ValueError:
-        return t
-    return host or t
 
 def _scope_from_md(path):
     """Build a Scope from a scaffolded scope.md (the `hunt` template).
@@ -139,31 +218,49 @@ def _scope_from_md(path):
     rule match nothing and the whole engagement default-deny.
     """
     in_scope, out_scope, section = [], [], None
+    recon_hits, recon_label, recon_count = [], None, 0
     with open(path, encoding="utf-8") as fh:
         for line in fh:
             low = line.strip().lower()
             if low.startswith("#"):
+                if recon_label and recon_count:
+                    recon_hits.append((recon_label, recon_count))
+                recon_label, recon_count = None, 0
                 hashes = len(low) - len(low.lstrip("#"))
-                if "out of scope" in low or "out-of-scope" in low:
-                    section = "out"
-                elif "in scope" in low or "in-scope" in low:
-                    section = "in"
+                sec = _section_of(line.strip())
+                if sec is not None:
+                    section = sec
+                elif "scope" in low:
+                    # mentions scope but isn't a scope label (recon-seeded note heading)
+                    section, recon_label = None, line.strip().lstrip("#").strip()
                 elif hashes <= 2:
                     section = None     # a peer-level section (## Focus areas, etc.)
                 # deeper sub-headings (### Web, #### APIs) keep the current section
                 continue
             s = line.strip()
-            if section and (s.startswith("- ") or s.startswith("* ")):
-                tok = s[2:].strip().split()[0:1]
-                if not tok:
-                    continue
-                pat = tok[0].strip("`\"'")
-                if pat.startswith("**") and pat.endswith("**") and len(pat) > 4:
-                    pat = pat[2:-2]   # bullet written in bold, e.g. '**api.example.com**'
-                if not pat or pat.startswith("(") or pat.startswith("["):
-                    continue          # placeholder text, not a real pattern
-                (in_scope if section == "in" else out_scope).append(_rule_from_token(pat))
-    return Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
+            if not (s.startswith("- ") or s.startswith("* ")):
+                continue
+            if not section:
+                if recon_label:
+                    recon_count += 1      # a host listed under a recon-seeded note heading
+                continue
+            tok = s[2:].strip().split()[0:1]
+            if not tok:
+                continue
+            pat = tok[0].strip("`\"'")
+            if pat.startswith("**") and pat.endswith("**") and len(pat) > 4:
+                pat = pat[2:-2]   # bullet written in bold, e.g. '**api.example.com**'
+            if not pat or pat.startswith("(") or pat.startswith("["):
+                continue          # placeholder text, not a real pattern
+            (in_scope if section == "in" else out_scope).append(pat)
+    if recon_label and recon_count:
+        recon_hits.append((recon_label, recon_count))
+    scope = Scope(in_scope=in_scope, out_of_scope=out_scope, name=path)
+    for label, n in recon_hits:
+        scope.warnings.append(
+            f"{n} recon-seeded host(s) found under {label!r} — "
+            f"add them to '## In scope' to test them.")
+    return scope
 
 
 def _main(argv=None):
@@ -196,6 +293,10 @@ def _main(argv=None):
 
     if not args.targets:
         ap.error("no targets given")
+
+    import sys
+    for w in getattr(scope, "warnings", []):
+        print(f"scope: warning: {w}", file=sys.stderr)
 
     worst = 0
     for t in args.targets:
