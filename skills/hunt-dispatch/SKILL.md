@@ -247,6 +247,10 @@ hunt-nextjs          hunt-nodejs          hunt-dom
 hunt-websocket       hunt-grpc            hunt-laravel
 hunt-springboot      hunt-k8s             hunt-cicd
 hunt-source-leak     hunt-tls-network
+hunt-jwt-crypto      hunt-forgot-password hunt-captcha-bypass
+hunt-shadow-api      hunt-spa-api         hunt-fintech-graphql
+hunt-clickjacking    hunt-html-injection
+hunt-rag-vector      hunt-exceptional-conditions
 ```
 
 report format: `report-writing` (`bugcrowd-reporting` if the target is on bugcrowd).
