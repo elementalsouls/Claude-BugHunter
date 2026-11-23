@@ -73,12 +73,25 @@ def extract_json(text):
             continue
         if isinstance(value, (dict, list)):
             return value
-    for b in reversed(re.findall(r"(\[.*\]|\{.*\})", text, re.S)):
-        try:
-            return json.loads(b)
-        except Exception:
-            pass
-    return None
+    # No fence: scan every top-level JSON value and keep the last. A greedy
+    # {.*} span breaks on any earlier brace (e.g. a curl payload in the prose).
+    dec = json.JSONDecoder()
+    last = None
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] in "[{":
+            try:
+                value, end = dec.raw_decode(text, i)
+            except json.JSONDecodeError:
+                i += 1
+                continue
+            if isinstance(value, (dict, list)):
+                last = value
+            i = end
+        else:
+            i += 1
+    return last
 
 
 if __name__ == "__main__":
