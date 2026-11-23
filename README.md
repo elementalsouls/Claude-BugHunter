@@ -9,17 +9,18 @@ Built by **[Sachin Sharma](https://www.linkedin.com/in/sachinsharma8080/)** — 
 <p align="center">
   <sub>SPONSORED BY</sub>
   <br/>
+  <br/>
   <a href="https://www.apismart.ai/">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/apismart-dark.png">
-      <img alt="ApiSmart" src="assets/sponsors/apismart-light.png" height="30">
+      <img alt="ApiSmart" src="assets/sponsors/apismart-light.png" height="28" align="middle">
     </picture>
   </a>
-  &nbsp;&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://threatwatch360.com">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/tw360-dark.svg">
-      <img alt="ThreatWatch360" src="assets/sponsors/tw360-light.svg" height="30">
+      <source media="(prefers-color-scheme: dark)" srcset="assets/sponsors/tw360-badge-dark.svg">
+      <img alt="ThreatWatch360" src="assets/sponsors/tw360-badge-light.svg" height="26" align="middle">
     </picture>
   </a>
 </p>
