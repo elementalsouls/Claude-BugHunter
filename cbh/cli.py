@@ -564,9 +564,12 @@ def classify_url(url: str) -> dict:
     parsed = urllib.parse.urlparse(url)
     raw = url
 
+    # ponytail: match patterns against path+query so hostnames don't trigger path patterns
+    path_and_query = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+
     # Pattern triggers
     for pattern, skill_names in URL_PATTERN_TO_SKILLS:
-        if re.search(pattern, raw, re.I):
+        if re.search(pattern, path_and_query, re.I):
             for s in skill_names:
                 matches.setdefault(s, []).append(f"URL matches /{pattern}/")
 
