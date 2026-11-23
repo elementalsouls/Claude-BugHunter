@@ -88,6 +88,22 @@ def main():
         os.remove(deny)
         assert mod.main([clean]) == 2, "expected FAIL-CLOSED (exit 2) on missing denylist"
 
+        # 6. a malformed denylist entry fails CLOSED (exit 2), names the line, not its content
+        import io
+        import contextlib
+        bad_token = "not-a-sha256-hash"
+        with open(deny, "w") as fh:
+            fh.write("# header\n" + banned + "\n" + bad_token + "\n")
+        err = io.StringIO()
+        try:
+            with contextlib.redirect_stderr(err):
+                rc = mod.main([clean])
+        except SystemExit as e:
+            rc = e.code
+        assert rc == 2, "expected FAIL-CLOSED (exit 2) on malformed denylist entry"
+        assert ":3" in err.getvalue(), "error must point to the offending line (3)"
+        assert bad_token not in err.getvalue(), "must not print the offending content"
+
     print("PASS: scan_identifiers self-check (catch, clean, case-insensitive, fail-closed)")
     return 0
 
