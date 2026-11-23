@@ -11,6 +11,7 @@ The live in-scope targets feed per-target recon. No LLM in enumeration (it's mec
 PD httpx isn't reliably present (the `httpx` on PATH is often the Python lib), so the
 liveness/tech probe uses a robust curl-based fingerprint that always works.
 """
+import ipaddress
 import json
 import re
 import subprocess
@@ -136,17 +137,38 @@ def probe_hosts(hosts, log=print):
     return [t for t in targets if t], "curl(fallback — install PD httpx-toolkit)"
 
 
+def enumeration_roots(scope):
+    """Derive enumeration roots from authorized domains without guessing suffixes."""
+    domains = set()
+    for p in scope.in_scope:
+        p = p.lower().rstrip(".")
+        if p.startswith("*."):
+            p = p[2:]
+        if "." in p and "/" not in p and ":" not in p and not p.startswith("re:"):
+            try:
+                ipaddress.ip_address(p)
+            except ValueError:
+                domains.add(p)
+    roots = set(domains)
+    for seed in scope.seeds:
+        try:
+            host = urlparse(seed if "://" in seed else "//" + seed).hostname
+        except ValueError:
+            continue
+        if not host:
+            continue
+        host = host.lower().rstrip(".")
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            covering = [p for p in domains if host == p or host.endswith("." + p)]
+            roots.add(min(covering, key=len) if covering else host)
+    return sorted(roots)
+
+
 def osint(scope, log=print, max_probe=80):
     """Return live in-scope targets [{host,url,status,server,title,tech}]."""
-    apexes = set()
-    for s in scope.seeds:
-        h = urlparse(s if "://" in s else "//" + s).hostname
-        if h:
-            apexes.add(".".join(h.split(".")[-2:]))
-    for p in scope.in_scope:
-        p = p.lstrip("*.")
-        if "." in p and "/" not in p and ":" not in p and not p.startswith("re:"):
-            apexes.add(p)
+    apexes = enumeration_roots(scope)
     log(f"osint: apex domain(s): {', '.join(sorted(apexes)) or '(none)'}")
 
     subs = set()

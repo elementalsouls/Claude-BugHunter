@@ -49,6 +49,8 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **OSINT enumeration roots** — derive roots from authorized scope domains instead of
+  truncating seed hosts to two labels, avoiding public-suffix queries such as `co.uk`.
 - **`cbh triage` 7-Question Gate — three false-verdict paths** (built in-house, reporters credited):
   Q1 matched a bare method word anywhere in the text, so prose like `target application`
   (contains `get `) or `input validation` passed Q1 with no request — Q1 now requires a method
