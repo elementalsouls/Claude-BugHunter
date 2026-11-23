@@ -280,7 +280,7 @@ The per-class `hunt-*` skills address gap-zero (*"what should I look for in weba
 - [x] HackerOne MCP integration — [`mcp/hackerone/`](mcp/hackerone/README.md): disclosed-report duplicate search, program stats and scope; optional logged-in mode for private programs and your own reports
 - [ ] Per-engagement memory layer — pattern recall across targets
 - [x] Industry-specific hunt skills — `hunt-fintech-graphql` shipped; `hunt-healthcare-fhir`, `hunt-gov-compliance` still open
-- [ ] Program-rules-parser skill — auto-generate structured `scope.md` from program text
+- [x] Program-scope importer — `cbh scope import` builds `scope.md` from a program's published scope (HackerOne, Bugcrowd, Intigriti, YesWeHack via [bounty-targets-data](https://github.com/arkadiyt/bounty-targets-data); HackerOne MCP output for private programs; or pasted program text), failing closed on anything ambiguous — see [`cbh` CLI](docs/cbh-cli.md)
 - [ ] Refresh `hunt-*` skills with newer disclosed reports (re-run `public-skills-builder`)
 - [ ] Additional enterprise-platform skills — `citrix-netscaler-deep`, `f5-bigip-attack`, `ad-cs-attack` (AD Certificate Services)
 - [ ] Refresh enterprise-VPN CVE matrix quarterly to track 2026 advisories
