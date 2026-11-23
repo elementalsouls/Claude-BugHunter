@@ -49,6 +49,22 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Five terminal-tooling / engine correctness bugs** (built in-house, reporters credited):
+  `cbh classify` matched URL path patterns against the whole URL, so a keyword in the
+  hostname (`verify.example.com`, `cart.shop.example`) false-triggered a skill — it now
+  matches the path and query only (reported by @Prasad-Pitke, #219 / #218); the engine's
+  unfenced `extract_json` used one greedy `{.*}` span, so an earlier brace (a curl payload
+  in the reply) made it unparseable and the verdict was lost — it now keeps the last
+  top-level JSON value (reported by @thejesh23, #217); `secret_scan` skipped noisy
+  directories by substring of the whole path including the root, so scanning `./dist`,
+  `.github/` or `nightly-builds/` silently scanned nothing and exited a false *clean* — it
+  now prunes skip directories by exact name below the root and always scans the root
+  (reported by @thejesh23, #216); subdomain enumeration took the apex by truncating a seed
+  host to two labels, landing on the public suffix (`example.co.uk` → `co.uk`) so `--expand`
+  never enumerated the target — roots are now derived from the authorized scope domains
+  (reported by @JasonOA888, #213); and the leak guard loaded malformed `.sha256` denylist
+  entries verbatim as hashes that match nothing, a silent false-negative — it now fails
+  closed on a non-digest entry, naming the line (reported by @Taylor15200, #212).
 - **`cbh triage` 7-Question Gate — three false-verdict paths** (built in-house, reporters credited):
   Q1 matched a bare method word anywhere in the text, so prose like `target application`
   (contains `get `) or `input validation` passed Q1 with no request — Q1 now requires a method
