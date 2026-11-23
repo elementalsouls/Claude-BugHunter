@@ -564,9 +564,14 @@ def classify_url(url: str) -> dict:
     parsed = urllib.parse.urlparse(url)
     raw = url
 
+    # The URL patterns describe paths (they start with "/"), so match them against the
+    # path and query only. Matching the full URL lets the "//" before the hostname satisfy
+    # a pattern such as /(2fa|mfa|otp|verify), e.g. for https://verify.example.com/home.
+    path_and_query = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+
     # Pattern triggers
     for pattern, skill_names in URL_PATTERN_TO_SKILLS:
-        if re.search(pattern, raw, re.I):
+        if re.search(pattern, path_and_query, re.I):
             for s in skill_names:
                 matches.setdefault(s, []).append(f"URL matches /{pattern}/")
 
