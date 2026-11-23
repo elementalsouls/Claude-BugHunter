@@ -130,13 +130,16 @@ def scan_text(text: str, source: str = "<stdin>"):
                 }
 
 
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", ".cache"}
+
+
 def scan_path(path: str):
     """Recursively scan a file or directory."""
     if os.path.isdir(path):
-        for root, _, files in os.walk(path):
-            # Skip common noisy directories
-            if any(part in root for part in (".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", ".cache")):
-                continue
+        for root, dirs, files in os.walk(path):
+            # Prune common noisy directories by exact name below the requested
+            # root. The root itself is always scanned: the operator asked for it.
+            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
             for f in files:
                 p = os.path.join(root, f)
                 yield from scan_path(p)
