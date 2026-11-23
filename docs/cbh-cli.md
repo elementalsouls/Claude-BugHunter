@@ -50,6 +50,23 @@ Or run inline from a repo checkout:
 scripts/cbh.py --help
 ```
 
+### PyPI install (after the first release)
+
+Once the first PyPI release is published (see #211), install the CLI as a
+versioned package instead of tracking `main` from a git URL:
+
+```bash
+pipx install claude-bughunter        # or: pipx install claude-bughunter==2.1.0
+pipx install "claude-bughunter[http]"  # optional: requests-backed HTTP
+pipx upgrade claude-bughunter
+pipx uninstall claude-bughunter
+```
+
+Until that first release lands, the clone / zero-install path above stays the
+way to install. Note: installing the PyPI package installs only the `cbh`
+CLI — not the 82 Agent Skills, which still come from the repo (plugin or
+installer).
+
 ## Operating modes
 
 ### Mode 1 — Curl-only (default)
@@ -238,3 +255,28 @@ For senior pentesters: a productivity multiplier that does the boring orchestrat
 For junior researchers: a guardrail that prevents the top three N/A-submission classes (no real HTTP test, no concrete impact, finding on never-submit list).
 
 **Choice not dogma:** operators with no Burp run curl-only; operators with Burp Pro route via `--burp`; operators with Burp + MCP drive everything from a Claude Code conversation. All three are first-class supported.
+
+## Releasing `cbh` (maintainers)
+
+Releases are published to PyPI by `.github/workflows/publish.yml` (Trusted
+Publishing, no API token). Checklist for cutting a release:
+
+1. Bump `version` in `pyproject.toml` and record the changes under
+   `CHANGELOG.md` → `[Unreleased]`.
+2. Merge the release changes, then create a tag that exactly matches the
+   package version: `git tag vX.Y.Z` for version `X.Y.Z` (e.g. `v2.1.0` for
+   `2.1.0`). The workflow rejects any tag that does not match — the
+   existing tags are 2-part (`v2.1`, `v2.0`), so the next release tag must
+   be 3-part.
+3. Push the tag and wait for the `publish` workflow: the build job checks
+   the tag, builds the sdist + wheel, runs `twine check --strict`, and
+   smoke-tests the wheel and sdist in isolated venvs; the publish job then
+   uploads to PyPI with PEP 740 attestations.
+4. Verify the release on https://pypi.org/project/claude-bughunter/ and
+   test the install in a clean environment:
+   `pipx install claude-bughunter==X.Y.Z && cbh --help`.
+
+One-time setup before the first release: create the PyPI project and add
+this repo as a trusted publisher (owner `elementalsouls`, repo
+`Claude-BugHunter`, workflow `publish.yml`, environment `pypi`), and create
+the `pypi` GitHub environment if it does not exist yet.

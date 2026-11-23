@@ -4,34 +4,102 @@ name: publish
 # installed as a versioned artifact (`pipx install claude-bughunter`) instead
 # of tracking `main` from a git URL (issue #211). Uses PyPI Trusted
 # Publishing (OIDC) — no long-lived API token. The maintainer still has to
-# create the PyPI project and add this repo as a trusted publisher once;
-# until then the publish step fails without publishing anything.
+# create the PyPI project, add this repo as a trusted publisher (owner
+# `elementalsouls`, repo `Claude-BugHunter`, workflow `publish.yml`,
+# environment `pypi`), and create the `pypi` GitHub environment if it does
+# not exist yet; until then the publish job fails without publishing anything.
+#
+# Tag convention: tags must be exactly `v` + the version in pyproject.toml
+# (e.g. v2.1.0 for 2.1.0). The existing tags are 2-part (v2.1, v2.0) — the
+# build job rejects those so a tag never publishes a mismatched version.
+# Which convention the maintainer wants going forward is an open question
+# for #211 (switch to vX.Y.Z tags, keep vX.Y and normalize, or start
+# publishing from the next release).
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch: # build + verify only; the publish job stays tag-gated
 
 permissions:
   contents: read
-  id-token: write # OIDC for PyPI Trusted Publishing
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
-    name: build + publish to PyPI
+  build:
+    name: build + verify
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install build tooling
-        run: python -m pip install --upgrade pip build
-      - name: Build sdist + wheel
-        run: python -m build
-      - name: Verify the built wheel installs and runs
+      - name: Check tag matches pyproject version
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
-          python -m pip install dist/*.whl
-          cbh --help
+          python3 - <<'PYEOF'
+          import os, sys, tomllib
+          version = tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]
+          expected = "v" + version
+          tag = os.environ["GITHUB_REF_NAME"]
+          if tag != expected:
+              print(f"FAIL: tag {tag!r} != expected {expected!r} (pyproject version {version}); tags must be vX.Y.Z matching pyproject.toml")
+              sys.exit(1)
+          print(f"OK: tag {tag} matches pyproject version {version}")
+          PYEOF
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build twine
+      - name: Build sdist + wheel
+        run: python -m build --sdist --wheel --outdir dist/
+      - name: Check distribution metadata
+        run: python -m twine check --strict dist/*
+      - name: Check wheel contents
+        run: |
+          python -m zipfile -l dist/*.whl
+          python -c "import zipfile, glob; z = zipfile.ZipFile(glob.glob('dist/*.whl')[0]); names = z.namelist(); assert 'cbh/data/skill_index.json' in names, 'skill_index.json missing from wheel'; assert not any(n.startswith(('tests/', 'scripts/', '.github/')) for n in names), 'unexpected files in wheel'; print('OK: skill_index.json present, no stray files')"
+      - name: Verify the built wheel installs and runs (isolated)
+        run: |
+          cd /tmp
+          python -m venv /tmp/cbh-wheel-smoke
+          /tmp/cbh-wheel-smoke/bin/python -m pip install --quiet "$GITHUB_WORKSPACE"/dist/*.whl
+          /tmp/cbh-wheel-smoke/bin/cbh --help
+          for c in recon surface classify triage report; do /tmp/cbh-wheel-smoke/bin/cbh "$c" --help >/dev/null; done
+      - name: Verify the sdist installs and runs (isolated)
+        run: |
+          cd /tmp
+          python -m venv /tmp/cbh-sdist-smoke
+          /tmp/cbh-sdist-smoke/bin/python -m pip install --quiet "$GITHUB_WORKSPACE"/dist/*.tar.gz
+          /tmp/cbh-sdist-smoke/bin/cbh --help
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  publish:
+    name: publish to PyPI
+    needs: build
+    if: github.repository == 'elementalsouls/Claude-BugHunter' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/p/claude-bughunter
+    permissions:
+      contents: read
+      id-token: write # OIDC for PyPI Trusted Publishing
+      attestations: write # PEP 740 provenance attestations
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
