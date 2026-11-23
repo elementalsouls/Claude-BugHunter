@@ -112,9 +112,8 @@ class Engine:
         it. The apex alone is usually a marketing page; the real surface is on subdomains."""
         import osint as O
         from urllib.parse import urlparse
-        apexes = {".".join((urlparse(s).hostname or "").split(".")[-2:]) for s in self.scope.seeds}
         subs = set()
-        for apex in sorted(a for a in apexes if a):
+        for apex in O.enumeration_roots(self.scope):
             subs |= O.enumerate_subdomains(apex, log=self.eng.log)
         in_scope = [s for s in sorted(subs) if self.scope.in_scope_host(s)]
         self.eng.log(f"expand: {len(subs)} subdomain(s) -> {len(in_scope)} in scope; probing liveness...")

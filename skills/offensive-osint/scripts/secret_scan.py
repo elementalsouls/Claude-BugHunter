@@ -114,6 +114,9 @@ PATTERNS = [
 
 COMPILED = [(n, s, c, re.compile(p)) for (n, s, c, p) in PATTERNS]
 
+# Noisy directories pruned by exact name below the scan root (never the root itself).
+SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", ".cache"}
+
 
 def scan_text(text: str, source: str = "<stdin>"):
     """Scan a text blob; yield one dict per match."""
@@ -133,10 +136,11 @@ def scan_text(text: str, source: str = "<stdin>"):
 def scan_path(path: str):
     """Recursively scan a file or directory."""
     if os.path.isdir(path):
-        for root, _, files in os.walk(path):
-            # Skip common noisy directories
-            if any(part in root for part in (".git", "node_modules", "__pycache__", ".venv", "venv", "dist", "build", ".cache")):
-                continue
+        for root, dirs, files in os.walk(path):
+            # Prune noisy directories by exact name BELOW the root — never the root
+            # itself. A substring test on the whole path skipped `./dist`, `.github`
+            # (contains `.git`) etc., scanning nothing and exiting a false "clean".
+            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
             for f in files:
                 p = os.path.join(root, f)
                 yield from scan_path(p)

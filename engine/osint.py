@@ -11,6 +11,7 @@ The live in-scope targets feed per-target recon. No LLM in enumeration (it's mec
 PD httpx isn't reliably present (the `httpx` on PATH is often the Python lib), so the
 liveness/tech probe uses a robust curl-based fingerprint that always works.
 """
+import ipaddress
 import json
 import re
 import subprocess
@@ -136,21 +137,56 @@ def probe_hosts(hosts, log=print):
     return [t for t in targets if t], "curl(fallback — install PD httpx-toolkit)"
 
 
+def _is_ip(host):
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        return False
+
+
+def enumeration_roots(scope):
+    """Subdomain-enumeration roots taken from the authorized scope.
+
+    Truncating a seed to its last two labels lands on the public suffix for
+    multi-label TLDs (example.co.uk -> co.uk), so enumeration queried the whole
+    suffix and the in-scope filter discarded everything. Instead: every domain
+    rule in scope is a root; a seed covered by one uses the shortest covering
+    root; an uncovered seed is enumerated as its full hostname. No suffix list.
+    """
+    domains = set()
+    for p in scope.in_scope:
+        p = p.strip().lower().rstrip(".")
+        if p.startswith("*."):
+            p = p[2:]
+        if not p or "/" in p or ":" in p or p.startswith("re:") or "." not in p:
+            continue
+        if _is_ip(p):
+            continue
+        domains.add(p)
+    roots = set(domains)
+    for seed in scope.seeds:
+        try:
+            host = urlparse(seed if "://" in seed else "//" + seed).hostname
+        except ValueError:
+            continue
+        if not host:
+            continue
+        host = host.lower().rstrip(".")
+        if _is_ip(host):
+            continue
+        covering = [d for d in domains if host == d or host.endswith("." + d)]
+        roots.add(min(covering, key=len) if covering else host)
+    return sorted(roots)
+
+
 def osint(scope, log=print, max_probe=80):
     """Return live in-scope targets [{host,url,status,server,title,tech}]."""
-    apexes = set()
-    for s in scope.seeds:
-        h = urlparse(s if "://" in s else "//" + s).hostname
-        if h:
-            apexes.add(".".join(h.split(".")[-2:]))
-    for p in scope.in_scope:
-        p = p.lstrip("*.")
-        if "." in p and "/" not in p and ":" not in p and not p.startswith("re:"):
-            apexes.add(p)
-    log(f"osint: apex domain(s): {', '.join(sorted(apexes)) or '(none)'}")
+    apexes = enumeration_roots(scope)
+    log(f"osint: apex domain(s): {', '.join(apexes) or '(none)'}")
 
     subs = set()
-    for apex in sorted(apexes):
+    for apex in apexes:
         subs |= enumerate_subdomains(apex, log)
     in_scope = [s for s in sorted(subs) if scope.in_scope_host(s)]
     log(f"osint: {len(subs)} name(s) discovered -> {len(in_scope)} in scope; probing liveness + tech...")
