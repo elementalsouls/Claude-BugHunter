@@ -27,6 +27,7 @@ from state import Engagement       # noqa: E402
 import agent as A                  # noqa: E402
 import memory                     # noqa: E402  (autopilot ledger; import-isolated)
 import closure                    # noqa: E402  (coverage ledger / closure gate)
+import verifier                   # noqa: E402  (deterministic evidence capture + corroboration; never gates)
 
 # deterministic priority by class (impact-ish); used by rank. Keep in sync with
 # skill_map.CLASS_SKILL so every routed class gets a sensible (non-default) weight.
@@ -284,6 +285,14 @@ class Engine:
                         "request": f.get("request", ""), "proof_note": f.get("proof_note", ""),
                         "scope_warning": oos or None}
                 self.eng.mark_tested(it, candidate=cand, coverage="finding")
+                # Deterministic, read-only evidence capture (never gates promotion).
+                # Best-effort: a capture failure must never break the hunt.
+                if not getattr(self, "mock", True):
+                    try:
+                        verifier.capture_exchange(cand, verifier.default_fetch, self.scope)
+                        self.eng.save()
+                    except Exception as e:
+                        self.eng.log(f"verifier: capture skipped ({e})")
                 self.eng.log((f"hunt: ⚠ CANDIDATE {cand['vuln_class']} @ {it['url']} — PoC touched OUT-OF-SCOPE "
                               f"host(s): {', '.join(oos)} (flagged)") if oos
                              else f"hunt: CANDIDATE {cand['vuln_class']} @ {it['url']}")
@@ -345,6 +354,13 @@ class Engine:
             elif v.get("real"):
                 if v.get("severity"):
                     c["severity"] = v["severity"]  # use the validator's CALIBRATED severity, not the hunt's
+                # Deterministic corroboration tag (EVIDENCE, not a gate): pure, no
+                # network, no effect on this confirm() decision. Tag rides into the
+                # stored finding via confirm()'s copy. Best-effort.
+                try:
+                    verifier.corroborate(c)
+                except Exception as e:
+                    self.eng.log(f"verifier: corroborate skipped ({e})")
                 self.eng.confirm(c, v)
                 if not self.mock:
                     try:
@@ -407,7 +423,16 @@ class Engine:
                 block.append(f"- **Proof note:** {f['proof_note']}")
             block += [f"- **Evidence:** {f.get('evidence','')}",
                       f"- **Request:** `{f.get('request','')}`",
-                      f"- **Verifier:** {f.get('verdict',{}).get('reason','')}", ""]
+                      f"- **Verifier:** {f.get('verdict',{}).get('reason','')}"]
+            if f.get("corroboration"):
+                block.append(f"- **Corroboration (deterministic, not a gate):** "
+                             f"{f['corroboration']} — {f.get('corroboration_signal','')}")
+            ex = f.get("exchange") or {}
+            if ex.get("replayed"):
+                block.append(f"- **Captured exchange:** `{ex.get('request_line','')}` → "
+                             f"HTTP {ex.get('status','?')}"
+                             + (f", Location: `{ex['location']}`" if ex.get("location") else ""))
+            block.append("")
             lines += block
         # Coverage caveats are generated from the ledger, never hand-written.
         lines += ["", closure.render_caveats(self.eng.state, cov)]
