@@ -434,14 +434,15 @@ The validation engagement that produced this stack illustrated all three: the or
 
 If you keep using this and want to extend it:
 
-1. **Per-engagement memory — ✅ now shipped (the autopilot ledger).** The engine auto-captures confirmed findings and dead-class negatives to `~/.claude/bughunter/memory/`, and the autonomous hunt loop can skip provably-wasteful agent calls — re-confirming a finding already confirmed on a prior run, or re-testing a vuln class that never pays off on a stack.
-   - **Off by default = full coverage.** Enable per run with `--use-memory`:
+1. **Per-engagement memory — ✅ now shipped (the autopilot ledger).** The autopilot ledger captures confirmed findings and dead-class negatives to `~/.claude/bughunter/memory/` (hostnames + URLs), and the autonomous hunt loop can skip provably-wasteful agent calls — re-confirming a finding already confirmed on a prior run, or re-testing a vuln class that never pays off on a stack.
+   - **Opt-in, off by default — and the default pools nothing.** `--use-memory` governs **both** the reads (the skips) **and** the writes (the cross-engagement capture). A default run keeps full coverage **and** persists **nothing** target-identifying across engagements — important on authorized client work. Per-engagement state still lives (and dies) in `<base>/<name>/`.
      ```bash
      python3 engine/engine.py --scope <engagement>.json --hunt --use-memory
      ```
-   - `/autopilot` maps modes to it: `--paranoid` (default) / `--normal` → memory **off** (full coverage); `--quick` / `--yolo` → memory **on** (token-saving skips).
-   - A class never hunted on a stack is never skipped, and every skip is logged — coverage is never silently reduced. Manage the store with `/memory-gc`; review a target's history with `/pickup <host>`.
+   - `/autopilot` maps modes to it: `--paranoid` (default) / `--normal` → memory **off** (full coverage, nothing pooled); `--quick` / `--yolo` → memory **on** (persistent recall + token-saving skips).
+   - A class never hunted on a stack is never skipped, and every skip is logged — coverage is never silently reduced. Manage the store with `/memory-gc`; review a target's history with `/pickup <host>` (populated only on `--use-memory` runs).
    - Benefit scales with repeat targets / recurring stacks; expect little effect on a cold start (new or one-off stack).
+   - **Leak-proof alternative — `--use-metrics`.** Want cross-target learning *without* storing any host/URL? `--use-metrics` records a separate store of **generic counters only** — attempts / successes / cost keyed by tech-stack signature + vuln-class — and ranks class suggestions by past hit-rate in `arsenal.md`. It never stores a hostname, URL, payload, or body (fail-closed), never auto-fires, and leaves scope, the corroborator, and the 7-Question gate fully in charge. Safe to leave on across clients.
 2. **HackerOne MCP integration — ✅ now shipped (`mcp/hackerone/`).** Live duplicate search over disclosed reports, program stats and structured scope during reports; with `HACKERONE_API_USERNAME` / `HACKERONE_API_TOKEN` set it also reads private programs and your own reports. Setup in [`mcp/hackerone/README.md`](mcp/hackerone/README.md).
 3. **Specialized `hunt-*` skills** for high-payout niches you focus on (e.g., `hunt-fintech-graphql`, `hunt-healthcare-fhir`).
 4. **A `program-rules-parser` skill** that takes program text and produces a structured `scope.md` automatically.

@@ -32,6 +32,8 @@ notes.md
 /scope.md
 CLAUDE.md.local
 targets/
+attack-metrics/
+metrics.json
 
 # Local-only artifacts
 .obsidian/
