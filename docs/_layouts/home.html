@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-bughunter — senior bug-hunting & red-team operator for Claude Code</title>
+<meta name="description" content="A Claude Code skill bundle that turns Claude into a senior bug-hunting researcher and external red-team operator. 84 skills, 681 disclosed-report patterns, enterprise attack matrices, Burp MCP, deterministic scope + corroboration gates.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070b; --bg2:#0b0b12; --panel:#0e0e17; --panel2:#12121d;
+  --ink:#eef0f6; --muted:#8e8ea6; --faint:#5b5b72;
+  --red:#ff2d4b; --red2:#ff6377; --cyan:#34e3d8; --amber:#ffb739; --green:#3ddc84;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Archivo",-apple-system,system-ui,sans-serif;
+  --maxw:1180px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+/* ---------- atmosphere ---------- */
+.bg{position:fixed;inset:0;z-index:-2;pointer-events:none}
+.bg .grid{position:absolute;inset:0;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:52px 52px;mask-image:radial-gradient(120% 90% at 50% 0%,#000 30%,transparent 78%);opacity:.5}
+.bg .glow{position:absolute;left:50%;top:-18%;width:1200px;height:900px;transform:translateX(-50%);
+  background:radial-gradient(45% 45% at 50% 40%,rgba(255,45,75,.22),transparent 70%);filter:blur(10px)}
+.bg .glow2{position:absolute;right:-10%;top:40%;width:800px;height:800px;
+  background:radial-gradient(50% 50% at 50% 50%,rgba(52,227,216,.10),transparent 70%);filter:blur(20px)}
+.scan{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.012) 0 1px,transparent 1px 3px)}
+.grain{position:fixed;inset:0;z-index:999;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+/* ---------- top status bar ---------- */
+.status{border-bottom:1px solid var(--line);background:rgba(7,7,11,.6);backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:50;font-family:var(--mono);font-size:12px;letter-spacing:.06em}
+.status .wrap{display:flex;align-items:center;gap:16px;height:46px}
+.status .dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 10px var(--red);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.status b{color:var(--ink);font-weight:700}
+.status .sp{color:var(--faint)}
+.status .right{margin-left:auto;display:flex;gap:18px}
+.status a{color:var(--muted);text-decoration:none;transition:color .2s}
+.status a:hover{color:var(--red2)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:92px 0 60px}
+.kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.34em;color:var(--red2);text-transform:uppercase;margin-bottom:26px;display:flex;align-items:center;gap:12px}
+.kicker::before{content:"";width:34px;height:1px;background:var(--red)}
+.title{font-family:var(--sans);font-weight:900;letter-spacing:-.03em;line-height:.92;
+  font-size:clamp(50px,9.5vw,128px);margin:0}
+.title .a{color:var(--ink)}
+.title .slash{color:var(--faint);font-weight:400}
+.title .b{color:var(--red);text-shadow:0 0 44px rgba(255,45,75,.55)}
+.lede{max-width:650px;margin:28px 0 0;font-size:clamp(17px,2.1vw,21px);color:#c3c3d6;font-weight:400}
+.lede b{color:var(--ink);font-weight:600}
+.cta{display:flex;flex-wrap:wrap;gap:14px;margin-top:38px}
+.btn{font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:.02em;text-decoration:none;
+  padding:14px 22px;border:1px solid var(--line2);border-radius:10px;color:var(--ink);
+  display:inline-flex;align-items:center;gap:10px;transition:all .22s;background:rgba(255,255,255,.02)}
+.btn:hover{transform:translateY(-2px);border-color:var(--red)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#120003;font-weight:700;
+  box-shadow:0 12px 40px -12px rgba(255,45,75,.7)}
+.btn.primary:hover{background:var(--red2);box-shadow:0 18px 50px -12px rgba(255,45,75,.85)}
+.btn .arr{transition:transform .22s}
+.btn:hover .arr{transform:translateX(4px)}
+
+.reticle{position:absolute;right:2%;top:64px;width:300px;height:300px;opacity:.9;display:none}
+@media(min-width:1080px){.reticle{display:block}}
+.reticle .ring{transform-origin:150px 150px;animation:spin 26s linear infinite}
+.reticle .ring.r2{animation-duration:16s;animation-direction:reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- stat HUD ---------- */
+.hud{border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:56px;background:linear-gradient(180deg,rgba(255,255,255,.015),transparent)}
+.hud .wrap{display:grid;grid-template-columns:repeat(6,1fr);gap:0}
+.stat{padding:26px 18px;border-left:1px solid var(--line);position:relative}
+.stat:first-child{border-left:none}
+.stat .n{font-family:var(--mono);font-weight:700;font-size:clamp(28px,3.6vw,40px);color:var(--ink);line-height:1}
+.stat .n .u{color:var(--red);font-size:.6em}
+.stat.alt .n{color:var(--cyan)}
+.stat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-top:10px}
+@media(max-width:760px){.hud .wrap{grid-template-columns:repeat(3,1fr)}.stat:nth-child(4){border-left:none}}
+
+/* ---------- section scaffold ---------- */
+section{padding:84px 0;position:relative}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.26em;color:var(--red2);text-transform:uppercase;margin-bottom:16px}
+.h2{font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-.02em;margin:0 0 14px}
+.sub{color:var(--muted);max-width:620px;font-size:16.5px;margin:0 0 44px}
+
+/* ---------- terminal ---------- */
+.term{border:1px solid var(--line2);border-radius:14px;overflow:hidden;background:linear-gradient(180deg,var(--panel),var(--bg2));
+  box-shadow:0 40px 120px -40px rgba(0,0,0,.9),0 0 0 1px rgba(255,45,75,.06)}
+.term .bar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);font-family:var(--mono);font-size:12px;color:var(--faint)}
+.term .bar i{width:11px;height:11px;border-radius:50%;background:#2a2a38}
+.term .bar i.r{background:#ff5f57}.term .bar i.y{background:#febc2e}.term .bar i.g{background:#28c840}
+.term .bar .path{margin-left:10px}
+.term .body{padding:22px 22px 26px;font-family:var(--mono);font-size:13.5px;line-height:1.95;overflow-x:auto}
+.term .row{white-space:pre-wrap;opacity:0;transform:translateY(4px);animation:fade .5s forwards}
+.term .ps{color:var(--red)}
+.term .you{color:var(--ink)}
+.term .sys{color:var(--muted)}
+.term .ok{color:var(--green)}
+.term .cy{color:var(--cyan)}
+.term .am{color:var(--amber)}
+.term .cur{display:inline-block;width:9px;height:17px;vertical-align:-3px;background:var(--red);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@keyframes fade{to{opacity:1;transform:none}}
+
+/* ---------- capability cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.cards{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.cards{grid-template-columns:1fr}}
+.card{border:1px solid var(--line);border-radius:14px;padding:26px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
+.card::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 120% at 100% 0,rgba(255,45,75,.10),transparent 55%);opacity:0;transition:opacity .3s}
+.card:hover{transform:translateY(-4px);border-color:var(--line2)}
+.card:hover::after{opacity:1}
+.card .ix{font-family:var(--mono);font-size:12px;color:var(--faint)}
+.card h3{font-size:19px;font-weight:700;margin:14px 0 8px;letter-spacing:-.01em}
+.card p{color:var(--muted);font-size:14.5px;margin:0}
+.card .tag{display:inline-block;margin-top:16px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--red2);border:1px solid rgba(255,45,75,.3);border-radius:999px;padding:4px 11px}
+
+/* ---------- surface matrix ---------- */
+.matrix{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;margin-top:8px}
+.cell{border:1px solid var(--line);border-radius:9px;padding:13px 14px;font-family:var(--mono);font-size:12.5px;color:var(--muted);
+  display:flex;align-items:center;gap:9px;transition:all .2s;cursor:default}
+.cell::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--faint);transition:all .2s}
+.cell:hover{color:var(--ink);border-color:var(--red);background:rgba(255,45,75,.06)}
+.cell:hover::before{background:var(--red);box-shadow:0 0 9px var(--red)}
+
+/* ---------- install ---------- */
+.tabs{display:flex;gap:6px;margin-bottom:-1px}
+.tab{font-family:var(--mono);font-size:13px;padding:11px 18px;border:1px solid var(--line);border-bottom:none;
+  border-radius:10px 10px 0 0;background:var(--bg2);color:var(--muted);cursor:pointer;transition:color .2s}
+.tab[aria-selected=true]{color:var(--ink);background:var(--panel);border-color:var(--line2)}
+.panel{border:1px solid var(--line2);border-radius:0 14px 14px 14px;background:var(--panel);padding:0}
+.panel pre{margin:0;padding:22px;font-family:var(--mono);font-size:13.5px;line-height:1.9;color:#d5d5e4;overflow-x:auto}
+.panel .cm{color:var(--faint)}.panel .fx{color:var(--cyan)}
+.copy{position:absolute;right:14px;top:12px;font-family:var(--mono);font-size:11px;color:var(--muted);background:rgba(255,255,255,.04);
+  border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;transition:all .2s}
+.copy:hover{color:var(--ink);border-color:var(--red)}
+.ph{position:relative}
+
+/* ---------- scope gate ---------- */
+.gate{border:1px solid rgba(255,183,57,.3);border-radius:14px;padding:30px 32px;background:
+  linear-gradient(180deg,rgba(255,183,57,.05),transparent);display:flex;gap:22px;align-items:flex-start}
+.gate .stamp{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--amber);border:1.5px solid var(--amber);
+  border-radius:8px;padding:9px 12px;transform:rotate(-6deg);white-space:nowrap;box-shadow:0 0 24px -8px rgba(255,183,57,.5)}
+.gate h3{margin:0 0 8px;font-size:19px}
+.gate p{margin:0;color:var(--muted);font-size:14.5px}
+.gate a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(255,183,57,.4)}
+
+/* ---------- sponsor + footer ---------- */
+.sponsor{border:1px solid var(--line);border-radius:14px;padding:28px 32px;background:rgba(255,255,255,.015);display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.sponsor .by{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--faint);text-transform:uppercase}
+.sponsor h3{margin:4px 0 0;font-size:20px}
+.sponsor p{margin:6px 0 0;color:var(--muted);font-size:14.5px;max-width:560px}
+.sponsor .go{margin-left:auto}
+footer{border-top:1px solid var(--line);padding:46px 0 60px;color:var(--faint);font-family:var(--mono);font-size:12.5px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+footer a{color:var(--muted);text-decoration:none}footer a:hover{color:var(--red2)}
+footer .right{margin-left:auto;display:flex;gap:18px}
+
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="bg"><div class="grid"></div><div class="glow"></div><div class="glow2"></div></div>
+<div class="scan"></div><div class="grain"></div>
+
+<!-- status bar -->
+<div class="status"><div class="wrap">
+  <span class="dot"></span><b>CLAUDE-BUGHUNTER</b><span class="sp">/</span>MAIN<span class="sp">/</span>CROSS-HARNESS AGENT SKILLS
+  <span class="right">
+    <a href="./skills.html">skills</a><a href="./architecture.html">architecture</a>
+    <a href="https://github.com/elementalsouls/Claude-BugHunter" target="_blank" rel="noopener">github ↗</a>
+  </span>
+</div></div>
+
+<!-- hero -->
+<header class="hero"><div class="wrap">
+  <svg class="reticle" viewBox="0 0 300 300" fill="none" aria-hidden="true">
+    <circle class="ring" cx="150" cy="150" r="128" stroke="rgba(255,45,75,.25)" stroke-width="1"/>
+    <circle class="ring r2" cx="150" cy="150" r="98" stroke="rgba(52,227,216,.2)" stroke-width="1" stroke-dasharray="4 8"/>
+    <circle cx="150" cy="150" r="60" stroke="rgba(255,45,75,.5)" stroke-width="1.5"/>
+    <path d="M150 20v50M150 230v50M20 150h50M230 150h50" stroke="rgba(255,45,75,.6)" stroke-width="1.5"/>
+    <circle cx="150" cy="150" r="5" fill="#ff2d4b"/>
+    <path d="M150 108c-16 0-26 10-26 28 0 22 12 40 26 48 14-8 26-26 26-48 0-18-10-28-26-28Z" stroke="#ff2d4b" stroke-width="1.5"/>
+    <path d="M150 108v76M150 128l-14-10M150 128l14-10M150 150h-26M150 150h26M150 170l-14 10M150 170l14 10" stroke="#ff2d4b" stroke-width="1.3"/>
+  </svg>
+  <div class="kicker">bug-hunting arsenal · red-team pipeline</div>
+  <h1 class="title"><span class="a">claude</span> <span class="slash">/</span> <span class="b">bughunter</span></h1>
+  <p class="lede">A drop-in <b>Claude Code skill bundle</b> that makes Claude operate like a senior
+    bug-hunting researcher and external red-team operator — it knows the techniques, the chain
+    templates, the VRT mappings, the platform CVE chains, and the hygiene, <b>and it stays in scope.</b></p>
+  <div class="cta">
+    <a class="btn primary" href="#quickstart">Get started <span class="arr">→</span></a>
+    <a class="btn" href="./skills.html">Browse 84 skills</a>
+    <a class="btn" href="https://github.com/elementalsouls/Claude-BugHunter" target="_blank" rel="noopener">★ Star on GitHub</a>
+  </div>
+</div></header>
+
+<!-- stat HUD -->
+<div class="hud"><div class="wrap">
+  <div class="stat"><div class="n" data-to="84">0</div><div class="l">Skills</div></div>
+  <div class="stat"><div class="n" data-to="58">0</div><div class="l">Hunt modules</div></div>
+  <div class="stat"><div class="n" data-to="681">0</div><div class="l">H1 report patterns</div></div>
+  <div class="stat"><div class="n" data-to="15">0</div><div class="l">Slash commands</div></div>
+  <div class="stat alt"><div class="n" data-to="5">0</div><div class="l">Agent harnesses</div></div>
+  <div class="stat"><div class="n">MIT</div><div class="l">License</div></div>
+</div></div>
+
+<!-- terminal demo -->
+<section id="demo"><div class="wrap reveal">
+  <div class="eyebrow">// live session</div>
+  <h2 class="h2">Describe the target. The arsenal loads itself.</h2>
+  <p class="sub">No invoking skills by name. You speak in plain English; the right skill auto-triggers,
+    scope is enforced in code, and findings are proven — not guessed.</p>
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="path">claude-code — ~/engagements/acme</span></div>
+    <div class="body" id="tt">
+      <div class="row"><span class="ps">❯</span> <span class="you">I'm testing acme.com, an in-scope HackerOne target. Start recon and rank the surface.</span></div>
+      <div class="row sys">  <span class="cy">▸ skill</span> recon-scope-triage  ·  offensive-osint  ·  bb-methodology   <span class="ok">loaded</span></div>
+      <div class="row sys">  scope.py · deterministic allowlist · <span class="ok">acme.com ✓ in-scope</span> · 3rd-party <span class="am">denied</span></div>
+      <div class="row sys">  recon ▸ 42 endpoints · 7 params · stack=<span class="cy">django|nginx|cloudflare</span></div>
+      <div class="row"><span class="ps">❯</span> <span class="you">Map it to the arsenal and hunt the top surface.</span></div>
+      <div class="row sys">  map ▸ /account?id= → <span class="cy">hunt-idor</span>   /r?next= → <span class="cy">hunt-open-redirect</span>   /api → <span class="cy">hunt-graphql</span></div>
+      <div class="row sys">  hunt ▸ candidate <span class="am">IDOR</span> @ /account?id=  ·  verifier replays read-only GET</div>
+      <div class="row ok">  ✓ corroboration: CONFIRMED — cross-tenant field present (reflection ≠ guess)</div>
+      <div class="row sys">  7-question gate ▸ Q1–Q7 <span class="ok">pass</span> · severity High · <span class="cy">ready to report</span><span class="cur"></span></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- capabilities -->
+<section id="what"><div class="wrap">
+  <div class="reveal"><div class="eyebrow">// what you get</div>
+  <h2 class="h2">An operator's toolkit, not a prompt pack.</h2>
+  <p class="sub">84 skills auto-loading by topic, grounded in 681 disclosed-report patterns — 433 individually cited and auditable.</p></div>
+  <div class="cards">
+    <div class="card reveal"><div class="ix">01 / recon</div><h3>Map before you touch</h3><p>Deterministic recon, parameter discovery, JS-secret scanning and attack-surface categorization — $0, no agents, before a single payload fires.</p><span class="tag">offensive-osint</span></div>
+    <div class="card reveal"><div class="ix">02 / web</div><h3>58 vuln-class skills</h3><p>IDOR, SSRF, SQLi, XSS, SSTI, XXE, auth-bypass, GraphQL, deserialization, request-smuggling — each built from real disclosed reports.</p><span class="tag">hunt-*</span></div>
+    <div class="card reveal"><div class="ix">03 / enterprise</div><h3>Platform attack matrices</h3><p>M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS, supply-chain — with current 2024–2026 CVE chains.</p><span class="tag">red-team</span></div>
+    <div class="card reveal"><div class="ix">04 / proof</div><h3>Prove, don't guess</h3><p>A deterministic, LLM-free corroborator replays the finding read-only and tags it CONFIRMED / FAILED. Attempted vs proved is a hard line.</p><span class="tag">verifier</span></div>
+    <div class="card reveal"><div class="ix">05 / report</div><h3>Reporting + validation</h3><p>7-Question Gate, VRT mapping, evidence hygiene, CVSS, and a client-facing red-team deliverable format.</p><span class="tag">triage-validation</span></div>
+    <div class="card reveal"><div class="ix">06 / safe</div><h3>In scope by construction</h3><p>Scope is enforced in code (deny-wins, default-deny). Read-only by default. Nothing target-identifying is pooled across engagements.</p><span class="tag">scope.py</span></div>
+  </div>
+</div></section>
+
+<!-- surface matrix -->
+<section id="surface"><div class="wrap reveal">
+  <div class="eyebrow">// attack surface</div>
+  <h2 class="h2">Coverage across the whole surface.</h2>
+  <p class="sub">A hunt-* skill for each class, routed automatically from the fingerprint. A sample:</p>
+  <div class="matrix" id="mx"></div>
+</div></section>
+
+<!-- install -->
+<section id="quickstart"><div class="wrap reveal">
+  <div class="eyebrow">// quickstart</div>
+  <h2 class="h2">Install into <span style="color:var(--red)">~/.claude/</span> in one step.</h2>
+  <p class="sub">Clone, run the installer, open Claude Code, and describe what you're testing.</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-p="nix">macOS / Linux</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="win">Windows</button>
+  </div>
+  <div class="panel ph"><button class="copy">copy</button>
+    <pre data-p="nix"><span class="cm"># clone and install into ~/.claude/</span>
+git clone https://github.com/elementalsouls/Claude-BugHunter.git
+cd Claude-BugHunter
+bash scripts/install.sh</pre>
+    <pre data-p="win" hidden><span class="cm"># Windows (PowerShell)</span>
+git clone https://github.com/elementalsouls/Claude-BugHunter.git
+cd Claude-BugHunter
+pwsh ./scripts/install.ps1</pre>
+  </div>
+  <p class="sub" style="margin-top:24px">Also installs as a plugin marketplace, and ports to OpenCode, Codex CLI, Hermes & AntiGravity.
+    Full <a href="https://github.com/elementalsouls/Claude-BugHunter/blob/main/INSTALL.md" style="color:var(--cyan)">install</a>
+    and <a href="https://github.com/elementalsouls/Claude-BugHunter/blob/main/USAGE.md" style="color:var(--cyan)">usage</a> guides.</p>
+</div></section>
+
+<!-- scope gate -->
+<section id="scope" style="padding-top:0"><div class="wrap reveal">
+  <div class="gate">
+    <div class="stamp">AUTHORIZED<br>USE ONLY</div>
+    <div><h3>Stay in scope.</h3>
+    <p>This bundle is for assets you <b style="color:var(--ink)">own</b> or are <b style="color:var(--ink)">authorized to assess</b> —
+      in-scope bug-bounty programs, signed-RoE pentests, CTFs, your own lab. It ships validation gates that
+      auto-trigger on ambiguity and a deterministic scope allowlist that denies out-of-scope hosts in code.
+      See the <a href="https://github.com/elementalsouls/Claude-BugHunter/blob/main/SECURITY.md">security policy</a>.</p></div>
+  </div>
+</div></section>
+
+<!-- sponsor -->
+<section id="sponsor" style="padding-top:0"><div class="wrap reveal">
+  <div class="sponsor">
+    <div><div class="by">Sponsored by</div><h3>ApiSmart</h3>
+      <p>One OpenAI-compatible API for leading LLM, image and video models. One key to switch models,
+        simplify billing, and improve reliability with automatic failover.</p></div>
+    <a class="btn primary go" href="https://www.apismart.ai/" target="_blank" rel="noopener">apismart.ai <span class="arr">→</span></a>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
+  <span>claude-bughunter · MIT</span>
+  <span class="sp" style="color:var(--faint)">built by <a href="https://www.linkedin.com/in/sachinsharma8080/" target="_blank" rel="noopener">Sachin Sharma</a> — bug hunting &amp; GenAI security research</span>
+  <span class="right">
+    <a href="./skills.html">skills</a><a href="./architecture.html">architecture</a>
+    <a href="https://github.com/elementalsouls/Claude-BugHunter" target="_blank" rel="noopener">github ↗</a>
+  </span>
+</div></footer>
+
+<script>
+// count-up stats
+function countUp(el){const to=+el.dataset.to;const d=1100;const s=performance.now();
+  (function f(t){const p=Math.min(1,(t-s)/d);const e=1-Math.pow(1-p,3);
+   el.textContent=Math.round(to*e);if(p<1)requestAnimationFrame(f);})(s);}
+// reveal + stat trigger
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.15});
+document.querySelectorAll('.reveal').forEach(x=>io.observe(x));
+const hud=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.stat .n[data-to]').forEach(countUp);hud.disconnect();}})},{threshold:.4});
+hud.observe(document.querySelector('.hud'));
+// stagger terminal rows
+document.querySelectorAll('#tt .row').forEach((r,i)=>r.style.animationDelay=(.25+i*.42)+'s');
+// surface matrix
+const cls=["idor","ssrf","sqli","xss","ssti","xxe","auth-bypass","graphql","deserialization","lfi","rce","oauth","jwt-crypto","csrf","cors","http-smuggling","race-condition","file-upload","open-redirect","cache-poison","saml","nosqli","websocket","business-logic"];
+document.getElementById('mx').innerHTML=cls.map(c=>`<div class="cell">${c}</div>`).join('');
+// install tabs
+const tabs=document.querySelectorAll('.tab');
+tabs.forEach(t=>t.addEventListener('click',()=>{tabs.forEach(x=>x.setAttribute('aria-selected',x===t));
+  document.querySelectorAll('.panel pre').forEach(p=>p.hidden=p.dataset.p!==t.dataset.p);}));
+// copy
+document.querySelector('.copy').addEventListener('click',function(){
+  const pre=document.querySelector('.panel pre:not([hidden])');
+  navigator.clipboard.writeText(pre.innerText).then(()=>{this.textContent='copied ✓';setTimeout(()=>this.textContent='copy',1600);});
+});
+</script>
+</body>
+</html>
