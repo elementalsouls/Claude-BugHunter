@@ -29,15 +29,35 @@ def _regex(pattern):
     return re.compile(pattern, re.IGNORECASE)
 
 
+def _to_alabel(host):
+    """Canonicalize an IDN host to its IDNA A-label (punycode) form.
+
+    The scope matcher compares a URL's host against rules, so a Unicode
+    hostname and its punycode spelling must resolve to ONE host (CWE-176):
+    a deny rule written as a punycode regex must also match the Unicode
+    spelling of the same host. ASCII hosts pass through byte-identical.
+    Returns None when the host is not valid IDNA (caller decides policy).
+    """
+    if not host or host.isascii():
+        return host
+    try:
+        return host.encode("idna").decode("ascii")
+    except UnicodeError:
+        return None
+
+
 def _host_of(target):
     t = target.strip()
     if "://" not in t:
         t = "//" + t
     try:
         parsed = urlparse(t)
-        return (parsed.hostname or "").lower().rstrip(".")
+        host = (parsed.hostname or "").lower().rstrip(".")
     except ValueError:
         return ""
+    # Fail closed: an un-encodable host is dropped, so it matches nothing
+    # and the default-deny keeps it out of scope.
+    return _to_alabel(host) or ""
 
 
 def _match(pattern, host):
@@ -104,6 +124,10 @@ def _normalize_rule(rule):
     except ValueError:
         host = ""
     host = (host or core.split("/")[0].split(":")[0]).rstrip(".")
+    # Same A-label canonicalization as _host_of: a hand-written Unicode rule
+    # and a punycode rule for the same host must normalize to one form. On
+    # invalid IDNA keep the rule as written rather than dropping it.
+    host = _to_alabel(host) or host
     return ("*." + host) if wild else host
 
 
