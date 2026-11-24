@@ -7,6 +7,15 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Added
+- **`exploit-completion` skill (new, 83 → 84)** — a discipline-family skill for the
+  failure where the bug is found and the payload is right but the proof is abandoned
+  one step early: inspect and follow every redirect, diff each response against a
+  named expected outcome (not a 2xx or a delivered POST), and stop-and-change-approach
+  after N identical failures. Pairs with `triage-validation` (is it a finding?) and
+  `redteam-mindset` (don't abandon coverage). Skill-count metrics synced to **84**
+  across README hero + banner, `docs/skills.md` catalog, `docs/index.md`,
+  `docs/multi-harness.md`, INSTALL, USAGE, SECURITY, architecture, credits, both
+  `.claude-plugin/*.json`, and the regenerated `cbh/data/skill_index.json`.
 - **`cbh scope import` — fill `scope.md` from the program's published scope** (README
   roadmap item). `cbh scope import h1:<handle> -o scope.md` (also `bugcrowd:` / `intigriti:` /
   `yeswehack:` or a program URL) reads public scopes from
