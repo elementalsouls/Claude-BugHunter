@@ -6,7 +6,28 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 
 ## [Unreleased]
 
+### Security
+- **Engine data isolation by default — cross-engagement capture is now opt-in.** The
+  autopilot ledger (`engine/memory.py`) wrote confirmed findings, negatives, and
+  per-target rollups (hostnames + URLs) to `~/.claude/bughunter/memory/` on **every**
+  run, while its *reads* were already gated behind `--use-memory` — an asymmetry that
+  persisted target-identifying data it did not even use by default. `record_finding`
+  and `record_run` are now gated behind `--use-memory` too, so a **default run pools
+  nothing target-identifying across engagements** (important on authorized client
+  work). Opt-in `--use-memory` preserves the ledger — and `/pickup` — exactly as
+  before; this is documented in `engine/README.md`, USAGE, and the `/pickup`,
+  `/remember`, `/autopilot` command docs. No behaviour removed, no data relocated.
+
 ### Added
+- **Leak-proof attack metrics (`engine/attack_metrics.py`, `--use-metrics`).** An opt-in,
+  per-operator store of **generic counters only** — attempts / successes / cost keyed by
+  tech-stack signature + vuln-class (+ a generic technique category) — that **never**
+  stores a hostname, URL, payload, or response body (fail-closed allowlist drops anything
+  target-shaped). On a new target it ranks class suggestions by past hit-rate in
+  `arsenal.md`; the ranking is **advisory only** — it never auto-fires, and scope, the
+  deterministic corroborator, and the 7-Question gate still apply. Leak-proof by
+  construction (no host/engagement field exists), so it is safe to leave on across clients.
+  Store: `~/.claude/bughunter/attack-metrics/metrics.json` (git-ignored).
 - **`exploit-completion` skill (new, 83 → 84)** — a discipline-family skill for the
   failure where the bug is found and the payload is right but the proof is abandoned
   one step early: inspect and follow every redirect, diff each response against a

@@ -34,3 +34,9 @@ python3 -c "import sys; sys.path.insert(0,'engine'); import memory, json; print(
 ```
 No ledger data for target.com. Run /recon then /autopilot target.com first.
 ```
+
+> **Note — cross-engagement recall is opt-in.** The target rollup `/pickup` reads
+> is written only when the engine ran with `--use-memory`. A **default** engine run
+> intentionally persists **nothing** target-identifying across engagements (no
+> hostnames, URLs, or findings pooled), so `/pickup` will show no prior data for it.
+> Re-run with `--use-memory` when you deliberately want persistent per-target recall.

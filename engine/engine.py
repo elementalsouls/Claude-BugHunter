@@ -28,6 +28,7 @@ import agent as A                  # noqa: E402
 import memory                     # noqa: E402  (autopilot ledger; import-isolated)
 import closure                    # noqa: E402  (coverage ledger / closure gate)
 import verifier                   # noqa: E402  (deterministic evidence capture + corroboration; never gates)
+import attack_metrics             # noqa: E402  (leak-proof generic metrics; opt-in, counters only)
 
 # deterministic priority by class (impact-ish); used by rank. Keep in sync with
 # skill_map.CLASS_SKILL so every routed class gets a sensible (non-default) weight.
@@ -52,7 +53,8 @@ DEFAULT_PHASES = ["recon", "rank", "map"]
 
 class Engine:
     def __init__(self, scope_path, base, model, max_hunts, max_turns, timeout, mock=False,
-                 allow_intrusive=False, parallel=3, expand=False, use_memory=False):
+                 allow_intrusive=False, parallel=3, expand=False, use_memory=False,
+                 use_metrics=False):
         self.scope = Scope.load(scope_path)
         state_base = os.path.join(base, ".mock") if mock else base
         self.eng = Engagement(state_base, self.scope.name)
@@ -62,6 +64,7 @@ class Engine:
         self.expand = expand
         self.parallel = max(1, parallel)
         self.use_memory = use_memory and not mock
+        self.use_metrics = use_metrics and not mock
         self.eng.log(f"engine start | scope={self.scope.name} in={self.scope.in_scope} "
                      f"out={self.scope.out_of_scope} seeds={self.scope.seeds} mock={mock} "
                      f"intrusive={'ALLOWED' if allow_intrusive else 'READ-ONLY (default)'}")
@@ -210,6 +213,22 @@ class Engine:
                 lines.append(f"- **{c}** → {', '.join('`'+s+'`' for s in SM.skills_for(c))}  ·  "
                              f"`{SM.probe_for(c, url, param)}`")
             lines.append("")
+        # Advisory: rank classes by this stack's recorded hit-rate (opt-in, read-only).
+        # It ranks hypotheses for the operator — it NEVER auto-fires, and scope, the
+        # corroborator, and the 7-Q gate still apply downstream exactly as before.
+        if self.use_metrics:
+            try:
+                ranked = attack_metrics.rank(attack_metrics._stack_sig(tech))
+                if ranked:
+                    lines += ["", "## Suggested focus — by past hit-rate on this stack (advisory, not auto-run)", ""]
+                    for r in ranked[:10]:
+                        tq = "" if r["technique"] in ("", "none") else f" / {r['technique']}"
+                        lines.append(f"- **{r['vuln_class']}**{tq} — "
+                                     f"hit-rate {r['hit_rate']:.0%} ({r['successes']}/{r['attempts']})")
+                        self.eng.log(f"map: suggest {r['vuln_class']}{tq} "
+                                     f"(hit-rate {r['hit_rate']:.0%}, {r['successes']}/{r['attempts']})")
+            except Exception as e:
+                self.eng.log(f"metrics: ranking skipped ({e})")
         path = os.path.join(self.eng.dir, "arsenal.md")
         open(path, "w", encoding="utf-8").write("\n".join(lines))
         self.eng.log(f"map: wrote arsenal map -> {path}  ← focus your 20% here (or run --hunt to auto-test)")
@@ -362,7 +381,10 @@ class Engine:
                 except Exception as e:
                     self.eng.log(f"verifier: corroborate skipped ({e})")
                 self.eng.confirm(c, v)
-                if not self.mock:
+                # Cross-engagement capture persists host/url — gated behind use_memory
+                # (symmetry with the skip/read side). Default = nothing pooled across
+                # engagements. Opt-in --use-memory keeps the ledger working as before.
+                if not self.mock and self.use_memory:
                     try:
                         memory.record_finding(self.scope.name, memory._host(c["url"]), self._tech(), c, v)
                     except Exception as e:
@@ -439,11 +461,19 @@ class Engine:
         path = os.path.join(self.eng.dir, "report.md")
         open(path, "w", encoding="utf-8").write("\n".join(lines))
         self.eng.log(f"report: wrote {len(c)} confirmed finding(s) -> {path}")
-        if not self.mock:
+        if not self.mock and self.use_memory:
             try:
                 memory.record_run(self.scope.name, self._tech(), self.eng.state["tested"], self.eng.state["confirmed"])
             except Exception as e:
                 self.eng.log(f"memory: rollup skipped ({e})")
+        # Leak-proof generic metrics (opt-in, counters-only, no host/url). Separate
+        # store from the ledger; aggregates this run BY CLASS for cross-target ranking.
+        if not self.mock and self.use_metrics:
+            try:
+                attack_metrics.update_from_run(attack_metrics._stack_sig(self._tech()),
+                                               self.eng.state["tested"], self.eng.state["confirmed"])
+            except Exception as e:
+                self.eng.log(f"metrics: update skipped ({e})")
         return path
 
     def run(self, phases):
@@ -501,8 +531,13 @@ def main():
                     help="OSINT bridge: enumerate subdomains, probe, and recon every live in-scope host "
                          "(the apex is usually just marketing; the real surface is on subdomains)")
     ap.add_argument("--use-memory", action="store_true",
-                    help="OPT-IN: skip provably-wasteful agent calls (known-confirmed / dead-class) "
-                         "using the autopilot ledger. Default OFF = full coverage.")
+                    help="OPT-IN: cross-engagement autopilot ledger — BOTH reads (skip known-confirmed / "
+                         "dead-class) AND writes (persist host/url findings + per-target rollup for /pickup). "
+                         "Default OFF = full coverage AND nothing target-identifying pooled across engagements.")
+    ap.add_argument("--use-metrics", action="store_true",
+                    help="OPT-IN: record leak-proof generic attack metrics (counters keyed by tech-stack + "
+                         "vuln-class only — never host/url/body) and rank class suggestions by past hit-rate. "
+                         "Separate store, advisory only. Default OFF.")
     a = ap.parse_args()
     if a.phases is not None:
         phases = [p.strip() for p in a.phases.split(",") if p.strip()]
@@ -515,7 +550,7 @@ def main():
     else:
         phases = DEFAULT_PHASES                   # default: recon -> rank -> map, then STOP for the operator
     eng = Engine(a.scope, a.base, a.model, a.max_hunts, a.max_turns, a.timeout, a.mock,
-                 a.allow_intrusive, a.parallel, a.expand, a.use_memory)
+                 a.allow_intrusive, a.parallel, a.expand, a.use_memory, a.use_metrics)
     eng.run(phases)
     print("\n" + json.dumps(eng.eng.summary(), indent=2))
     print("engagement dir:", eng.eng.dir)

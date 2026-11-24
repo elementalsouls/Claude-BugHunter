@@ -62,7 +62,9 @@ python3 engine/engine.py --scope engine/engagement.example.json --base /tmp/eng 
 python3 engine/recon.py https://target/ target.com
 ```
 Key flags: `--hunt` (opt into agents) · `--allow-intrusive` (default OFF = read-only) ·
-`--parallel N` (concurrent agents, default 3) · `--phases a,b,c` (explicit override).
+`--parallel N` (concurrent agents, default 3) · `--phases a,b,c` (explicit override) ·
+`--use-memory` (opt-in cross-engagement ledger — reads AND writes) ·
+`--use-metrics` (opt-in leak-proof generic hit-rate metrics).
 
 ## Safety
 - **Read-only by default** — hunt/validate agents are told: in-scope hosts only (never
@@ -72,6 +74,18 @@ Key flags: `--hunt` (opt into agents) · `--allow-intrusive` (default OFF = read
   its PoC; any hit is flagged (⚠) in the report for review.
 - **Calibrated severity** — the adversarial validator's severity (not the hunt's raw guess) is
   what's stored.
+- **Data isolation by default** — cross-engagement persistence is opt-in. The autopilot
+  ledger (`memory.py`: `findings.jsonl` / `negatives.jsonl` / `targets/<host>.json`, which
+  hold hostnames + URLs) is only **read AND written** under `--use-memory`. A default run
+  pools **nothing** target-identifying across engagements; per-engagement state lives and
+  dies in `<base>/<name>/`. `--use-memory` makes persistent per-target recall (and
+  `/pickup`) a knowing choice — it then captures host/URL exactly as before.
+- **Leak-proof metrics (`--use-metrics`, `attack_metrics.py`)** — a separate opt-in store of
+  **generic counters only**: attempts / successes / cost keyed by tech-stack signature +
+  vuln-class (+ a generic technique category). It **never** stores a host, URL, payload, or
+  body (fail-closed allowlist drops anything target-shaped). It only **ranks** class
+  suggestions by past hit-rate for the operator — it never auto-fires, and scope, the
+  corroborator, and the 7-Question gate still apply.
 
 ## Why this and not more skills
 The measured result (`eval/`): skills add ~0 capability on benchmarkable tasks — the base model
