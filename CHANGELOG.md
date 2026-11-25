@@ -18,7 +18,7 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   authority containing a backslash, space, or C0/DEL control character (two parsers can read
   it differently), while path/query backslashes (Windows LFI `?file=..\..\win.ini`) are left
   in scope. Regression test: `engine/test_scope_backslash.py`. *Reported privately via
-  responsible disclosure — credit: `<researcher handle — fill in before publishing>`.*
+  responsible disclosure — credit: @speto2 (Tyler Ramey).*
 - **Evidence redaction gap — AWS `SecretAccessKey` / session `Token` now stripped.** The
   verifier's captured-body redaction (`engine/verifier.py`) matched only the AWS `AccessKeyId`
   (AKIA…), so a response body carrying full AWS credentials wrote the secret and session token
