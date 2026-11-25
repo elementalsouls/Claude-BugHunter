@@ -3,7 +3,7 @@
 title: claude-bughunter
 description: >-
   A Claude skill bundle that turns Claude Code into a senior bug-hunting
-  researcher and external red-team operator. 84 skills, 681 disclosed-report
+  researcher and external red-team operator. 85 skills, 681 disclosed-report
   patterns, enterprise attack matrices, Burp MCP integration.
 remote_theme: just-the-docs/just-the-docs
 

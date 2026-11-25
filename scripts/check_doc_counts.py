@@ -56,7 +56,7 @@ def read(path):
 # (file, regex with one capture group per checked number, key or tuple of keys
 # into the `actual` dict, human label for error messages)
 CHECKS = [
-    ("README.md", r"\*\*(\d+) skills\*\* · 15 slash commands", "total", "hero line skill count"),
+    ("README.md", r"\*\*(\d+) skills\*\* · 16 slash commands", "total", "hero line skill count"),
     ("README.md", r"skills\*\* · (\d+) slash commands ·", "commands", "hero line command count"),
     ("README.md", r"\| (\d+) skills \+ (\d+) slash commands \|", ("total", "commands"), "install-path comparison table"),
     ("README.md", r"\*\*(\d+) skills\*\*, auto-loaded", "total", "'What's inside' intro"),
