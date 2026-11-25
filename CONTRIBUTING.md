@@ -53,7 +53,22 @@ classification and report pointers.
 
 ## Testing changes
 
-There's no automated test suite. Manual smoke tests:
+CI runs automated checks on every push and PR (see `.github/workflows/`). Run the same checks locally before opening a PR. They use only the standard library, so there's nothing to pip install (Python 3.9+):
+
+```bash
+# Unit / regression tests (what runtime-tests.yml runs)
+PYTHONPATH=".:engine" python3 -m unittest discover -s engine
+PYTHONPATH=".:engine" python3 -m unittest discover -s tests
+
+# Skill structure, secrets and identifier denylist (skill-lint.yml)
+python3 scripts/lint_skills.py
+python3 scripts/gen_skill_index.py --check
+
+# Leak guard over every tracked file (leak-guard.yml)
+python3 scripts/scan_identifiers.py
+```
+
+For skill changes, also do a manual smoke test:
 
 1. Install the skill locally (copy to `~/.claude/skills/`)
 2. Open a fresh `claude` session
