@@ -53,9 +53,11 @@ pwsh ./scripts/install.ps1
 > The repo ships a `.gitattributes` that forces LF line endings on shell and
 > PowerShell scripts, so a **fresh clone installs cleanly** on every platform. If you
 > have an **existing** checkout that already picked up CRLF (cloned before this
-> `.gitattributes`), normalize it once with
-> `git add --renormalize . && git checkout .` (or just re-clone) — a CRLF-corrupted
-> script aborts with a `syntax error` and cannot fix itself.
+> `.gitattributes`), clone the repository into a new directory and keep the old
+> checkout until you have backed up or migrated any local changes. Avoid using
+> `git add --renormalize .` as an installation repair: it can stage unrelated
+> tracked changes and does not necessarily rewrite the working-tree files.
+> A CRLF-corrupted script can abort with a `syntax error` before it can run.
 
 This copies:
 - All 84 skills → `~/.claude/skills/` (macOS/Linux) or `%USERPROFILE%\.claude\skills\` (Windows)
