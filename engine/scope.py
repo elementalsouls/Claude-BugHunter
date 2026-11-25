@@ -48,6 +48,17 @@ def _host_of(target):
         t = "//" + t
     try:
         parsed = urlparse(t)
+        # Fail closed on an ambiguous authority: urlparse treats a backslash as a
+        # normal character, but requests/urllib3 (and browsers) treat it as `/` in
+        # the authority, so `admin.example.com\@www.example.com` parses here as
+        # `www.example.com` while the request actually connects to
+        # `admin.example.com` — a scope bypass. Any backslash, space, or C0/DEL
+        # control char in the netloc means two parsers can disagree on the host;
+        # drop it so default-deny keeps it out of scope. Path/query backslashes
+        # (Windows LFI `?file=..\..\win.ini`) are untouched — they are not in the
+        # netloc.
+        if any(c == "\\" or ord(c) <= 0x20 or ord(c) == 0x7f for c in parsed.netloc):
+            return ""
         host = (parsed.hostname or "").lower().rstrip(".")
     except ValueError:
         return ""

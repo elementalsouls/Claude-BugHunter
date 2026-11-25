@@ -47,6 +47,18 @@ _SECRET_RES = [re.compile(p) for p in (
     r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
 )]
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+# Redact the VALUE after a known-sensitive key (JSON `"key":"v"` or form `key=v`).
+# The AWS pattern catalog above only matched AccessKeyId (AKIA…); a captured body
+# could still carry SecretAccessKey / SessionToken / Token in the clear. Key names
+# are matched whole (word-bounded), so `user_token_count` is not a false positive.
+_SENSITIVE_KV = re.compile(
+    r'(?i)("?\b(?:secret[_-]?access[_-]?key|aws[_-]?secret[_-]?access[_-]?key|'
+    r'session[_-]?token|access[_-]?token|refresh[_-]?token|id[_-]?token|'
+    r'client[_-]?secret|api[_-]?secret|private[_-]?key|x[_-]?csrf[_-]?token|'
+    r'csrf[_-]?token|password|passwd|token|secret)\b"?\s*[:=]\s*"?)'
+    r'([^"\s,&}\]]{3,})')
+# AWS STS session tokens (very long, fixed prefixes) wherever they appear.
+_AWS_SESSION_TOKEN = re.compile(r'\b(?:FQoG|IQoJ|AQoD)[A-Za-z0-9/+=_\-]{40,}')
 _SENSITIVE_HEADERS = {"set-cookie", "cookie", "authorization",
                       "proxy-authorization", "x-auth-token", "x-api-key"}
 
@@ -58,6 +70,10 @@ def _redact(text):
         return text
     for rx in _SECRET_RES:
         text = rx.sub("[REDACTED-SECRET]", text)
+    # Key-based first so a `"Token":"FQoG…"` is redacted once (whole value); then
+    # the bare-prefix pass catches any session token not behind a sensitive key.
+    text = _SENSITIVE_KV.sub(lambda m: m.group(1) + "[REDACTED-SECRET]", text)
+    text = _AWS_SESSION_TOKEN.sub("[REDACTED-SECRET]", text)
     return _EMAIL_RE.sub("[REDACTED-EMAIL]", text)
 
 
