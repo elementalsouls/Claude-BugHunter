@@ -104,6 +104,18 @@ That's it. Open Claude Code and describe what you're testing in plain English �
 
 ---
 
+## Install as an agent plugin
+
+This repo ships an [agent-plugins](https://github.com/meta/astryx)-style marketplace at `.agents/plugins/marketplace.json` so any compatible harness can discover the bundle without a copy install. The marketplace lists plugin `claude-bughunter` with local source `./` (skills under `./skills/`, HackerOne MCP via root `.mcp.json`).
+
+Add the marketplace from a clone (or your fork), then enable `claude-bughunter@claude-bughunter`.
+
+**Codex** — add this repo as a marketplace and enable `claude-bughunter@claude-bughunter` (manifest: `.codex-plugin/plugin.json`).
+
+**Claude Code** — still works as before: `/plugin marketplace add elementalsouls/Claude-BugHunter` then `/plugin install claude-bughunter@elementalsouls`.
+
+---
+
 ## Runs on multiple agent harnesses
 
 ![One install, agent harnesses — Claude Code, OpenCode, Codex CLI, Hermes Agent, Google AntiGravity](assets/harness-routing.svg)
