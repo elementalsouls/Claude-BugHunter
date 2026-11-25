@@ -7,6 +7,26 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 ## [Unreleased]
 
 ### Security
+- **Scope bypass via a backslash in the URL authority — fixed (privately reported).** The
+  deterministic scope gate parsed hosts with `urlparse`, which treats `\` as a normal
+  character, while `requests`/`urllib3` (and browsers) treat it as `/` in the authority. So
+  `http://admin.example.com\@www.example.com/` parsed as the in-scope host `www.example.com`
+  and passed `in_scope_host` / `reject_reason`, while the actual request connected to the
+  out-of-scope host `admin.example.com` — the engine could contact a host it reported as
+  denied (reachable through recon redirect-following, SPA script-src fetches, and the
+  verifier's read-only replay). `engine/scope.py` `_host_of` now **fails closed** on any
+  authority containing a backslash, space, or C0/DEL control character (two parsers can read
+  it differently), while path/query backslashes (Windows LFI `?file=..\..\win.ini`) are left
+  in scope. Regression test: `engine/test_scope_backslash.py`. *Reported privately via
+  responsible disclosure — credit: `<researcher handle — fill in before publishing>`.*
+- **Evidence redaction gap — AWS `SecretAccessKey` / session `Token` now stripped.** The
+  verifier's captured-body redaction (`engine/verifier.py`) matched only the AWS `AccessKeyId`
+  (AKIA…), so a response body carrying full AWS credentials wrote the secret and session token
+  to the local state file in the clear. `_redact` now also strips the value after known
+  sensitive keys (secret-access-key, session/access/refresh/id tokens, client secret, private
+  key, password, CSRF token) and bare STS session tokens, while leaving the deterministic
+  oracle signals untouched. Regression test: `engine/test_verifier_redaction.py`. *Privately
+  reported alongside the scope issue.*
 - **Engine data isolation by default — cross-engagement capture is now opt-in.** The
   autopilot ledger (`engine/memory.py`) wrote confirmed findings, negatives, and
   per-target rollups (hostnames + URLs) to `~/.claude/bughunter/memory/` on **every**
