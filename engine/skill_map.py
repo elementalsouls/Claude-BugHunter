@@ -15,6 +15,7 @@ that isn't there.
 Active testing is curl-first; Burp MCP is optional (only where noted — OOB/blind/fuzzing).
 """
 import os
+import re
 import sys
 
 
@@ -182,6 +183,21 @@ def probe_for(vuln_class, url, param=None):
     return tmpl.replace("{u}", u).replace("{ur}", ur)
 
 
+def dispatch_wapt_skills(text):
+    """hunt-* names in the fenced block after 'full hunt-* set' in hunt-dispatch's
+    SKILL.md. None when the header or either fence is missing (cannot verify)."""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if line.strip().startswith("full hunt-* set"):
+            break
+    else:
+        return None
+    fences = [j for j in range(i + 1, len(lines)) if lines[j].startswith("```")]
+    if len(fences) < 2:
+        return None
+    return set(re.findall(r"hunt-[a-z0-9-]+", "\n".join(lines[fences[0] + 1:fences[1]])))
+
+
 def main(argv=None):
     """Self-check the maps against the skills actually installed.
 
@@ -189,6 +205,7 @@ def main(argv=None):
       - the skills directory cannot be read, so nothing can be verified
       - a mapping names a skill that is not installed
       - an installed hunt-* skill is unreachable through every mapping
+      - an installed hunt-* skill is missing from hunt-dispatch's mode=wapt load list
 
     Warnings (exit 0) are coverage gaps: the class still routes to the right skill,
     but no tailored starter probe is defined for it.
@@ -223,6 +240,27 @@ def main(argv=None):
             errors.append(
                 f"installed hunt-* skills NOT reachable through any mapping: {', '.join(unreachable)}"
             )
+
+        # hunt-dispatch's mode=wapt load list is hand-written prose; nothing else keeps it in
+        # sync, so a newly-added hunt-* skill silently never loads in wapt mode until flagged.
+        if "hunt-dispatch" in present:
+            path = os.path.join(SKILLS_DIR, "hunt-dispatch", "SKILL.md")
+            try:
+                with open(path, encoding="utf-8") as f:
+                    listed = dispatch_wapt_skills(f.read())
+            except OSError:
+                errors.append(f"hunt-dispatch SKILL.md not readable: {path}")
+            else:
+                if listed is None:
+                    errors.append("hunt-dispatch mode=wapt load list not found "
+                                  "(expected a fenced block after 'full hunt-* set')")
+                else:
+                    unlisted = sorted(
+                        {s for s in present if s.startswith("hunt-") and s != "hunt-dispatch"} - listed
+                    )
+                    if unlisted:
+                        errors.append("installed hunt-* skills missing from hunt-dispatch "
+                                      f"mode=wapt list: {', '.join(unlisted)}")
 
     no_probe = sorted(set(CLASS_SKILL) - set(CLASS_PROBE))
     if no_probe:
