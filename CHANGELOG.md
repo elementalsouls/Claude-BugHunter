@@ -123,6 +123,11 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 - **`cbh` / `setup_harness_mcp.py` crashed on non-UTF-8 Windows consoles** — the gate glyphs
   (✓/✗/→/—) raised `UnicodeEncodeError` under cp1252. Both entrypoints now reconfigure stdout/stderr
   to UTF-8, matching `engine/engine.py`. Reported by @Sahilkumar-r (#180).
+- **`setup_harness_mcp.py` write helpers still crashed on cp1252 when imported** — the #180 fix
+  reconfigured stdout/stderr only inside `main()`, so calling `write_codex` / `write_opencode` /
+  `write_antigravity` directly (as the unit tests and other tooling do) still raised
+  `UnicodeEncodeError` on the arrow glyph. The UTF-8 reconfigure now runs at import, so every
+  entrypoint is covered (`tests/test_setup_harness_mcp_encoding.py`).
 - **`h1_reference.py --program` returned nothing** — `CompleteHacktivityReportIndex` no longer
   accepts `terms: {team_id: ...}`; switched to `query_string: "team_handle:<handle>"`, which filters
   correctly and composes with `--top-voted`/`--top-bounty`. Lookup progress moved to stderr so
