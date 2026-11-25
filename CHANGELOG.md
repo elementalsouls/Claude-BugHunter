@@ -6,6 +6,21 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 
 ## [Unreleased]
 
+### Added
+- **`regression-hunting` skill + `/diff` command + `cbh diff` (new, 84 → 85 skills,
+  15 → 16 commands).** Deterministic diff engine (`engine/diff.py`, unit-tested in
+  `engine/test_diff.py`) compares the current `recon/<target>/manifest.json` against
+  the most recent snapshot in `recon/<target>/.snapshots/` and surfaces only what
+  changed since the last recon run: new assets, new ranked-surface entries,
+  tech-stack drift, status-code flips (a 403→200 flip is a common fix-regression
+  signal), and newly-flagged secrets. Written for continuous-scope/retainer programs
+  and re-tested bounty targets, where a full re-recon re-surfaces hundreds of
+  already-cleared hosts instead of pointing straight at genuinely new surface. The
+  comparison itself is a pure function over two manifest dicts — no HTTP, no LLM
+  judgment — matching the deterministic trust model already used by `engine/scope.py`
+  for scope enforcement. `cbh diff target.com [--no-save] [--manifest PATH]` writes
+  `recon/<target>/REGRESSION.md` and advances the snapshot baseline.
+
 ### Security
 - **Scope bypass via a backslash in the URL authority — fixed (privately reported).** The
   deterministic scope gate parsed hosts with `urlparse`, which treats `\` as a normal
@@ -302,7 +317,7 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 
 ## [1.x]
 
-- Initial public release: 51 skills + 15 slash commands, vendored foundation from
+- Initial public release: 51 skills + 16 slash commands, vendored foundation from
   `shuvonsec/claude-bug-bounty`, Burp MCP integration, recon pipeline.
 
 [Unreleased]: https://github.com/elementalsouls/Claude-BugHunter/compare/v2.1...HEAD

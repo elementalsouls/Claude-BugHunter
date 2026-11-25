@@ -4,15 +4,15 @@ The Claude-BugHunter bundle maps to a 6-phase workflow that supports both bug hu
 
 ## Primary view — phase-by-phase architecture
 
-84 skills mapped to 6 phases, with a 58-skill `hunt-*` sub-stack, an 8-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
+85 skills mapped to 6 phases, with a 58-skill `hunt-*` sub-stack, an 8-skill enterprise-platform attack layer, integration layer, and usage decision tree. This is the main reference for "which skill do I use when?".
 
 ![architecture overview](assets/architecture-overview.svg)
 
-The "Source" column in the per-phase tables below tags each skill: **`original`** = author's work in this repo, `community` = community-contributed (v3), `vendored` = from [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) (MIT). Of 84 skills: 56 original, 20 community (v3), 8 vendored.
+The "Source" column in the per-phase tables below tags each skill: **`original`** = author's work in this repo, `community` = community-contributed (v3), `vendored` = from [shuvonsec/claude-bug-bounty](https://github.com/shuvonsec/claude-bug-bounty) (MIT). Of 85 skills: 57 original, 20 community (v3), 8 vendored.
 
 ## Alternate view — 3-layer capability stack
 
-The same 84 skills, regrouped by **role in an engagement** rather than by phase. Methodology + Recon (bottom) feeds the Hunt Arsenal (middle), which produces findings that flow up through Ship It (top) to a paid submission or client deliverable.
+The same 85 skills, regrouped by **role in an engagement** rather than by phase. Methodology + Recon (bottom) feeds the Hunt Arsenal (middle), which produces findings that flow up through Ship It (top) to a paid submission or client deliverable.
 
 ![capability map](assets/capability-map.svg)
 
@@ -48,6 +48,7 @@ The 6-phase workflow expanded into a pipeline showing per-phase active skills, t
 | **`recon-scope-triage`** | original | On receiving an ASM/recon dataset — ownership & namespace-collision dedup, in-scope triage before testing |
 | `web2-recon` | vendored | Subdomain enumeration, host discovery, URL crawling |
 | **`bb-local-toolkit`** | original | Routes to local cloned bug-bounty repos when applicable |
+| **`regression-hunting`** | original | Re-testing a target: diffs the current recon manifest against the last snapshot (`cbh diff` / `/diff`) — new assets, tech drift, status-code flips, new secrets |
 
 ## Phase 3 — HUNT (active testing)
 
