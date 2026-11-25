@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add('js')</script>
 <style>
 :root{
   --bg:#07070b; --bg2:#0b0b12; --panel:#0e0e17; --panel2:#12121d;
@@ -170,9 +171,11 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
 footer a{color:var(--muted);text-decoration:none}footer a:hover{color:var(--red2)}
 footer .right{margin-left:auto;display:flex;gap:18px}
 
-.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
-.reveal.in{opacity:1;transform:none}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+/* reveal is hidden ONLY when JS is running (the .js class is set in <head>), so
+   the page renders fully with JS disabled instead of a blank opacity:0 shell. */
+.js .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.js .reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.js .reveal,.term .row{opacity:1;transform:none}}
 </style>
 </head>
 <body>
@@ -213,11 +216,11 @@ footer .right{margin-left:auto;display:flex;gap:18px}
 
 <!-- stat HUD -->
 <div class="hud"><div class="wrap">
-  <div class="stat"><div class="n" data-to="84">0</div><div class="l">Skills</div></div>
-  <div class="stat"><div class="n" data-to="58">0</div><div class="l">Hunt modules</div></div>
-  <div class="stat"><div class="n" data-to="681">0</div><div class="l">H1 report patterns</div></div>
-  <div class="stat"><div class="n" data-to="15">0</div><div class="l">Slash commands</div></div>
-  <div class="stat alt"><div class="n" data-to="5">0</div><div class="l">Agent harnesses</div></div>
+  <div class="stat"><div class="n" data-to="84">84</div><div class="l">Skills</div></div>
+  <div class="stat"><div class="n" data-to="58">58</div><div class="l">Hunt modules</div></div>
+  <div class="stat"><div class="n" data-to="681">681</div><div class="l">H1 report patterns</div></div>
+  <div class="stat"><div class="n" data-to="15">15</div><div class="l">Slash commands</div></div>
+  <div class="stat alt"><div class="n" data-to="5">5</div><div class="l">Agent harnesses</div></div>
   <div class="stat"><div class="n">MIT</div><div class="l">License</div></div>
 </div></div>
 
@@ -263,7 +266,14 @@ footer .right{margin-left:auto;display:flex;gap:18px}
   <div class="eyebrow">// attack surface</div>
   <h2 class="h2">Coverage across the whole surface.</h2>
   <p class="sub">A hunt-* skill for each class, routed automatically from the fingerprint. A sample:</p>
-  <div class="matrix" id="mx"></div>
+  <div class="matrix">
+    <div class="cell">idor</div><div class="cell">ssrf</div><div class="cell">sqli</div><div class="cell">xss</div>
+    <div class="cell">ssti</div><div class="cell">xxe</div><div class="cell">auth-bypass</div><div class="cell">graphql</div>
+    <div class="cell">deserialization</div><div class="cell">lfi</div><div class="cell">rce</div><div class="cell">oauth</div>
+    <div class="cell">jwt-crypto</div><div class="cell">csrf</div><div class="cell">cors</div><div class="cell">http-smuggling</div>
+    <div class="cell">race-condition</div><div class="cell">file-upload</div><div class="cell">open-redirect</div><div class="cell">cache-poison</div>
+    <div class="cell">saml</div><div class="cell">nosqli</div><div class="cell">websocket</div><div class="cell">business-logic</div>
+  </div>
 </div></section>
 
 <!-- install -->
@@ -329,13 +339,14 @@ function countUp(el){const to=+el.dataset.to;const d=1100;const s=performance.no
 // reveal + stat trigger
 const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.15});
 document.querySelectorAll('.reveal').forEach(x=>io.observe(x));
-const hud=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.stat .n[data-to]').forEach(countUp);hud.disconnect();}})},{threshold:.4});
-hud.observe(document.querySelector('.hud'));
+// real stat numbers ship in the HTML; count up from 0 only when motion is allowed
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  document.querySelectorAll('.stat .n[data-to]').forEach(n=>n.textContent='0');
+  const hud=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){document.querySelectorAll('.stat .n[data-to]').forEach(countUp);hud.disconnect();}})},{threshold:.4});
+  hud.observe(document.querySelector('.hud'));
+}
 // stagger terminal rows
 document.querySelectorAll('#tt .row').forEach((r,i)=>r.style.animationDelay=(.25+i*.42)+'s');
-// surface matrix
-const cls=["idor","ssrf","sqli","xss","ssti","xxe","auth-bypass","graphql","deserialization","lfi","rce","oauth","jwt-crypto","csrf","cors","http-smuggling","race-condition","file-upload","open-redirect","cache-poison","saml","nosqli","websocket","business-logic"];
-document.getElementById('mx').innerHTML=cls.map(c=>`<div class="cell">${c}</div>`).join('');
 // install tabs
 const tabs=document.querySelectorAll('.tab');
 tabs.forEach(t=>t.addEventListener('click',()=>{tabs.forEach(x=>x.setAttribute('aria-selected',x===t));
