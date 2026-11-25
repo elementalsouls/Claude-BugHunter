@@ -19,6 +19,15 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   `/remember`, `/autopilot` command docs. No behaviour removed, no data relocated.
 
 ### Added
+- **Docs: PCAP evidence hygiene, more Bugcrowd VRT mappings, safer CRLF recovery** (folded
+  in-house, reporters credited): `evidence-hygiene` gains a **§4.5 PCAP / PCAPNG sanitization**
+  section — what leaks in a capture, how to export only the PoC flow, and the verify steps
+  (contributed by @Faizee-Asad, #177); `bugcrowd-reporting` §1.3 gains **8 more canonical VRT
+  mappings** (metadata SSRF, unsafe CORS, OAuth state, iterable IDOR, web cache deception, host-
+  header reset poisoning, blind SSRF, privilege-elevating stored XSS) (contributed by @om29dev,
+  #203); and `INSTALL.md`'s CRLF-recovery note now recommends a fresh clone and warns that
+  `git checkout .` / `--renormalize` can discard or over-stage local changes (contributed by
+  @Yunkai030, #233).
 - **Leak-proof attack metrics (`engine/attack_metrics.py`, `--use-metrics`).** An opt-in,
   per-operator store of **generic counters only** — attempts / successes / cost keyed by
   tech-stack signature + vuln-class (+ a generic technique category) — that **never**

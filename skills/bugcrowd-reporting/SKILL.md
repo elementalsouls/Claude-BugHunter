@@ -43,6 +43,14 @@ Never select a VRT that misrepresents the bug just to get a higher default sever
 | State desync on security-sensitive action | Application-Level DoS → Other (with state-desync framing) | Server Security Misconfiguration → Other |
 | Email/SMS pumping on auth-flow endpoint | Server Security Misconfiguration → No Rate Limiting on Form → Email-Triggering / SMS-Triggering | Server Security Misconfiguration → No Rate Limiting on Action |
 | Token brute-force (email-change OTP, password reset) | Broken Authentication → Authentication Bypass → Other | Server Security Misconfiguration → No Rate Limiting on Action |
+| SSRF exposing cloud metadata / internal secrets (169.254.169.254) | Server Security Misconfiguration → Server-Side Request Forgery (SSRF) → Internal Secrets Exposure | Server Security Misconfiguration → Server-Side Request Forgery (SSRF) → Internal Data Exposure |
+| CORS with arbitrary reflected origin and credentials allowed | Server Security Misconfiguration → Unsafe Cross-Origin Resource Sharing | Broken Access Control (BAC) → Other |
+| OAuth state parameter missing or broken (account takeover) | Server Security Misconfiguration → OAuth Misconfiguration → Missing/Broken State Parameter | Server Security Misconfiguration → OAuth Misconfiguration → Account Takeover |
+| IDOR viewing or modifying sensitive user objects (numeric/iterable ID) | Broken Access Control (BAC) → Insecure Direct Object References (IDOR) → Modify/View Sensitive Information (Iterable Object Identifiers) | Broken Access Control (BAC) → Other |
+| Web Cache Deception leaking authenticated account data or PII | Server Security Misconfiguration → Cache Deception | Sensitive Data Exposure → PII Leakage / Disclosure of Secrets → Non-Corporate User |
+| Password reset poisoning via Host header injection | Sensitive Data Exposure → Weak Password Reset Implementation → Token Leakage via Host Header Poisoning | Server Security Misconfiguration → Other |
+| Blind SSRF via webhook or document conversion service | Server-Side Request Forgery (SSRF) → External - DNS Query Only | Server-Side Request Forgery (SSRF) → External - Low impact |
+| Stored XSS in administrative portal leading to privilege elevation | Cross-Site Scripting (XSS) → Stored → Privileged User to Privilege Elevation | Cross-Site Scripting (XSS) → Stored → Non-Privileged User to Anyone |
 
 ### 1.4 If no good VRT exists
 
