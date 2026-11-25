@@ -93,6 +93,18 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Harness-MCP import crash + wapt dispatch coverage** (built in-house, reporters credited):
+  `setup_harness_mcp.py` reconfigured stdout/stderr to UTF-8 only inside `main()`, so calling
+  the `write_codex` / `write_opencode` / `write_antigravity` helpers directly (as the unit tests
+  and other tooling do) still raised `UnicodeEncodeError` on the arrow glyph under cp1252 — the
+  UTF-8 reconfigure now runs at **import**, covering every entrypoint (reported by
+  @basanta-codexa, #237); and `/hunt` in **wapt mode** loaded only the hand-written `full hunt-*
+  set` list in `hunt-dispatch/SKILL.md`, so **10 skills** added after that list was written
+  (`hunt-jwt-crypto`, `hunt-forgot-password`, `hunt-captcha-bypass`, `hunt-shadow-api`,
+  `hunt-spa-api`, `hunt-fintech-graphql`, `hunt-clickjacking`, `hunt-html-injection`,
+  `hunt-rag-vector`, `hunt-exceptional-conditions`) never loaded — they are now in the list, and
+  `engine/skill_map.py` fails (via the existing skill-lint CI) when an installed `hunt-*` skill
+  is missing from it, so the list cannot drift again (reported by @speto2, #225).
 - **Scope hardening + landing-page robustness** (built in-house, reporters credited):
   the deterministic scope gate did not canonicalize **IDN hosts**, so a Unicode hostname
   and its punycode spelling resolved to different hosts and a punycode deny rule missed
