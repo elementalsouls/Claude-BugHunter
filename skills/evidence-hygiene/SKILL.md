@@ -199,6 +199,31 @@ Customize the gsub patterns to your specific captured data.
 
 ---
 
+### 4.5 PCAP / PCAPNG Sanitization
+
+Packet captures are the leakiest artifact you can attach. A HAR only contains HTTP you chose to export — a PCAP contains everything your interface saw during the capture window.
+
+What leaks in a PCAP:
+- Session cookies and Authorization headers in any plaintext HTTP request
+- Internal and unrelated hostnames in DNS queries
+- Other-user PII in plaintext protocol payloads
+- Your own unrelated background traffic captured in the same window
+- TLS metadata — SNI hostnames and certificate details, even when payloads are encrypted
+
+Sanitize before attaching:
+1. Filter to the relevant conversation only — in Wireshark, apply a display filter for the target host and the PoC flow, then use File → Export Specified Packets. Never attach the raw capture.
+2. A display filter does not remove anything from the saved file. Removed packets must be gone from the file itself, not just hidden from view.
+3. If the kept flow carries your session cookie or token and it is not needed to prove the bug, redact it and offer the unredacted capture privately — the same discipline as the HAR workflow above.
+4. Trim the capture to the PoC window. Long captures invite unrelated traffic.
+
+Verify before attaching:
+- List every host the capture talked to — anything unrelated must be gone.
+- Search the kept packets for the first 6 characters of your own cookie value — it must not appear.
+
+If a screenshot of the Wireshark follow-stream (redacted the same way as in §5) proves the point, prefer the screenshot. Attach a sanitized PCAP only when the triager needs timing or packet-order evidence, for example in race-condition findings.
+
+---
+
 ## 5. Burp Suite Screenshot Hygiene
 
 ### 5.1 Repeater (single request demo)
