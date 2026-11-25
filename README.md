@@ -155,7 +155,7 @@ This bundle covers the **external attack surface** — anything reachable from t
 ### In scope
 
 - **Bug bounty hunting** — web apps, APIs, SaaS, GraphQL, OAuth, JWT, file upload, IDOR, SSRF, RCE chains
-- **Web application pentesting** — full hunt-* coverage of OWASP-mapped bug classes + discipline rules
+- **Web application pentesting** — full hunt-* coverage of OWASP-mapped bug classe + discipline rules
 - **External red-team engagements** — initial-access against internet-facing enterprise estate: M365 / Entra ID, Okta-as-IdP, SharePoint on-prem (ToolShell + legacy SOAP), VMware vCenter / Workspace ONE, SSL VPN appliances (Cisco / Fortinet / Citrix / Palo Alto / Pulse / SonicWall / F5), Android APK red-team, supply-chain recon
 - **Cloud misconfig + post-credential escalation** — public S3, IMDS chains, STS AssumeRole, cross-account confused-deputy
 - **Recon + OSINT** — subdomain enum, identity-fabric mapping, certificate transparency, JS analysis, secret scanning
@@ -263,7 +263,7 @@ This bundle was built and validated through authorized engagements that exposed 
 3. **No engagement coordination** — findings, evidence, and submission IDs scattered across folders
 4. **No evidence hygiene** — screenshots leaked cookies and victim PII
 
-**External red-team engagement** — exposed five additional gaps that bug-bounty defaults made worse:
+**External red-team engagement** — exposed five additional gaps that bug-bounty default made worse:
 
 1. **Conservative defaults retracted real findings** — WAPT mindset stopped tests early on defended targets where red-team continuation would have surfaced bypass chains → `redteam-mindset`
 2. **No mid-engagement situational awareness** — client SOC patched confirmed SQLi within 30 min; external attacker locked 14 accounts during a live test session — both invisible without explicit detection methodology → `mid-engagement-ir-detection`
