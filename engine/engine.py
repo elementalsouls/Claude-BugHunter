@@ -78,7 +78,16 @@ class Engine:
                f"- SCOPE: ONLY these hosts are in scope: {hosts}. NEVER send a request to ANY other host "
                "(no third-party APIs / CDNs / SaaS such as emailjs, salesforce, google, etc.), even to 'prove' a "
                "finding. If proof would require touching an out-of-scope host/service, DO NOT do it — report the "
-               "finding but set proof_note='would require out-of-scope action (NOT performed)'.\n")
+               "finding but set proof_note='would require out-of-scope action (NOT performed)'.\n"
+               "- A bare domain rule (example.com) covers that domain AND all its subdomains; *.example.com "
+               "covers subdomains only; re: rules are regexes matched against the host.\n")
+        if self.scope.out_of_scope:
+            # The code gate denies these (deny wins), but the agent follows links and builds its
+            # own requests — it must be told the exclusions, or a host under an in-scope bare domain
+            # (admin.example.com under example.com) looks fair game and is only caught after the fact.
+            roe += (f"- EXCLUDED: these hosts are explicitly OUT of scope even when an in-scope rule above "
+                    f"would cover them (exclusions win): {', '.join(self.scope.out_of_scope)}. "
+                    "NEVER send any request to them.\n")
         if not self.allow_intrusive:
             roe += ("- READ-ONLY / NON-DESTRUCTIVE: do NOT perform any state-changing or intrusive action — no sending "
                     "emails, no writes/updates/deletes, no cache purge/revalidate, no account creation, no spam, no "

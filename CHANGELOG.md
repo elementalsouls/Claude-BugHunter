@@ -93,6 +93,24 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Scope hardening + landing-page robustness** (built in-house, reporters credited):
+  the deterministic scope gate did not canonicalize **IDN hosts**, so a Unicode hostname
+  and its punycode spelling resolved to different hosts and a punycode deny rule missed
+  the Unicode spelling (CWE-176) — both `_host_of` and `_normalize_rule` now reduce to the
+  IDNA A-label, fail-closed on un-encodable hosts (reported by @viwe-monai, #224); `cbh
+  scope import` read the **out-of-scope** side fail-open in three ways — a `Type | Asset`
+  table let the type column ("Web") be taken as the identifier, a host carrying a
+  description fell through to free-text notes instead of a deny rule, and markdown emphasis
+  leaked `**` into the host — all now deny or route to manual review, never silently drop
+  an excluded host (reported by @devloper961-maker, #235); the hunt/validate agents were
+  never told the **out-of-scope list**, so an excluded subdomain under an in-scope bare
+  domain (`admin.example.com` under `example.com`) looked allowed until `_scope_audit`
+  caught it after the fact — `_roe()` now carries the exclusions and explains bare-domain /
+  wildcard / regex matching (reported by @fairoz-539, #226); and the GitHub Pages landing
+  rendered a near-blank page with **JavaScript disabled or reduced-motion** — reveal
+  sections are now hidden only when JS runs, the stat numbers ship in the HTML, the surface
+  matrix is static, and the terminal stays visible under reduced-motion (reported by
+  @speto2, #234).
 - **Five terminal-tooling / engine correctness bugs** (built in-house, reporters credited):
   `cbh classify` matched URL path patterns against the whole URL, so a keyword in the
   hostname (`verify.example.com`, `cart.shop.example`) false-triggered a skill — it now
