@@ -485,6 +485,22 @@ def _text_label(line):
     return None
 
 
+# Table headers and asset-type columns are not identifiers. Program pages write
+# the same table in both column orders ("Asset | Type" and "Type | Asset"), so
+# pick the first cell that is neither a header nor a type word (#235).
+_TABLE_META = {
+    "type", "asset", "assets", "target", "targets", "domain", "domains",
+    "identifier", "identifiers", "name", "category", "program", "severity",
+    "max severity", "max-severity", "description", "notes", "status", "bounty", "web",
+    "host", "hostname", "ip-address", "ip-range",
+    *(t.replace("_", "-") for t in HOST_TYPES | NON_HOST_TYPES),
+}
+
+
+def _table_meta(cell):
+    return re.sub(r"[\s*_]+", "-", cell.strip().lower()).strip("-") in _TABLE_META
+
+
 def _first_cell(line):
     s = line.strip()
     s = re.sub(r"^(?:[-*•+]|\d+[.)])\s+", "", s)               # bullet / numbered list
@@ -492,10 +508,27 @@ def _first_cell(line):
         cells = [c.strip() for c in s.strip("|").split("|")]
         if all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c):
             return ""                                          # table separator row
-        s = next((c for c in cells if c), "")
+        s = next((c for c in cells if c and not _table_meta(c)), "")
     elif "\t" in s:
-        s = s.split("\t", 1)[0]
-    return s.strip().strip("`")
+        s = next((c for c in s.split("\t") if c.strip() and not _table_meta(c)), "")
+    s = s.strip().strip("`")
+    # Markdown emphasis around a host must not leak into the deny regex.
+    for mark in ("**", "__"):
+        if s.startswith(mark) and s.endswith(mark) and len(s) > 2 * len(mark):
+            s = s[len(mark):-len(mark)]
+            break
+    return s.strip()
+
+
+def _host_prefixed(cell):
+    """True when a free-text line starts with a host/IP but adds a description.
+
+    On the out-of-scope side such a line must fail closed: classify() sends it to
+    manual review instead of quietly filing it as an excluded finding (#235).
+    """
+    token = cell.split()[0].strip("*_`)[] ,;:") if cell.split() else ""
+    token = token.rstrip(".").lower()
+    return bool(token) and bool(_valid_host(token) or _ip_rules(token))
 
 
 def program_from_text(text, name="program"):
@@ -522,6 +555,8 @@ def program_from_text(text, name="program"):
         looks_like_asset = not re.search(r"\s", cell.split(" (")[0]) and "." in cell
         if looks_like_asset or _IP_RANGE.match(cell):
             p.entries.append(classify(cell, "", section, host_typed=True))
+        elif section == "out" and _host_prefixed(cell):
+            p.entries.append(classify(cell, "", "out", host_typed=True))
         elif section == "out":
             p.exclusions.append(_one_line(cell, 160))
         else:

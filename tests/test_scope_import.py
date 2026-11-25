@@ -333,6 +333,28 @@ Rewards
         p = si.program_from_text("## In scope\n- a.example.com\n## Bounties\n- b.example.com\n")
         self.assertEqual(_scope_of(si.render(p)).in_scope, [r"re:^a\.example\.com$"])
 
+    def test_out_of_scope_table_and_host_with_description_fail_closed(self):
+        p = si.program_from_text("""In scope
+- *.example.com
+Out of scope
+| Type | Asset |
+|------|-------|
+| Web | admin.example.com |
+- billing.example.com - legacy billing
+- **vpn.example.com**
+""")
+        s = _scope_of(si.render(p))
+        self.assertEqual(sorted(s.out_of_scope), sorted([
+            r"re:^admin\.example\.com$", r"re:^vpn\.example\.com$",
+        ]))
+        for host in ("admin.example.com", "vpn.example.com"):
+            self.assertFalse(s.in_scope_host(host), f"{host} stayed in scope")
+        review = [e.raw for e in p.entries if e.status == "review"]
+        self.assertIn("billing.example.com - legacy billing", review)
+        self.assertGreaterEqual(p.summary()["review"], 1)
+        self.assertNotIn("Type", p.exclusions)
+        self.assertNotIn("Web", p.exclusions)
+
 
 class MergeTests(unittest.TestCase):
     def setUp(self):
