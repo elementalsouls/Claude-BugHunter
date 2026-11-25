@@ -1,0 +1,16 @@
+"use strict";
+const $=id=>document.getElementById(id);
+const metrics=["surface","tested","candidates","confirmed","rejected"];
+const labels=["Surface items","Reviewed","Candidates","Confirmed","Rejected"];
+let history=[], events=[], previous=null, selected="";
+function node(tag,text,cls){const el=document.createElement(tag);el.textContent=text;if(cls)el.className=cls;return el;}
+function activity(message){events.unshift(new Date().toLocaleTimeString()+" · "+message);events=events.slice(0,100);renderEvents();}
+function renderEvents(){const q=$("filter").value.toLowerCase();$("events").replaceChildren(...events.filter(x=>x.toLowerCase().includes(q)).map(x=>node("li",x)));}
+$("filter").addEventListener("input",renderEvents);
+function reset(){history=[];events=[];previous=null;renderEvents();$("metrics").replaceChildren();$("severity").replaceChildren();$("phases").replaceChildren();$("progress").value=0;$("coverage").textContent="";$("report").textContent="";$("updated").textContent="";draw();}
+$("engagement").addEventListener("change",()=>{selected=$("engagement").value;reset();});
+function draw(){const c=$("history"),ctx=c.getContext("2d");ctx.clearRect(0,0,c.width,c.height);if(!history.length)return;const max=Math.max(1,...history);ctx.strokeStyle="#2dd4bf";ctx.lineWidth=3;ctx.beginPath();history.forEach((v,i)=>{const x=12+i*(c.width-24)/Math.max(1,history.length-1),y=c.height-12-v/max*(c.height-24);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();}
+function render(s){$("metrics").replaceChildren(...metrics.map((key,i)=>{const el=node("div","","metric");el.append(node("small",labels[i]),node("strong",String(s[key])));return el;}));const pct=s.surface?Math.min(100,100*s.tested/s.surface):0;$("progress").value=pct;$("coverage").textContent=s.surface?Math.round(pct)+"% of current surface reviewed":"No surface items yet";$("phases").replaceChildren(...["init","recon","rank","map","hunt","validate","report","done"].map(p=>node("span",p,"phase"+(p===s.phase?" active":""))));$("severity").replaceChildren(...["critical","high","medium","low","informational","info","unknown"].map(k=>node("div",k+": "+(s.severity[k]||0),"severity")));$("report").textContent=s.report?"Report file present":"Report not yet present";$("updated").textContent="State saved "+new Date(s.updated*1000).toLocaleString();if(!previous||previous.updated!==s.updated){if(!previous||previous.phase!==s.phase)activity("Phase: "+s.phase);for(const k of metrics){if(previous&&previous[k]!==s[k])activity(k+": "+previous[k]+" → "+s[k]);}history.push(s.tested);history=history.slice(-120);draw();}previous=s;}
+async function get(url){const r=await fetch(url,{cache:"no-store"});if(!r.ok)throw Error("Unavailable");return r.json();}
+async function poll(){try{const names=await get("/api/engagements");if(!names.includes(selected)){selected=names[0]||"";reset();}$("engagement").replaceChildren(...names.map(n=>{const o=node("option",n);o.value=n;return o;}));$("engagement").value=selected;if(!selected){$("connection").textContent="Waiting for engagement";return;}const requested=selected;const s=await get("/api/state?name="+encodeURIComponent(requested));if(requested===selected){render(s);$("connection").textContent="Connected";}}catch(e){$("connection").textContent="Waiting to reconnect";}finally{setTimeout(poll,2000);}}
+poll();

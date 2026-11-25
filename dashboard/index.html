@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BugHunter Command Center</title><link rel="stylesheet" href="/styles.css"><script defer src="/app.js"></script></head>
+<body><main><header><div><small>LOCAL / READ ONLY</small><h1>BugHunter Command Center</h1></div><span id="connection" role="status">Connecting…</span></header>
+<section class="toolbar"><label for="engagement">Engagement</label><select id="engagement"></select><span id="updated"></span></section>
+<section class="metrics" id="metrics"></section>
+<section class="panel"><h2>Review coverage</h2><progress id="progress" max="100" value="0"></progress><p id="coverage"></p><div id="phases"></div></section>
+<div class="columns"><section class="panel"><h2>Review history</h2><canvas id="history" width="640" height="200" aria-label="Review count history"></canvas><small>Samples since dashboard opened</small></section><section class="panel"><h2>Confirmed severity</h2><div id="severity"></div><p id="report"></p></section></div>
+<section class="panel"><h2>Activity</h2><label for="filter">Filter events</label> <input id="filter" type="search" placeholder="Search activity"><ol id="events" aria-live="polite"></ol></section>
+<footer>Updates every two seconds. No raw logs, URLs, evidence or credentials are transmitted.</footer></main></body></html>
