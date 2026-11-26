@@ -207,6 +207,13 @@ def _ip_rules(token):
     return [str(n) for n in ipaddress.summarize_address_range(a, b)]
 
 
+def _whole_host_path(path):
+    """`/`, `/*`, `/**`, `/*/*` ... name every path on the host, not a path limit.
+    Treating `https://auth.example.com/**` as path-limited would turn an
+    out-of-scope host into an unenforced review note."""
+    return re.fullmatch(r"[*/]*", path) is not None
+
+
 def _parse_token(token, side):
     """One identifier with no spaces -> (rules, note) or (None, reason).
 
@@ -237,10 +244,10 @@ def _parse_token(token, side):
     path = path.strip()
     ips = _ip_rules(host)                                      # 203.0.113.7:8443/x
     if ips:
-        if path not in ("", "*", "*/"):
+        if not _whole_host_path(path):
             return [], "path:/" + path + "|" + ips[0]
         return ips, note
-    path_limited = path not in ("", "*", "*/")
+    path_limited = not _whole_host_path(path)
     if host.startswith("*.") and "*" not in host[2:]:
         base = host[2:]
         if not _valid_host(base):

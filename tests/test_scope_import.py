@@ -141,6 +141,20 @@ class ClassifyTests(unittest.TestCase):
                                ("app.example.com", "ios", "out")):
             self.assertEqual(self.rules(raw, typ, side), ("other", []), (raw, typ, side))
 
+    def test_all_paths_glob_is_the_whole_host_not_a_path_limit(self):
+        # `/**` (and `/*/*`) names every path, so an out-of-scope host written that
+        # way must still be denied, not parked in review as a path-level note.
+        rec = {"name": "Example", "url": "https://bugcrowd.com/engagements/example", "targets": {
+            "in_scope": [{"type": "website", "target": "*.api.example.com"}],
+            "out_of_scope": [{"type": "website", "target": "https://auth.api.example.com/**"},
+                             {"type": "website", "target": "https://old.api.example.com/*/*"}]}}
+        scope = _scope_of(si.render(si.program_from_record("bugcrowd", rec)))
+        self.assertTrue(scope.reject_reason("https://auth.api.example.com/login"))
+        self.assertTrue(scope.reject_reason("https://old.api.example.com/"))
+        self.assertIsNone(scope.reject_reason("https://www.api.example.com/"))
+        self.assertEqual(self.rules("https://api.example.com/**", "API"),
+                         ("rule", [r"re:^api\.example\.com$"]))
+
 
 class RecordAndRenderTests(unittest.TestCase):
     def setUp(self):
