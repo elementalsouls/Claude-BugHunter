@@ -62,6 +62,13 @@ def _host_of(target):
         host = (parsed.hostname or "").lower().rstrip(".")
     except ValueError:
         return ""
+    # An IP literal has many spellings (`2001:0db8::1`, `2001:db8:0:0::1`, `::FFFF`
+    # case) that all reach the same address; rules are stored in ipaddress's
+    # canonical form, so compare in that form or a single-IP deny rule is bypassed.
+    try:
+        return str(ipaddress.ip_address(host))
+    except ValueError:
+        pass
     # Fail closed: an un-encodable IDN host is dropped so it matches nothing and
     # default-deny keeps it out of scope.
     return _to_alabel(host) or ""
