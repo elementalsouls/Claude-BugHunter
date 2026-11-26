@@ -522,7 +522,8 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
     # A global `security: []` means "no auth for the whole API" — treat as NOT secured
     # (mirror the op-level `!= []` check below), else public ops are wrongly swept as broken-auth.
     glob = spec.get("security") not in (None, [])
-    broken, n, skipped_writes = [], 0, 0
+    broken, n, skipped_writes, skipped_offsite = [], 0, 0, 0
+    base_netloc = urlparse(base).netloc
     for path, methods in spec.get("paths", {}).items():
         for m, op in methods.items():
             if m not in ("get", "post", "put", "patch", "delete"):
@@ -541,6 +542,11 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
                  if pp.get("in") == "query" and pp.get("required")]
             if q:
                 url += ("&" if "?" in url else "?") + "&".join(q)
+            # Path keys come from the target's own spec: one without a leading `/`
+            # (`users/{id}`, `.other.host/x`, `@other.host/x`) changes the host.
+            if urlparse(url).netloc != base_netloc:
+                skipped_offsite += 1
+                continue
             data = b"{}" if m in ("post", "put", "patch") else None
             req = urllib.request.Request(url, data=data, method=m.upper(),
                                          headers={"Accept": "application/json", "Content-Type": "application/json"})
@@ -557,6 +563,8 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
             time.sleep(0.03)
     if skipped_writes:
         log(f"auth-sweep: skipped {skipped_writes} declared-secured write operation(s) in read-only mode")
+    if skipped_offsite:
+        log(f"auth-sweep: skipped {skipped_offsite} operation(s) whose path would leave {base_netloc}")
     if broken:
         log(f"auth-sweep: ⚠ {len(broken)}/{n} declared-secured op(s) NOT auth-enforced (BROKEN function-level auth)")
     else:
