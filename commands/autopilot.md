@@ -86,12 +86,13 @@ vuln_class with strong **negative** history on this tech stack (`dead-class`).
 - **`--quick` / `--yolo`:** the command passes `--use-memory` to the engine — skips on.
 - A vuln_class never hunted on this stack is **never** skipped, and every skip is logged
   (`hunt: skipped via ledger (...)`). Coverage is never silently reduced.
-- Capture is automatic; the ledger fills itself as you run. Manage size with `/memory-gc`.
+- Capture is automatic only when memory is on (`--quick` / `--yolo`, which pass
+  `--use-memory`); a default run does not write to the ledger. Manage size with `/memory-gc`.
 
 ## After Autopilot
 
 - Run `/remember` to log successful patterns to hunt memory
-- Run `/pickup target.com` next time to pick up where you left off
+- Run `/pickup target.com` next time to pick up where you left off (requires data from a run with memory on)
 - Check the ledger (`~/.claude/bughunter/memory/findings.jsonl`) or run `/memory-gc` for its size
 
 > **Cross-engagement persistence is opt-in (`--use-memory`).** By default the engine
