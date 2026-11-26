@@ -656,6 +656,10 @@ def openapi_recon(scope, log=print, *, allow_intrusive=False):
             title = spec.get("info", {}).get("title", "API")
             noauth = 0
             for p, methods in paths.items():
+                # Same guard as the auth sweep: a path key that changes the host
+                # must not become surface on a host that was never scope-checked.
+                if urlparse(f"{host}{p}").netloc != urlparse(host).netloc:
+                    continue
                 for m, opn in methods.items():
                     if m not in ("get", "post", "put", "patch", "delete"):
                         continue
