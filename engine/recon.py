@@ -604,7 +604,9 @@ def platform_recon(scope, log=print):
                     items.append({"url": base + wk, "param": "", "vuln_class": "info-leak", "source": "platform",
                                   "note": "OAuth/OIDC discovery exposed"})
                     for k in ("authorization_endpoint", "token_endpoint", "registration_endpoint"):
-                        if meta.get(k):
+                        # Discovery often points at a third-party IdP; only in-scope
+                        # endpoints become surface (the arsenal map lists every item).
+                        if meta.get(k) and scope.in_scope_host(meta[k]):
                             items.append({"url": meta[k], "param": "", "vuln_class": "oauth",
                                           "source": "platform", "note": f"OAuth {k}"})
                 except Exception:
