@@ -46,6 +46,13 @@ function hunt {
         return
     }
 
+    # \z, not $: .NET's $ also matches before a trailing newline.
+    if ($Target -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*\z') {
+        Write-Host "Invalid target name '$Target': use letters, digits, '.', '_' or '-', starting with a letter or digit."
+        $global:LASTEXITCODE = 1
+        return
+    }
+
     $base = if ($env:HUNT_BASE) { $env:HUNT_BASE } else { Join-Path $HOME 'Targets' }
     $dir  = Join-Path $base $Target
 

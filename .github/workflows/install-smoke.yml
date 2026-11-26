@@ -96,6 +96,23 @@ jobs:
           HOME="$T" ZDOTDIR="$T" bash scripts/install.sh --uninstall
           cmp "$T/expected" "$T/.bashrc"
 
+      - name: hunt rejects unsafe target names
+        run: |
+          set -euo pipefail
+          T="$(mktemp -d)"
+          mkdir "$T/targets"
+          export HUNT_BASE="$T/targets"
+          for n in ../escaped a/b -rf .hidden; do
+            if bash -c 'source scripts/hunt.sh; hunt "$1"' _ "$n" >/dev/null 2>&1; then
+              echo "FAIL: hunt accepted '$n'"; exit 1
+            fi
+          done
+          [ -z "$(ls -A "$T/targets")" ] || { echo "FAIL: rejected names created folders"; exit 1; }
+          [ ! -e "$T/escaped" ] || { echo "FAIL: hunt ../escaped escaped HUNT_BASE"; exit 1; }
+          bash -c 'source scripts/hunt.sh; hunt acme.example_1' >/dev/null
+          test -f "$T/targets/acme.example_1/scope.md"
+          rm -rf "$T"
+
   powershell-smoke:
     name: PowerShell parse and installer smoke
     runs-on: windows-latest
@@ -118,6 +135,25 @@ jobs:
           if (-not (Select-String -LiteralPath (Join-Path $env:HUNT_BASE 'synthetic-case/notes.md') -Pattern '- [P1] https://example.invalid/graphql - hunt-graphql' -SimpleMatch)) {
             throw "Ranked route missing from scaffold"
           }
+      - name: hunt rejects unsafe target names
+        shell: pwsh
+        run: |
+          $scratch = Join-Path $env:RUNNER_TEMP "cbh-hunt-$([guid]::NewGuid())"
+          New-Item -ItemType Directory -Path (Join-Path $scratch 'targets') | Out-Null
+          $env:HUNT_BASE = Join-Path $scratch 'targets'
+          . ./scripts/hunt.ps1
+          foreach ($n in @('../escaped', 'a/b', '-rf', '.hidden')) {
+            $global:LASTEXITCODE = 0
+            hunt $n | Out-Null
+            if ($LASTEXITCODE -ne 1) { throw "hunt accepted '$n'" }
+          }
+          if (Get-ChildItem -LiteralPath $env:HUNT_BASE -Force) { throw "rejected names created folders" }
+          if (Test-Path -LiteralPath (Join-Path $scratch 'escaped')) { throw "hunt ../escaped escaped HUNT_BASE" }
+          hunt acme.example_1
+          if (-not (Test-Path -LiteralPath (Join-Path $env:HUNT_BASE 'acme.example_1/scope.md'))) {
+            throw "valid name was not scaffolded"
+          }
+          Remove-Item -LiteralPath $scratch -Recurse -Force
       - name: parse .ps1 installers
         shell: pwsh
         run: |

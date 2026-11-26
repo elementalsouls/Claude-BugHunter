@@ -30,6 +30,15 @@ hunt() {
     return 1
   fi
 
+  # One plain folder name: blocks "/", "../" and a leading "-" or ".".
+  # POSIX case, not [[ =~ ]]: zsh sources this file too.
+  case "$target" in
+    ""|[!A-Za-z0-9]*|*[!A-Za-z0-9._-]*)
+      echo "Invalid target name '$target': use letters, digits, '.', '_' or '-', starting with a letter or digit." >&2
+      return 1
+      ;;
+  esac
+
   if [ -d "$dir" ]; then
     echo "Target '$target' already exists at $dir"
     echo "cd $dir to continue working on it."
