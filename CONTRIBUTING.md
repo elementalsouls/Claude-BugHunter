@@ -82,6 +82,8 @@ printf '%s' "the name" | tr '[:upper:]' '[:lower:]' | shasum -a 256   # paste th
 
 or drop the plaintext (one per line) in `scripts/.identifier-denylist.local` — it's gitignored and hashed at runtime, so the name never enters the repo.
 
+Both are matched against 1- and 2-word shingles of lowercase `[a-z0-9]` words, so hash a name in that form (`Example-Corp` -> `example corp`); a hash of anything else never matches.
+
 ## Code of conduct
 
 - Be respectful in PRs and issues

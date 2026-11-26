@@ -6,7 +6,9 @@
 # identifier instead. The linter (scripts/lint_skills.py) normalizes every
 # 1- and 2-word shingle of each SKILL.md the same way and compares hashes.
 #
-# Normalization: lowercase, collapse internal whitespace to single spaces.
+# Normalization: lowercase, keep only [a-z0-9]+ words, join them with single
+# spaces ("Example-Corp" -> "example corp"). At most two words: only 1- and
+# 2-word shingles are scanned, so a longer name can never match.
 #
 # To add a NEW identifier without leaking it, either:
 #   (a) add its SHA-256 here:  printf '%s' "the name" | tr '[:upper:]' '[:lower:]' | shasum -a 256
