@@ -109,16 +109,26 @@ def _normalize_rule(rule):
     matched against the URL's host, so a rule carrying a scheme/port/path matched
     nothing and silently failed open — this is the one normalization point for every
     source (scope.md, scope.json, CLI flags, osint/recon helpers).
+
+    A trailing inline comment ("10.0.0.0/8 # corp range") is dropped first. Left in
+    place it stops the CIDR parsing as a network, so an in-scope rule silently
+    denies and an out-of-scope deny rule silently fails open.
     """
     r = rule.strip().strip("`\"'").rstrip(".,; ").strip()
     if r[:3].lower() == "re:":
-        return r
+        # A regex may legitimately contain '#', so only drop a whitespace-preceded
+        # trailing comment ("re:^app\\.example\\.com$ # prod").
+        return re.sub(r"\s+#.*$", "", r)
+    # '#' is never valid in a host or CIDR, so everything from the first one is a
+    # comment — including the no-space form ("10.0.0.0/8#corp").
+    r = r.split("#", 1)[0].strip()
     low = r.lower()
     if "://" in low:
         low = low.split("://", 1)[1]
     low = low.split("@")[-1]                       # drop userinfo
-    if _is_cidr(low.split()[0] if low.split() else low):
-        return low
+    tokens = low.split()
+    if tokens and _is_cidr(tokens[0]):
+        return tokens[0]
     wild = low.startswith("*.")
     core = low[2:] if wild else low
     bare = core.strip("[]").split("%")[0]          # IPv6 may be bracketed or %zone-scoped

@@ -73,6 +73,33 @@ class RuleNormalizationTests(unittest.TestCase):
         s = Scope(in_scope=["2001:db8::/32"], out_of_scope=["[2001:db8::1]"])
         self.assertFalse(s.in_scope_host("https://[2001:db8::1]/"))
 
+    # ---- inline comments / trailing notes on CIDR rules (follow-up to #182) ----
+    def test_in_scope_cidr_with_inline_comment_matches(self):
+        s = Scope(in_scope=["10.0.0.0/8 # corp range"])
+        self.assertTrue(s.in_scope_host("https://10.1.2.3/"))
+
+    def test_out_of_scope_cidr_with_inline_comment_denies(self):
+        s = Scope(in_scope=["10.0.0.0/8"], out_of_scope=["10.9.0.0/16 # sensitive lab"])
+        self.assertFalse(s.in_scope_host("https://10.9.1.1/"))
+
+    def test_cidr_comment_without_space_does_not_narrow_to_one_ip(self):
+        # "10.0.0.0/8#corp" used to normalize to "10.0.0.0", silently losing the /8.
+        s = Scope(in_scope=["10.0.0.0/8#corp"])
+        self.assertTrue(s.in_scope_host("https://10.1.2.3/"))
+
+    def test_ipv6_cidr_with_inline_comment_matches(self):
+        s = Scope(in_scope=["2001:db8::/32 # lab"])
+        self.assertTrue(s.in_scope_host("https://[2001:db8::1]/"))
+
+    def test_cidr_with_trailing_parenthetical_note_matches(self):
+        s = Scope(in_scope=["10.0.0.0/8 (corp range)"])
+        self.assertTrue(s.in_scope_host("https://10.1.2.3/"))
+
+    def test_out_of_scope_regex_with_inline_comment_still_denies(self):
+        s = Scope(in_scope=["example.com"],
+                  out_of_scope=[r"re:^admin\.example\.com$ # prod"])
+        self.assertFalse(s.in_scope_host("https://admin.example.com/"))
+
     # ---- Task 3: soft-fail an invalid out-of-scope regex ----
     def test_bad_out_of_scope_regex_warns_and_continues(self):
         s = Scope(in_scope=["example.com"], out_of_scope=["re:(unclosed"])

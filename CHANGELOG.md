@@ -137,6 +137,12 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   remain Claude-Code-only. New guide: `docs/multi-harness.md`.
 
 ### Fixed
+- **Scope gate: CIDR rules with an inline comment failed open** — `_normalize_rule` kept the
+  whole string when the first token parsed as a CIDR, so `10.0.0.0/8 # corp range` never parsed
+  as a network: an in-scope rule silently denied and an out-of-scope deny rule silently failed
+  open (and `10.0.0.0/8#corp` narrowed to the single IP `10.0.0.0`). Comments are now stripped
+  before classification, a CIDR returns only its network token, and `re:` rules keep `#` except
+  for a whitespace-preceded trailing comment (`engine/test_scope_rule_normalization.py`).
 - **Harness-MCP import crash + wapt dispatch coverage** (built in-house, reporters credited):
   `setup_harness_mcp.py` reconfigured stdout/stderr to UTF-8 only inside `main()`, so calling
   the `write_codex` / `write_opencode` / `write_antigravity` helpers directly (as the unit tests
