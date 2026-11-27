@@ -53,7 +53,7 @@ curl "http://localhost:58002/render-email?customer=$(python3 -c 'import urllib.p
 Response excerpt:
 
 ```
-uid=501(elementalsoul) gid=20(staff) groups=20(staff),12(everyone),61(localaccounts),...
+uid=501(appuser) gid=20(staff) groups=20(staff),12(everyone),...
 ```
 
 **Command execution on host.** Not a container — this ran as the Flask process owner.
