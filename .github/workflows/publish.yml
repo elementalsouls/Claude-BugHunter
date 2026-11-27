@@ -1,0 +1,74 @@
+name: Publish to PyPI
+
+# Builds and publishes the `claude-bughunter` package (the `cbh` CLI) to PyPI on a
+# version tag, using PyPI Trusted Publishing (OIDC) — no long-lived API token is
+# stored in the repo.
+#
+# ONE-TIME SETUP (maintainer, on PyPI — not done here):
+#   1. https://pypi.org/manage/account/publishing/ → add a "pending publisher":
+#        PyPI project name: claude-bughunter
+#        Owner: elementalsouls   Repo: Claude-BugHunter
+#        Workflow: publish.yml    Environment: pypi
+#   2. In this repo: Settings → Environments → create `pypi` (optionally require
+#      a reviewer so a tag can't publish without a click).
+# After that, pushing a tag like `v2.1.0` builds and publishes automatically.
+#
+# RELEASE: bump the version in pyproject.toml AND cbh/__init__.py, commit, then
+#   git tag v2.1.0 && git push origin v2.1.0
+# The build job fails closed if the tag and pyproject version disagree.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build sdist + wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Guard — tag must match pyproject version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(python -c 'import tomllib,pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag v$TAG does not match pyproject version $PKG — bump the version or fix the tag"
+            exit 1
+          fi
+          echo "publishing version $PKG"
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade build
+          python -m build
+
+      - name: Validate metadata
+        run: |
+          python -m pip install --upgrade twine
+          twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write          # OIDC token for Trusted Publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
