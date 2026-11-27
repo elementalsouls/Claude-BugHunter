@@ -1532,20 +1532,20 @@ When payout is being downgraded, use these counters:
 
 # INSTALLATION (Claude Code Skill)
 
-To use this as a Claude Code skill, copy this file to your skills directory:
+This skill ships inside the Claude-BugHunter bundle — install the bundle, don't
+fetch this file on its own:
 
 ```bash
-# Option A: Clone the repo and link the skill
-git clone https://github.com/shuvonsec/claude-bug-bounty.git ~/.claude/skills/bug-bounty
-ln -s ~/.claude/skills/bug-bounty/SKILL.md ~/.claude/skills/bug-bounty/SKILL.md
+# Plugin (recommended)
+/plugin marketplace add elementalsouls/Claude-BugHunter
+/plugin install claude-bughunter@elementalsouls
 
-# Option B: Direct copy
-mkdir -p ~/.claude/skills/bug-bounty
-curl -s https://raw.githubusercontent.com/shuvonsec/claude-bug-bounty/main/SKILL.md \
-  -o ~/.claude/skills/bug-bounty/SKILL.md
+# or clone + run the installer
+git clone https://github.com/elementalsouls/Claude-BugHunter.git
+cd Claude-BugHunter && bash scripts/install.sh
 ```
 
-Then in Claude Code, this skill loads automatically when you ask about bug bounty, recon, or vulnerability hunting.
+Then this skill loads automatically when you ask about bug bounty, recon, or vulnerability hunting.
 
 ---
 
