@@ -503,7 +503,11 @@ def classes_for_openapi(path, method, op, secured):
         add("saml")
     if any(k in pl for k in ("oauth", "keycloak", "/auth", "/login", "token")):
         add("auth-bypass")
-    has_param = any(pr.get("in") in ("query", "path") for pr in op.get("parameters", []))
+    has_param = any(
+        pr.get("in") in ("query", "path")
+        for pr in (op.get("parameters") or [])
+        if isinstance(pr, dict)
+    )
     if has_param or method in ("post", "put", "patch"):
         add("sqli")
     if not cls:
@@ -535,9 +539,17 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
     # A global `security: []` means "no auth for the whole API" — treat as NOT secured
     # (mirror the op-level `!= []` check below), else public ops are wrongly swept as broken-auth.
     glob = spec.get("security") not in (None, [])
+    paths = spec.get("paths") or {}
+    if not isinstance(paths, dict):
+        return []
     broken, n, skipped_writes = [], 0, 0
-    for path, methods in spec.get("paths", {}).items():
-        for m, op in methods.items():
+    for path, methods in paths.items():
+        if not isinstance(methods, dict):
+            continue
+        for raw_m, op in methods.items():
+            if not isinstance(raw_m, str) or not isinstance(op, dict):
+                continue
+            m = raw_m.lower()
             if m not in ("get", "post", "put", "patch", "delete"):
                 continue
             if not (("security" in op and op["security"] != []) or ("security" not in op and glob)):
@@ -548,11 +560,13 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
             url = base + path
             if not _on_base_authority(base, url):   # path key rewrote the authority (#263) — never send
                 continue
-            for pp in op.get("parameters", []):
+            params = [pr for pr in (op.get("parameters") or [])
+                      if isinstance(pr, dict) and pr.get("name")]
+            for pp in params:
                 if pp.get("in") == "path":
                     url = url.replace("{%s}" % pp["name"], junk)
             url = url.replace("{", "").replace("}", "")
-            q = [f"{pp['name']}={junk}" for pp in op.get("parameters", [])
+            q = [f"{pp['name']}={junk}" for pp in params
                  if pp.get("in") == "query" and pp.get("required")]
             if q:
                 url += ("&" if "?" in url else "?") + "&".join(q)
@@ -584,16 +598,31 @@ WELLKNOWN = ["/__/firebase/init.json", "/.well-known/oauth-authorization-server"
              "/.well-known/security.txt", "/security.txt", "/robots.txt"]
 
 
+def _seed_origin(seed):
+    """Extract normalized `scheme://host[:port]` origin from a seed, preserving
+    non-default ports and stripping userinfo, path, query, and fragment."""
+    s = (seed or "").strip()
+    if not s:
+        return None
+    try:
+        u = urlparse(s if "://" in s else "https://" + s)
+    except ValueError:
+        return None
+    if not u.hostname:
+        return None
+    scheme = u.scheme or "https"
+    authority = u.netloc.rsplit("@", 1)[-1]
+    return f"{scheme}://{authority}"
+
+
 def platform_recon(scope, log=print):
     """Probe platform/.well-known config endpoints — cheap, high-signal: Firebase config disclosure,
     OAuth/OIDC discovery (reveals authorize/token/register), robots disallows. Returns surface items."""
     import json as _json
-    from urllib.parse import urlparse
     items, seen = [], set()
     for seed in scope.seeds:
-        u = urlparse(seed if "://" in seed else "https://" + seed)
-        base = f"{u.scheme or 'https'}://{u.hostname}"
-        if base in seen:
+        base = _seed_origin(seed)
+        if not base or base in seen:
             continue
         seen.add(base)
         if not scope.in_scope_host(base):
@@ -649,11 +678,12 @@ def openapi_recon(scope, log=print, *, allow_intrusive=False):
     """If the target exposes an OpenAPI schema, parse it into categorized (path,method,class) work
     units — the ideal deterministic recon for an API host. Returns already-expanded surface items."""
     import json as _json
-    items = []
+    items, seen = [], set()
     for seed in scope.seeds:
-        host = seed.rstrip("/")
-        if "://" not in host:
-            host = "https://" + host
+        host = _seed_origin(seed)
+        if not host or host in seen:
+            continue
+        seen.add(host)
         if not scope.in_scope_host(host):
             continue
         for op_path in OPENAPI_PATHS:
@@ -664,14 +694,22 @@ def openapi_recon(scope, log=print, *, allow_intrusive=False):
                 spec = _json.loads(body)
             except Exception:
                 continue
+            if not isinstance(spec, dict):
+                continue
             paths = spec.get("paths")
-            if not paths:
+            if not isinstance(paths, dict) or not paths:
                 continue
             glob_sec = spec.get("security") not in (None, [])   # `security: []` == public, not secured
-            title = spec.get("info", {}).get("title", "API")
+            info = spec.get("info") if isinstance(spec.get("info"), dict) else {}
+            title = info.get("title", "API")
             noauth = 0
             for p, methods in paths.items():
-                for m, opn in methods.items():
+                if not isinstance(methods, dict):
+                    continue
+                for raw_m, opn in methods.items():
+                    if not isinstance(raw_m, str) or not isinstance(opn, dict):
+                        continue
+                    m = raw_m.lower()
                     if m not in ("get", "post", "put", "patch", "delete"):
                         continue
                     secured = ("security" in opn and opn["security"] != []) or \
