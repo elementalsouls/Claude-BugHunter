@@ -45,6 +45,15 @@ def _to_alabel(host):
 def _host_of(target):
     t = target.strip()
     if "://" not in t:
+        # Handle unbracketed IPv6 literals (`2001:0db8::1`, `::1`, `2001:db8::1%eth0`)
+        # before urlparse, which otherwise treats the first `:` as a port separator
+        # and truncates `2001:db8::1` to `2001`. Still fail closed on any ambiguous
+        # authority character (`\`, `@`, `/`, `?`, `#`, whitespace, C0/DEL).
+        if not any(c in "\\/@?#" or ord(c) <= 0x20 or ord(c) == 0x7f for c in t):
+            try:
+                return str(ipaddress.ip_address(t.split("%")[0]))
+            except ValueError:
+                pass
         t = "//" + t
     try:
         parsed = urlparse(t)
@@ -146,6 +155,15 @@ def _normalize_rule(rule):
     except ValueError:
         host = ""
     host = (host or core.split("/")[0].split(":")[0]).rstrip(".")
+    # Canonicalize IP literals extracted via urlparse too (e.g.
+    # `https://[2001:0db8::1]:8443/admin` or `[2001:0db8::1]/`), otherwise an
+    # uncanonicalized IPv6 URL deny rule fails to match `_host_of`'s canonical
+    # form and fails open.
+    if not wild:
+        try:
+            return str(ipaddress.ip_address(host.split("%")[0]))
+        except ValueError:
+            pass
     # Same A-label canonicalization as _host_of so a Unicode rule and a punycode
     # rule for the same host normalize to one form. Keep as-written on invalid IDNA.
     host = _to_alabel(host) or host
@@ -181,11 +199,14 @@ class Scope:
         normalized = _normalize_rule(rule)
         if normalized[:3].lower() == "re:":
             return normalized
-        body = rule.strip().strip("`\"'").rstrip(".,; ")
+        body = rule.strip().strip("`\"'").rstrip(".,; ").split("#", 1)[0].strip()
         body = body.split("://", 1)[-1].split("@")[-1]
         hostpart = body.split("/")[0]
         had_path = "/" in body and not _is_cidr(normalized)
-        had_port = ":" in hostpart and not _is_cidr(normalized)
+        if hostpart.startswith("["):
+            had_port = "]" in hostpart and ":" in hostpart.split("]", 1)[1]
+        else:
+            had_port = hostpart.count(":") == 1 and not _is_cidr(normalized)
         if had_path or had_port:
             self.warnings.append(
                 f"scope rule {rule!r} widened to host {normalized!r} (scope is per-host)")

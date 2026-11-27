@@ -231,11 +231,21 @@ def _parse_token(token, side):
     hostport = hostport.split("?")[0].split("#")[0]
     note = ""
     if hostport.startswith("["):                               # [v6]:port
-        v6 = hostport[1:].split("]")[0]
-        ips = _ip_rules(v6)
-        if ips:
-            return ips, ""
-        return None, "unparseable IPv6 literal"
+        v6, sep, rest = hostport[1:].partition("]")
+        if not sep:
+            return None, "unparseable IPv6 literal"
+        if rest:
+            if not (rest.startswith(":") and rest[1:].isdigit()):
+                return None, "unparseable host:port"
+            note = f"port {rest[1:]}"
+        try:
+            ip = str(ipaddress.IPv6Address(v6.split("%")[0]))
+        except ValueError:
+            return None, "unparseable IPv6 literal"
+        path = path.strip()
+        if not _whole_host(path):
+            return [], "path:/" + path + "|" + ip
+        return [ip], note
     host, _, port = hostport.partition(":")
     if port:
         if not port.isdigit():
@@ -277,6 +287,26 @@ def _expand_braces(token):
     return [token[:m.start()] + alt.strip() + token[m.end():] for alt in m.group(1).split(",")]
 
 
+def _has_placeholder(s):
+    """True when `s` carries `<...>` or non-IPv6 `[...]` template brackets.
+    Bracketed IPv6 literals (`https://[2001:db8::1]:8443/`) are valid hosts, not
+    placeholders."""
+    if "<" in s or ">" in s:
+        return True
+    if "[" not in s and "]" not in s:
+        return False
+
+    def _strip_v6(m):
+        try:
+            ipaddress.IPv6Address(m.group(1).split("%")[0])
+            return ""
+        except ValueError:
+            return m.group(0)
+
+    rest = re.sub(r"\[([^\[\]]+)\]", _strip_v6, s)
+    return "[" in rest or "]" in rest
+
+
 def classify(raw, asset_type, side, host_typed=None):
     """Turn one program asset into an Entry (status rule / review / other).
 
@@ -306,7 +336,7 @@ def classify(raw, asset_type, side, host_typed=None):
         e.status = "review" if hosty else "other"
         e.reason = "free text, not a single asset"
         return e
-    elif re.search(r"[<>\[\]]", s):
+    elif _has_placeholder(s):
         e.status, e.reason = ("review" if hosty else "other"), "placeholder or template"
         return e
     else:
@@ -533,7 +563,12 @@ def _host_prefixed(cell):
     manual review instead of filing it as a free-text exclusion note (#235)."""
     parts = cell.split()
     token = parts[0].strip("*_`)[] ,;:").rstrip(".").lower() if parts else ""
-    return bool(token) and bool(_valid_host(token) or _ip_rules(token))
+    if not token:
+        return False
+    if _valid_host(token) or _ip_rules(token):
+        return True
+    got, why = _parse_token(parts[0].strip("*_`),;"), "out")
+    return got is not None or why.startswith("path:")
 
 
 def program_from_text(text, name="program"):
@@ -557,7 +592,8 @@ def program_from_text(text, name="program"):
         cell = _first_cell(line)
         if not cell or cell.lower() in ("asset", "assets", "target", "domain", "identifier"):
             continue
-        looks_like_asset = not re.search(r"\s", cell.split(" (")[0]) and "." in cell
+        head = cell.split(" (")[0]
+        looks_like_asset = not re.search(r"\s", head) and ("." in head or head.count(":") >= 2)
         if looks_like_asset or _IP_RANGE.match(cell):
             p.entries.append(classify(cell, "", section, host_typed=True))
         elif section == "out" and _host_prefixed(cell):
