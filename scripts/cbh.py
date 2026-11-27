@@ -8,7 +8,14 @@ the pip console-script entry point (`cbh`). See docs/cbh-cli.md.
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, REPO_ROOT)
+
+if __name__ == "__main__" and sys.argv[1:3] == ["scope", "check"]:
+    from cbh.scope_check import main as scope_check_main
+
+    raise SystemExit(scope_check_main(sys.argv[3:]))
+
 from cbh.cli import main  # noqa: E402
 
 if __name__ == "__main__":
