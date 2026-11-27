@@ -32,7 +32,7 @@ python3 -c "import sys; sys.path.insert(0,'engine'); import memory, json; print(
 ## If No Previous Hunt
 
 ```
-No ledger data for target.com. Run /recon then /autopilot target.com first.
+No ledger data for target.com. Run /recon then /autopilot target.com --use-memory first (a default autopilot writes nothing to the ledger).
 ```
 
 > **Note — cross-engagement recall is opt-in.** The target rollup `/pickup` reads

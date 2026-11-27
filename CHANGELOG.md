@@ -6,6 +6,22 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
 
 ## [Unreleased]
 
+### Fixed
+- **`exploit-completion`: redirect-reflection marker check could never report a landing
+  (reported by @speto2).** The proof snippet put the marker in the URL `#fragment`, which
+  curl never sends, so `grep -c` was always 0. The marker now goes in a reflectable query
+  param. Also reconciled the identical-failure cap to N = 2 throughout the skill (it was
+  stated as 3 in two places and 2 in four), removed a stray shipped tooling comment, and
+  replaced a brittle `redteam-mindset #71` line-number reference with a section name.
+- **Command docs still said ledger capture was automatic after it became opt-in (`--use-memory`,
+  reported by @speto2).** Corrected the stale lines in `commands/remember.md`,
+  `commands/autopilot.md`, and `commands/pickup.md` (including the `/pickup` empty-state hint,
+  which pointed at a default `/autopilot` run that writes nothing).
+- **`hunt-springboot`: the CVE-2022-22947 PoC tripped antivirus heuristics on the shipped
+  SKILL.md (reported by @minhhungit; approach by @satyam-257).** Phase 5b now leads with a
+  non-destructive `#{5*5}` arithmetic proof and moves the `Runtime.exec` form to a commented
+  placeholder, so the file no longer ships a verbatim runnable RCE string.
+
 ### Added
 - **`regression-hunting` skill + `/diff` command + `cbh diff` (new, 84 → 85 skills,
   15 → 16 commands).** Deterministic diff engine (`engine/diff.py`, unit-tested in
@@ -22,6 +38,18 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   `recon/<target>/REGRESSION.md` and advances the snapshot baseline.
 
 ### Security
+- **Scope deny rule fails open on an inline comment — fixed (reported by @basanta-codexa).**
+  `engine/scope.py::_normalize_rule` returned the whole rule string when the first token
+  parsed as a CIDR, so a trailing note (`10.9.0.0/16 # sensitive lab`, `10.9.0.0/16 (corp)`,
+  or the no-space `10.0.0.0/8#corp`) never parsed as a network and the deny rule admitted the
+  excluded host. A `#` is never valid in a host or CIDR, so a trailing comment is now dropped
+  before classification (preserved inside `re:` rules), and only the CIDR token is returned.
+  Regression test: `engine/test_scope_rule_comments.py`.
+- **`hunt` wrapper accepted a target name that escaped `$HUNT_BASE` — fixed (reported by @speto2).**
+  `scripts/hunt.sh` / `scripts/hunt.ps1` joined the target onto `$HUNT_BASE` with no
+  validation, so `hunt ../escaped` created folders outside the base, `hunt a/b/c` nested, and
+  `hunt -x` made a flag-named folder. Both now accept only `^[A-Za-z0-9][A-Za-z0-9._-]*$` and
+  otherwise error, return non-zero, and create nothing. Test: `scripts/test_hunt_target.sh`.
 - **Scope / off-scope-request hardening cluster — fixed (reported by @chaitanya0305).**
   A follow-on audit of the scope gate and its producers, in the same parser-differential
   class as the backslash bypass below, surfaced five fail-open holes; all are fixed with

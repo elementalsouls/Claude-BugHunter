@@ -46,6 +46,14 @@ function hunt {
         return
     }
 
+    # Reject a target that would escape or nest outside $HUNT_BASE (#252).
+    # \z (not $) so a trailing newline can't slip a separator through.
+    if ($Target -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*\z') {
+        Write-Host "Invalid target name '$Target' - letters, digits, dot, dash, underscore only; must start alphanumeric."
+        $global:LASTEXITCODE = 1
+        return
+    }
+
     $base = if ($env:HUNT_BASE) { $env:HUNT_BASE } else { Join-Path $HOME 'Targets' }
     $dir  = Join-Path $base $Target
 

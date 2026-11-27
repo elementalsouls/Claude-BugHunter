@@ -30,6 +30,15 @@ hunt() {
     return 1
   fi
 
+  # Reject anything that isn't a plain single-segment name, so a target of
+  # `../escaped`, `a/b/c`, `-x` or `.hidden` can't escape or nest outside
+  # $HUNT_BASE (#252). Must start alphanumeric; then letters/digits/._- only.
+  case "$target" in
+    [!A-Za-z0-9]* | *[!A-Za-z0-9._-]* )
+      echo "Invalid target name '$target' — letters, digits, dot, dash, underscore only; must start alphanumeric." >&2
+      return 1 ;;
+  esac
+
   if [ -d "$dir" ]; then
     echo "Target '$target' already exists at $dir"
     echo "cd $dir to continue working on it."

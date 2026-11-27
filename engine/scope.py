@@ -121,13 +121,19 @@ def _normalize_rule(rule):
     """
     r = rule.strip().strip("`\"'").rstrip(".,; ").strip()
     if r[:3].lower() == "re:":
-        return r
+        return r                                   # re: pattern may legitimately contain '#'
+    # A '#' is never valid in a host or CIDR, so a trailing inline comment
+    # (`10.9.0.0/16 # lab`, `10.0.0.0/8#corp`) is dropped before classification —
+    # otherwise the whole string was returned and a commented CIDR deny rule
+    # failed to parse as a network, admitting the excluded host (#270).
+    r = r.split("#", 1)[0].strip()
     low = r.lower()
     if "://" in low:
         low = low.split("://", 1)[1]
     low = low.split("@")[-1]                       # drop userinfo
-    if _is_cidr(low.split()[0] if low.split() else low):
-        return low
+    tok = low.split()[0] if low.split() else low   # a trailing note ('(corp range)') is not the rule
+    if _is_cidr(tok):
+        return tok
     wild = low.startswith("*.")
     core = low[2:] if wild else low
     bare = core.strip("[]").split("%")[0]          # IPv6 may be bracketed or %zone-scoped
