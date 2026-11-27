@@ -18,7 +18,9 @@ import subprocess
 from shutil import which
 from tempfile import TemporaryDirectory
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
+
+MAX_REDIRECTS = 5
 
 
 def _run(cmd, timeout=120):
@@ -69,28 +71,47 @@ def _fingerprint(headers, body):
     return tech
 
 
-def probe(host, timeout=12):
-    """Probe https then http; return target dict or None if dead."""
+def probe(host, timeout=12, allow=None):
+    """Probe https then http; return target dict or None if dead.
+
+    Redirects are followed one hop at a time only while `allow(next_url)` holds;
+    `allow=None` follows nothing (safe default) so a redirect to an out-of-scope
+    host never issues a request to that host.
+    """
     with TemporaryDirectory(prefix="cbh-osint-") as scratch:
         for scheme in ("https", "http"):
             url = f"{scheme}://{host}/"
             body_path = Path(scratch) / scheme
-            out = _run(["curl", "-s", "-m", str(timeout), "-L", "-D", "-", "-o", str(body_path), url], timeout + 6)
-            codes = re.findall(r'^HTTP/\S+\s+(\d{3})', out, re.M)
-            if not codes:
+            cur_url = url
+            last_status, last_headers, last_body = None, {}, ""
+            for _ in range(MAX_REDIRECTS + 1):
+                out = _run(["curl", "-s", "-m", str(timeout), "-D", "-", "-o", str(body_path), cur_url], timeout + 6)
+                codes = re.findall(r'^HTTP/\S+\s+(\d{3})', out, re.M)
+                if not codes:
+                    break
+                headers = {}
+                for line in out.splitlines():
+                    m = re.match(r'^([A-Za-z0-9\-]+):\s*(.*?)\s*$', line)
+                    if m:
+                        headers[m.group(1).lower()] = m.group(2)
+                try:
+                    body = body_path.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    body = ""
+                last_status, last_headers, last_body = int(codes[-1]), headers, body
+                loc = headers.get("location")
+                if allow is not None and loc and 300 <= last_status < 400:
+                    nxt = urljoin(cur_url, loc)
+                    if allow(nxt):
+                        cur_url = nxt
+                        continue
+                break
+            if last_status is None:
                 continue
-            headers = {}
-            for line in out.splitlines():
-                m = re.match(r'^([A-Za-z0-9\-]+):\s*(.*?)\s*$', line)
-                if m:
-                    headers[m.group(1).lower()] = m.group(2)
-            try:
-                body = body_path.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                body = ""
-            title = (re.search(r'<title[^>]*>([^<]*)', body, re.I) or [None, ""])[1].strip()
-            return {"host": host, "url": f"{scheme}://{host}/", "status": int(codes[-1]),
-                    "server": headers.get("server", ""), "title": title[:70], "tech": _fingerprint(headers, body)}
+            title = (re.search(r'<title[^>]*>([^<]*)', last_body, re.I) or [None, ""])[1].strip()
+            return {"host": host, "url": url, "status": last_status,
+                    "server": last_headers.get("server", ""), "title": title[:70],
+                    "tech": _fingerprint(last_headers, last_body)}
     return None
 
 
@@ -116,8 +137,12 @@ def _pd_httpx():
     return None
 
 
-def probe_hosts(hosts, log=print):
+def probe_hosts(hosts, log=print, scope=None):
     """Liveness + tech probe. Prefers PD httpx-toolkit (batch, rich tech-detect); curl fallback."""
+    if scope is not None:
+        hosts = [h for h in hosts if scope.in_scope_host(h)]
+    if not hosts:
+        return [], "none"
     pd = _pd_httpx()
     if pd:
         out = _run_stdin([pd, "-silent", "-json", "-sc", "-title", "-td", "-server",
@@ -133,7 +158,8 @@ def probe_hosts(hosts, log=print):
             except Exception:
                 pass
         return targets, pd
-    targets = [probe(h) for h in hosts]
+    allow = scope.in_scope_host if scope is not None else None
+    targets = [probe(h, allow=allow) for h in hosts]
     return [t for t in targets if t], "curl(fallback — install PD httpx-toolkit)"
 
 
@@ -192,7 +218,7 @@ def osint(scope, log=print, max_probe=80):
     log(f"osint: {len(subs)} name(s) discovered -> {len(in_scope)} in scope; probing liveness + tech...")
 
     probed = in_scope[:max_probe]
-    targets, tool = probe_hosts(probed, log)
+    targets, tool = probe_hosts(probed, log, scope=scope)
     for t in targets:
         log(f"osint:   LIVE  {(t.get('host') or '?'):28s} [{t.get('status')}] "
             f"{('· ' + ', '.join(t['tech'])) if t.get('tech') else ''}")
