@@ -25,6 +25,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from scope import Scope            # noqa: E402
 from state import Engagement       # noqa: E402
 import agent as A                  # noqa: E402
+# LLM backend: 'claude' (default; agent.py drives the `claude -p` CLI) or 'grok'
+# (agent_grok.py drives the xAI Chat Completions API). Both expose the same
+# run_agent()/extract_json() contract. Pick via $CBH_LLM_BACKEND or --backend.
+if os.environ.get("CBH_LLM_BACKEND", "").strip().lower() == "grok":
+    import agent_grok as A        # noqa: E402,F811
 import memory                     # noqa: E402  (autopilot ledger; import-isolated)
 import closure                    # noqa: E402  (coverage ledger / closure gate)
 import verifier                   # noqa: E402  (deterministic evidence capture + corroboration; never gates)
@@ -528,7 +533,13 @@ def main():
                     help="explicit phase list; default is recon,rank,map (add --hunt to test)")
     ap.add_argument("--hunt", action="store_true",
                     help="OPT-IN: after mapping, auto-test with agents (recon,rank,map,hunt,validate,report)")
-    ap.add_argument("--model", default="claude-sonnet-4-6")
+    ap.add_argument("--backend", default=os.environ.get("CBH_LLM_BACKEND", "claude"),
+                    choices=["claude", "grok"],
+                    help="LLM backend: claude (claude -p CLI) or grok (xAI API). "
+                         "Also settable via $CBH_LLM_BACKEND.")
+    ap.add_argument("--model", default=None,
+                    help="model id; default depends on --backend "
+                         "(claude-sonnet-4-6 for claude, grok-4-fast for grok)")
     ap.add_argument("--max-hunts", type=int, default=10)
     ap.add_argument("--max-turns", type=int, default=40)
     ap.add_argument("--timeout", type=int, default=600)
@@ -548,6 +559,15 @@ def main():
                          "vuln-class only — never host/url/body) and rank class suggestions by past hit-rate. "
                          "Separate store, advisory only. Default OFF.")
     a = ap.parse_args()
+    # Resolve the LLM backend (flag wins over the import-time env selection) and
+    # pick a sensible default model for whichever backend is active.
+    global A
+    if a.backend == "grok":
+        import agent_grok as A
+    else:
+        import agent as A
+    if a.model is None:
+        a.model = "grok-4-fast" if a.backend == "grok" else "claude-sonnet-4-6"
     if a.phases is not None:
         phases = [p.strip() for p in a.phases.split(",") if p.strip()]
         unknown = sorted(set(phases) - set(ALL_PHASES))
