@@ -222,7 +222,35 @@ Verify before attaching:
 
 If a screenshot of the Wireshark follow-stream (redacted the same way as in §5) proves the point, prefer the screenshot. Attach a sanitized PCAP only when the triager needs timing or packet-order evidence, for example in race-condition findings.
 
+### 4.6 Burp Suite Project & Export Sanitization
+
+A Burp project file is the other artifact that leaks everything. A HAR or a PCAP holds one capture — a project file holds the whole engagement: every request and response Burp saw while the project was open, across every host you visited, not just the target.
+
+What leaks in a project file:
+
+- Full Proxy history and site map — including unrelated hosts and any other engagement you reused the same project for
+- Session cookies and Authorization headers in stored requests, for the whole session rather than one flow
+- Other-user PII in response bodies across the site map
+- Repeater tabs and Intruder results holding live tokens and tested values against real accounts
+- Comments, highlights, and notes that may name accounts, emails, or internal references
+
+Sanitize before attaching:
+
+1. Never attach the raw project file to a report. It is not human-readable, so neither you nor the triager can verify what is inside it — redaction you cannot check is not redaction.
+2. Export only the PoC items instead: select the specific requests in Proxy history (or the Repeater tab) and save just those items, or copy the request/response pair as text.
+3. Treat a saved-items export like a HAR. If the export encodes bodies in base64, that is encoding, not redaction — the Cookie and Authorization values are still in there until you strip them, following the same discipline as §4.2.
+4. If a handoff genuinely needs project state (a teammate continuing the test, not a report attachment), build a trimmed copy: delete every out-of-scope host from the site map and every unrelated item from Proxy history, clear Intruder results and any comments that name accounts, then save it as a new file.
+
+Verify before attaching:
+
+- Decode any base64 in the export and search for the first 6 characters of your own cookie value — it must not appear.
+- List every host present in the export — only the target host should be there.
+- For a trimmed project copy, reopen the saved file and list the site map hosts again — confirm nothing out-of-scope survived the trim.
+
+An exported request/response pair, redacted the same way as in §5, proves most findings. Attach a Burp export only when the triager needs the full headers and bodies, for example in multi-step chained findings (see §5 of bugcrowd-reporting for how chains are filed).
+
 ---
+
 
 ## 5. Burp Suite Screenshot Hygiene
 
