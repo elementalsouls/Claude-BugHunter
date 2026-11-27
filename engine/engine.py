@@ -132,7 +132,7 @@ class Engine:
             subs |= O.enumerate_subdomains(apex, log=self.eng.log)
         in_scope = [s for s in sorted(subs) if self.scope.in_scope_host(s)]
         self.eng.log(f"expand: {len(subs)} subdomain(s) -> {len(in_scope)} in scope; probing liveness...")
-        live, _ = O.probe_hosts(in_scope, log=self.eng.log)
+        live, _ = O.probe_hosts(in_scope, log=self.eng.log, scope=self.scope)
         new_seeds = sorted({t["url"] for t in live if t.get("url")})
         if new_seeds:
             self.scope.seeds = new_seeds
@@ -154,8 +154,9 @@ class Engine:
         import recon as R, osint as O  # deterministic recon: service/tech + endpoints + secrets + params
         from urllib.parse import urlparse
         # service / tech fingerprint of the seed target(s) — per-target (NOT subdomain enum)
-        seed_hosts = sorted({urlparse(s).hostname for s in self.scope.seeds if urlparse(s).hostname})
-        tech, _ = O.probe_hosts(seed_hosts, log=self.eng.log)
+        seed_hosts = sorted({urlparse(s).hostname for s in self.scope.seeds
+                             if urlparse(s).hostname and self.scope.in_scope_host(s)})
+        tech, _ = O.probe_hosts(seed_hosts, log=self.eng.log, scope=self.scope)
         self.eng.state["targets"] = tech
         self.eng.save()
         for t in tech:

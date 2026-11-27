@@ -402,6 +402,8 @@ def _katana_urls(scope, log, depth=2, timeout=150):
         return {}
     urls, crawled = {}, 0
     for seed in scope.seeds:
+        if not scope.in_scope_host(seed):
+            continue
         try:
             out = subprocess.run(["katana", "-u", seed, "-silent", "-jc", "-d", str(depth),
                                   "-kf", "all", "-c", "10", "-timeout", "10", "-rl", "100"],
