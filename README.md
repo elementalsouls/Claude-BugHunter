@@ -80,7 +80,7 @@ Both copy the skills + commands into `~/.claude/` (macOS/Linux) or `%USERPROFILE
 | **B — copy install** | ✅ copied into `~/.claude/` | ✅ from the clone | ✅ from the clone |
 
 The plugin is the fastest path to the skills + slash commands. The terminal-native
-`cbh` runner installs standalone — `pipx install git+https://github.com/elementalsouls/Claude-BugHunter`
+`cbh` runner installs standalone — `pipx install claude-bughunter` (or `pipx install git+https://github.com/elementalsouls/Claude-BugHunter` for the tip of main)
 — so plugin users can add it without a full clone (see [`cbh` CLI](docs/cbh-cli.md)).
 The `hunt` engagement scaffolder ships with the clone (Option B).
 
