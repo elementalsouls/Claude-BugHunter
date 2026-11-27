@@ -53,7 +53,7 @@ Runs the full hunt cycle without stopping for approval at each step:
 ```
 1. SCOPE     Load and confirm program scope
 2. RECON     Run recon (or use cached if < 7 days old)
-3. RANK      Prioritize attack surface (recon-ranker agent)
+3. RANK      Prioritize attack surface (deterministic engine ranking)
 4. HUNT      Test P1 endpoints systematically
 5. VALIDATE  7-Question Gate on findings
 6. REPORT    Draft reports for validated findings

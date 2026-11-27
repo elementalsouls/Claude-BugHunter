@@ -137,7 +137,7 @@
     <line x1="842" y1="0" x2="918" y2="0" stroke="#ff2d4f" stroke-width="3"/>
     <g class="sans" font-weight="800" text-anchor="middle">
       <text x="147" y="66" font-size="52" class="red">85</text>
-      <text x="440" y="66" font-size="52" class="red">15</text>
+      <text x="440" y="66" font-size="52" class="red">16</text>
       <text x="733" y="66" font-size="52" class="red">58</text>
       <text x="1027" y="66" font-size="52" class="red">681</text>
       <text x="1320" y="66" font-size="52" class="cyan">5</text>

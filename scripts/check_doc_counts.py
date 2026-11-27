@@ -77,6 +77,31 @@ CHECKS = [
     ("docs/architecture.md", r"a (\d+)-skill `hunt-\*` sub-stack", "hunt", "doc intro"),
     ("docs/architecture.md", r"Of (\d+) skills: \d+ original", "total", "source-breakdown sentence"),
     ("docs/architecture.md", r"\*\*(\d+) `hunt-\*` skills\*\* \| original \+ community", "hunt", "phase-3 detail table"),
+    # --- plugin manifests, banner, and the Pages site: these assert the counts too,
+    #     and used to drift silently because nothing checked them (banner COMMANDS
+    #     stat was stale at 15 while the rest said 16). Added so a count bump that
+    #     misses any of them fails CI instead of becoming a bug report. ---
+    (".claude-plugin/marketplace.json", r'"(\d+)-skill bug-hunting', "total", "marketplace.json description skill count"),
+    (".claude-plugin/marketplace.json", r"(\d+) hunt-\* web/vuln-class", "hunt", "marketplace.json hunt count"),
+    (".claude-plugin/marketplace.json", r"(\d+) slash commands", "commands", "marketplace.json command count"),
+    (".claude-plugin/plugin.json", r'"(\d+)-skill bug-hunting', "total", "plugin.json description skill count"),
+    (".claude-plugin/plugin.json", r"(\d+) hunt-\* web/vuln-class", "hunt", "plugin.json hunt count"),
+    (".claude-plugin/plugin.json", r"(\d+) slash commands included", "commands", "plugin.json command count"),
+    ("docs/_config.yml", r"operator\. (\d+) skills,", "total", "_config.yml site-description skill count"),
+    ("docs/index.md", r"\*\*(\d+) skills\*\* across recon", "total", "docs/index.md intro skill count"),
+    ("docs/index.md", r"across recon, (\d+) web-app vuln-class", "hunt", "docs/index.md hunt count"),
+    ("docs/multi-harness.md", r"The (\d+) skills are plain", "total", "multi-harness.md intro skill count"),
+    ("docs/multi-harness.md", r"The \*\*(\d+) skills\*\* \(payloads", "total", "multi-harness.md port-note skill count"),
+    ("docs/multi-harness.md", r"all (\d+) skills still work", "total", "multi-harness.md caveat skill count"),
+    ("assets/banner-v2.svg", r">(\d+) Agent Skills for bug hunting", "total", "banner subtitle skill count"),
+    ("assets/banner-v2.svg", r'x="147"[^>]*class="red">(\d+)</text>', "total", "banner SKILLS stat"),
+    ("assets/banner-v2.svg", r'x="440"[^>]*class="red">(\d+)</text>', "commands", "banner COMMANDS stat"),
+    ("assets/banner-v2.svg", r'x="733"[^>]*class="red">(\d+)</text>', "hunt", "banner HUNT MODULES stat"),
+    ("assets/banner-v2.svg", r"# (\d+) skills across", "total", "banner terminal skill count"),
+    ("docs/_layouts/home.html", r"operator\. (\d+) skills,", "total", "home.html meta skill count"),
+    ("docs/_layouts/home.html", r"Browse (\d+) skills", "total", "home.html browse-button skill count"),
+    ("docs/_layouts/home.html", r'data-to="(\d+)">(\d+)</div>', ("total", "total"), "home.html count-up stat"),
+    ("docs/_layouts/home.html", r'<p class="sub">(\d+) skills auto-loading', "total", "home.html closing skill count"),
 ]
 
 

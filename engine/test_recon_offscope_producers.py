@@ -68,6 +68,30 @@ class OpenapiAuthorityTests(unittest.TestCase):
         self.assertTrue(any(it["url"] == "https://app.example.com/good" for it in items))
 
 
+class PlatformReconRobotsAuthorityTests(unittest.TestCase):
+    def test_robots_disallow_cannot_move_authority(self):
+        # a hostile/sloppy robots.txt Disallow must not put an off-base host into
+        # the surface (same authority class as #263, in the robots emitter).
+        scope = Scope(["app.example.com"], seeds=["https://app.example.com"])
+        robots = ("User-agent: *\n"
+                  "Disallow: /admin\n"
+                  "Disallow: @evil.example/secret\n"
+                  "Disallow: .evil.example/x\n")
+
+        def fake_probe(url, allow=None):
+            if url.endswith("/robots.txt"):
+                return 200, robots
+            return 0, ""
+
+        with mock.patch.object(recon, "_probe", side_effect=fake_probe):
+            items = recon.platform_recon(scope, log=lambda *a: None)
+        urls = [it["url"] for it in items if it.get("source") == "robots-disallow"]
+        self.assertIn("https://app.example.com/admin", urls)
+        for u in urls:
+            self.assertTrue(u.startswith("https://app.example.com/"),
+                            f"robots item escaped base authority: {u}")
+
+
 class PlatformReconOidcScopeTests(unittest.TestCase):
     def test_offscope_oidc_endpoints_not_added(self):
         scope = Scope(["app.example.com"], seeds=["https://app.example.com"])

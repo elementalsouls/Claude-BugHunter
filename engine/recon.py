@@ -633,6 +633,11 @@ def platform_recon(scope, log=print):
                 if dis:
                     log(f"platform: {base}/robots.txt disallows {len(dis)} path(s): {', '.join(sorted(set(dis))[:6])}")
                     for d in sorted(set(dis))[:10]:
+                        # a Disallow value is attacker-influenceable (it comes from the
+                        # target's robots.txt); one starting `@`/`.` or without a leading
+                        # `/` rewrites base+d's authority onto another host (#263 class).
+                        if not _on_base_authority(base, base + d):
+                            continue
                         items.append({"url": base + d, "param": "", "vuln_class": "info-leak",
                                       "source": "robots-disallow", "note": "robots-disallowed path"})
             elif "security.txt" in wk:
