@@ -123,7 +123,7 @@ def capture_exchange(finding, fetch_once, scope, max_body=MAX_BODY):
     finding["exchange"] = {
         "request_line": request_line,
         "status": status,
-        "location": location,
+        "location": _redact(location) if location else location,
         "final_url": url,
         "response_headers": _redact_headers(headers),
         "body_excerpt": excerpt,

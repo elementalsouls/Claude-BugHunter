@@ -48,6 +48,30 @@ class RedactionTests(unittest.TestCase):
         self.assertIn("5", red)
         self.assertIn("false", red)
 
+    def test_capture_exchange_redacts_location_field_without_breaking_open_redirect(self):
+        class AllowAll:
+            def reject_reason(self, _u):
+                return None
+
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijk123456"
+        loc = f"https://evil.example/cb#access_token={jwt}&email=alice@example.com&token=secretVal98765"
+
+        def fake_fetch(_u):
+            return (302, {"Location": loc}, loc, "")
+
+        f = {
+            "vuln_class": "open-redirect",
+            "url": "https://app.example.com/login",
+            "request": "GET /login?next=https://evil.example/cb",
+        }
+        verifier.capture_exchange(f, fake_fetch, AllowAll())
+        verifier.corroborate(f)
+
+        stored_loc = f["exchange"]["location"]
+        for leaked in (jwt, "alice@example.com", "secretVal98765"):
+            self.assertNotIn(leaked, stored_loc, f"location leaked: {leaked}")
+        self.assertEqual(f["corroboration"], "confirmed")
+
 
 if __name__ == "__main__":
     unittest.main()
