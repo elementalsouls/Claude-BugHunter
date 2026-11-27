@@ -85,8 +85,16 @@ uninstall_bundle() {
   fi
   echo "Uninstalling $BUNDLE_NAME using $MANIFEST"
   local rel target other owned removed=0 kept=0 label
+  # The installer writes only skills/<dir>, commands/<file>.md, scripts/hunt.*;
+  # anything else (../x, absolute, nested, empty segment) is skipped, not removed.
+  local safe_re='^(skills|commands|scripts)/[A-Za-z0-9][A-Za-z0-9._-]*$'
   while IFS= read -r rel; do
+    rel="${rel%$'\r'}"
     [ -z "$rel" ] && continue
+    if [[ "$rel" == *..* ]] || ! [[ "$rel" =~ $safe_re ]]; then
+      echo "  ! skipping unsafe manifest entry: $rel" >&2
+      continue
+    fi
     target="$HOME/.claude/$rel"
     owned=0
     for other in "$MANIFEST_DIR"/*.txt; do

@@ -199,7 +199,13 @@ function Uninstall-Bundle {
         Test-Path -LiteralPath (Join-Path $HarnessManifestDir $_) -PathType Leaf
     })
     $removed = 0; $kept = 0
-    foreach ($rel in (Get-Content -LiteralPath $Manifest | Where-Object { $_ })) {
+    # Installer writes only skills/<dir>, commands/<file>.md, scripts/hunt.*;
+    # skip anything else (../x, rooted, drive, backslash) instead of removing it.
+    foreach ($rel in (Get-Content -LiteralPath $Manifest | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ })) {
+        if ($rel -notmatch '^(skills|commands|scripts)/[A-Za-z0-9][A-Za-z0-9._-]*$' -or $rel.Contains('..') -or $rel.Contains(':') -or $rel.Contains('\')) {
+            Write-Warning "  ! skipping unsafe manifest entry: $rel"
+            continue
+        }
         $target = Join-Path $HOME ".claude\$rel"
         $owned = $false
         foreach ($s in $otherSets) { if ($s -contains $rel) { $owned = $true; break } }

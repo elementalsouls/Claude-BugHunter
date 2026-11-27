@@ -13,6 +13,7 @@ on:
       - "scripts/hunt.sh"
       - "scripts/hunt.ps1"
       - "scripts/test_hunt_target.sh"
+      - "scripts/test_uninstall_manifest.sh"
       - ".github/workflows/install-smoke.yml"
   push:
     branches: [main]
@@ -23,6 +24,7 @@ on:
       - "scripts/hunt.sh"
       - "scripts/hunt.ps1"
       - "scripts/test_hunt_target.sh"
+      - "scripts/test_uninstall_manifest.sh"
       - ".github/workflows/install-smoke.yml"
   workflow_dispatch:
 
@@ -52,11 +54,13 @@ jobs:
         run: |
           set -euo pipefail
           T="$(mktemp -d)"
+          # exact count: the installer's own glob (skills/*/), so a skill that fails to land is caught
+          expected=$(ls -d skills/*/ | wc -l | tr -d ' ')
           # default Claude install
           HOME="$T" bash scripts/install.sh --no-shell
           n=$(find "$T/.claude/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
           echo "claude skills: $n"
-          [ "$n" -ge 80 ] || { echo "FAIL: expected >=80 skills, got $n"; exit 1; }
+          [ "$n" -eq "$expected" ] || { echo "FAIL: expected $expected skills, got $n"; exit 1; }
           # --help exits 0, unknown flag exits non-zero
           bash scripts/install.sh --help >/dev/null
           if bash scripts/install.sh --bogus >/dev/null 2>&1; then
@@ -66,7 +70,7 @@ jobs:
           HOME="$T" bash scripts/install.sh --antigravity --no-shell
           ag=$(find "$T/.gemini/config/skills" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')
           echo "antigravity skills: $ag"
-          [ "$ag" -ge 80 ] || { echo "FAIL: --antigravity did not land skills in ~/.gemini/config/skills"; exit 1; }
+          [ "$ag" -eq "$expected" ] || { echo "FAIL: --antigravity landed $ag of $expected skills in ~/.gemini/config/skills"; exit 1; }
           [ ! -d "$T/.gemini/antigravity/skills" ] || { echo "FAIL: skills landed in the wrong (antigravity/skills) path"; exit 1; }
           # Codex normalization only edits bundle skills and their frontmatter.
           # Runs in its own HOME so it does not make $T/.agents a tracked harness
@@ -102,6 +106,9 @@ jobs:
       - name: hunt rejects unsafe target names (#252)
         run: bash scripts/test_hunt_target.sh
 
+      - name: uninstall skips unsafe manifest entries
+        run: bash scripts/test_uninstall_manifest.sh
+
   powershell-smoke:
     name: PowerShell parse and installer smoke
     runs-on: windows-latest
@@ -133,6 +140,21 @@ jobs:
           # reject sets LASTEXITCODE=1; clear it so the step itself exits clean
           # (the throws above, not the exit code, are what fail this step on a real bug)
           $global:LASTEXITCODE = 0
+      - name: uninstall skips unsafe manifest entries
+        shell: pwsh
+        run: |
+          $tempProfile = Join-Path $env:RUNNER_TEMP "cbh-uninstall-$([guid]::NewGuid())"
+          $md = Join-Path $tempProfile '.claude/.skill-manifests'
+          New-Item -ItemType Directory -Force -Path $md, (Join-Path $tempProfile 'precious'), (Join-Path $tempProfile '.claude/skills/keep-a'), (Join-Path $tempProfile '.claude/skills/goner') | Out-Null
+          Set-Content -LiteralPath (Join-Path $tempProfile 'precious/data') -Value x
+          Set-Content -LiteralPath (Join-Path $tempProfile '.claude/skills/keep-a/SKILL.md') -Value x
+          Set-Content -LiteralPath (Join-Path $md 'claude-bughunter.txt') -Value '../precious','skills/','skills/.','skills/..','skills\..\..','C:/x','skills/goner'
+          Set-Variable -Name HOME -Scope Global -Value $tempProfile -Force
+          $env:USERPROFILE = $tempProfile
+          & ./scripts/install.ps1 -Uninstall -NoProfile
+          if (-not (Test-Path (Join-Path $tempProfile 'precious/data'))) { throw "../precious was deleted" }
+          if (-not (Test-Path (Join-Path $tempProfile '.claude/skills/keep-a/SKILL.md'))) { throw "skills/keep-a was deleted" }
+          if (Test-Path (Join-Path $tempProfile '.claude/skills/goner')) { throw "valid skills/goner was not removed" }
       - name: parse .ps1 installers
         shell: pwsh
         run: |
