@@ -12,7 +12,7 @@ Fetch actionable intelligence for a target.
 1. Looks up CVEs and advisories matching the target's tech stack (NVD + GitHub
    Advisory via web search; `learn.py` is used as an accelerator only if present)
 2. Fetches HackerOne Hacktivity for the target (via the HackerOne MCP's
-   `search_disclosed_reports`, `get_program` and `get_program_scope` if connected — see `mcp/hackerone/`)
+   `search_disclosed_reports`, `get_program`, `get_program_scope` and `get_report` if connected — see `mcp/hackerone/`)
    and cross-references the bundled `docs/disclosed-reports/`
 3. Cross-references with hunt memory — flags untested CVEs and new endpoints
 4. Outputs prioritized intel with hunt recommendations

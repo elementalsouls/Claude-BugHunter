@@ -122,7 +122,7 @@ IDOR is the workhorse of bug bounty. It pays consistently because the proof is d
 - **When to suspect:** Response cached at a layer that doesn't account for user identity (cache key omits the user dimension). A user fetches `/api/profile`, response cached, second user fetches same URL, gets first user's data.
 - **Test:** Two concurrent users, identical URL, observe `Cache-Control` and `Vary` headers in responses. If `Vary` lacks user-distinguishing headers (`Authorization` or session cookies), the cache can poison cross-user.
 - **Validation:** Second user sees first user's data without authentication context.
-- **Pay-grade rationale:** Critical when reproducible. See also `hunt-cache-poisoning`.
+- **Pay-grade rationale:** Critical when reproducible. See also `hunt-cache-poison`.
 
 ---
 

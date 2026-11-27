@@ -11,6 +11,7 @@ standard library and reuses the HackerOne GraphQL client shape from
 | `search_disclosed_reports` | No | Disclosed Hacktivity reports for a query and/or program: title, URL, severity, CWE, bounty, votes. Use it to check for duplicates before reporting. |
 | `get_program` | No | A public program's base bounty, average bounty range, resolved report count, launch date and state. |
 | `get_program_scope` | No | A public program's structured scope (in-scope and out-of-scope assets, bounty eligibility, max severity, instructions) and policy text. |
+| `get_report` | No | A disclosed report's write-up body and public metadata (id, URL, title, severity, state, disclosure date, bounty when there is one). Takes exactly one of `id` or `url`. Adds a note when the public body is thin or empty. |
 | `list_my_programs` | Yes | Programs your account can see, private invitations included. |
 | `get_my_program` | Yes | One program's policy and full scope as your account sees it. |
 | `list_my_reports` | Yes | Your own reports and their state, optionally for one program. |

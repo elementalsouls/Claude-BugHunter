@@ -133,7 +133,7 @@ Result: **8 HTTP-live hosts** in **14 seconds**:
 
 ### What the recon walk surfaced
 
-1. **MTA-STS records on GitHub Pages.** Three `mta-sts.*` subdomains return GitHub Pages' "Page not found" — meaning a GitHub Pages site is configured but no `mta-sts.txt` file is served. Per `hunt-subdomain-takeover` fingerprint table:
+1. **MTA-STS records on GitHub Pages.** Three `mta-sts.*` subdomains return GitHub Pages' "Page not found" — meaning a GitHub Pages site is configured but no `mta-sts.txt` file is served. Per the `hunt-subdomain` fingerprint table:
 
    - "There isn't a GitHub Pages site here" → takeover vector (repo deleted)
    - "Page not found · GitHub Pages" → repo exists, just returning 404 — **NOT a takeover**
