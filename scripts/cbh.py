@@ -8,7 +8,7 @@ the pip console-script entry point (`cbh`). See docs/cbh-cli.md.
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from cbh.cli import main  # noqa: E402
 
 if __name__ == "__main__":
