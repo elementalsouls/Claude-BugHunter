@@ -406,7 +406,7 @@ No Duende.BFF-direct CVE exists. The three classes are exploitable via real-worl
 
 Cross-references for the chain:
 - `hunt-csrf` — the role-partitioned antiforgery class (the CSRF angle on the same BFF surface).
-- `hunt-subdomain-takeover` / `hunt-subdomain` — required primitive for the cookie-domain attack.
+- `hunt-subdomain` — required primitive for the cookie-domain attack.
 
 ---
 

@@ -6,6 +6,7 @@ Public tools (no key, HackerOne's public GraphQL):
   search_disclosed_reports  Hacktivity search for duplicate checks and technique research
   get_program               bounty ranges, resolved count, launch date, state
   get_program_scope         policy text and structured scope (in-scope assets, severity caps)
+  get_report                a disclosed report's write-up body and public metadata; takes exactly one of id or url
 
 Logged-in tools (listed only when HACKERONE_API_USERNAME and HACKERONE_API_TOKEN are set;
 HackerOne Hacker API, read-only — nothing here submits or changes anything):
