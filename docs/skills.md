@@ -106,7 +106,7 @@ All **85 skills** in the bundle, grouped by domain. Each auto-loads when your pr
 | `bb-methodology` | Use at the START of any bug bounty hunting session, when switching targets, or when feeling lost about what to do next. | — |
 | `bug-bounty` | Guide a bug bounty task from recon and HackerOne scope through research, vulnerability testing, finding validation, and reporting. | — |
 | `redteam-mindset` | Red-team operator discipline — the mindset corrections that separate offensive testing from defensive WAPT. | 1 |
-| `regression-hunting` | Diff-based re-testing — surfaces new assets, new ranked endpoints, tech-stack drift, status-code flips, and new secrets since the last recon snapshot (`cbh diff` / `/diff`), so re-runs on a target find fresh surface instead of re-reading surface already cleared. | — |
+| `regression-hunting` | Use when re-testing a target you've hunted before, on a retainer/continuous-scope program, or any time the question is "what changed since last time?" rather than "what's here?". | — |
 
 ## Reporting & validation (7)
 
@@ -114,7 +114,7 @@ All **85 skills** in the bundle, grouped by domain. Each auto-loads when your pr
 |---|---|---|
 | `bugcrowd-reporting` | Bugcrowd-specific reporting tactics complementing report-writing: VRT category search-and-fallback strategy when no exact match exists, manual severity override when VRT defaults underrate impact, severity-request paragraph as first body… | — |
 | `evidence-hygiene` | Evidence-capture and PoC-redaction discipline for bug-bounty submissions: cookie redaction protocol (which fields to mask, Preview annotation / Burp panel hiding / DevTools workflow), PII black-bar discipline (what to mask in other-user… | — |
-| `exploit-completion` | Drive a single exploit attempt all the way to proof instead of giving up one step early — for the failure where you found the bug and wrote the right payload but never confirmed it landed. Three mechanics: follow every redirect, diff each response against a named expected outcome, stop and change approach after N identical failures… | — |
+| `exploit-completion` | Drive a single exploit attempt all the way to proof instead of giving up one step early — for the failure where you found the bug and wrote the right payload but never confirmed it landed. | — |
 | `mid-engagement-ir-detection` | Methodology for detecting client SOC patches, attacker activity, and security-state changes that occur DURING a red-team engagement — and converting those observations into deliverable findings. | 1 |
 | `redteam-report-template` | Client-facing red-team deliverable format — codifies the Subject / Observations / Description / Impact / Recommendation / PoC structure used for external red-team engagements (not bug-bounty platform reports). | 1 |
 | `report-writing` | Bug bounty report writing for H1/Bugcrowd/Intigriti/Immunefi — report templates, human tone guidelines, impact-first writing, CVSS 3.1 scoring, title formula, impact statement formula, severity decision guide, downgrade counters,… | — |
