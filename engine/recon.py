@@ -370,17 +370,16 @@ def classes_for_param(name, url=""):
 def _gau_urls(scope, log):
     """Passive: gau historical parameterized URLs (in-scope). url -> source."""
     import subprocess
-    from urllib.parse import urlparse
     if not which("gau"):
         log("params: gau not installed — skipping historical param discovery")
         return {}
-    apexes = set()
-    for s in scope.seeds:
-        h = urlparse(s if "://" in s else "//" + s).hostname
-        if h:
-            apexes.add(".".join(h.split(".")[-2:]))
+    try:
+        from osint import enumeration_roots
+    except ImportError:
+        from .osint import enumeration_roots
+    apexes = enumeration_roots(scope)
     urls = {}
-    for apex in sorted(apexes):
+    for apex in apexes:
         try:
             out = subprocess.run(["gau", apex], capture_output=True, text=True, timeout=120).stdout
         except Exception:
