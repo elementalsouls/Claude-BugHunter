@@ -13,6 +13,8 @@ on:
       - "docs/disclosed-reports/**"
       - "cbh/data/skill_index.json"
       - "scripts/gen_skill_index.py"
+      - "scripts/gen_skill_catalog.py"
+      - "docs/skills.md"
       - "scripts/lint_skills.py"
       - "scripts/.identifier-denylist.sha256"
       - ".github/workflows/skill-lint.yml"
@@ -24,6 +26,8 @@ on:
       - "docs/disclosed-reports/**"
       - "cbh/data/skill_index.json"
       - "scripts/gen_skill_index.py"
+      - "scripts/gen_skill_catalog.py"
+      - "docs/skills.md"
       - "scripts/lint_skills.py"
   workflow_dispatch:
 
@@ -53,6 +57,9 @@ jobs:
 
       - name: Check the bundled CLI skill and report index
         run: python3 scripts/gen_skill_index.py --check
+
+      - name: Check the generated skill catalog
+        run: python3 scripts/gen_skill_catalog.py --check
 
       - name: Summary
         if: always()
