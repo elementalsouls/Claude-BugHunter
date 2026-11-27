@@ -94,10 +94,23 @@ def load_denylist():
     local = os.path.join(SCRIPTS_DIR, ".identifier-denylist.local")
     if os.path.exists(local):
         with open(local, encoding="utf-8") as fh:
-            for line in fh:
-                name = " ".join(line.strip().lower().split())
-                if name and not name.startswith("#"):
-                    hashes.add(hashlib.sha256(name.encode()).hexdigest())
+            for line_no, line in enumerate(fh, 1):
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                # Tokenize the entry exactly as the scanner shingles text (WORD_RE),
+                # so a name with punctuation hashes to a shingle the scan can produce
+                # (#267); fail CLOSED on a 3+ word entry the scanner can't match.
+                words = WORD_RE.findall(stripped.lower())
+                if not words:
+                    continue
+                if len(words) > 2:
+                    print(f"ERROR lint_skills: FAIL-CLOSED — denylist entry at "
+                          f"{local}:{line_no} has more than two words; a 3+ word name "
+                          f"cannot be matched. Split it or add its sha256.",
+                          file=sys.stderr)
+                    raise SystemExit(2)
+                hashes.add(hashlib.sha256(" ".join(words).encode()).hexdigest())
     return hashes
 
 

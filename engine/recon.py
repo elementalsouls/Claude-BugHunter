@@ -511,6 +511,19 @@ def classes_for_openapi(path, method, op, secured):
     return cls[:3]
 
 
+def _on_base_authority(base, url):
+    """True only if `url` has the same host:port as `base`. A path key from a
+    target-served spec is untrusted: without a leading `/` (`users/{id}`) or
+    starting `.`/`@` it rewrites the URL's authority, so `base + path` can send a
+    request to a host that was never scope-checked (#263). The scope gate alone
+    can't catch this — it checks `base`, not the escaped join — so every producer
+    that concatenates base+path verifies the authority didn't move."""
+    try:
+        return urlparse(url).netloc == urlparse(base).netloc and bool(urlparse(base).netloc)
+    except ValueError:
+        return False
+
+
 def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-00000",
                            *, allow_intrusive=False):
     """Probe declared-secured operations unauthenticated. By default, probe only GET.
@@ -533,6 +546,8 @@ def auth_enforcement_sweep(spec, base, log=print, junk="zzz-pentest-nonexistent-
                 skipped_writes += 1
                 continue
             url = base + path
+            if not _on_base_authority(base, url):   # path key rewrote the authority (#263) — never send
+                continue
             for pp in op.get("parameters", []):
                 if pp.get("in") == "path":
                     url = url.replace("{%s}" % pp["name"], junk)
@@ -604,7 +619,10 @@ def platform_recon(scope, log=print):
                     items.append({"url": base + wk, "param": "", "vuln_class": "info-leak", "source": "platform",
                                   "note": "OAuth/OIDC discovery exposed"})
                     for k in ("authorization_endpoint", "token_endpoint", "registration_endpoint"):
-                        if meta.get(k):
+                        # A discovery doc usually points at an external IdP; only add an
+                        # endpoint whose host is in scope, else a third-party host lands in
+                        # the surface/arsenal as a ready-to-run oauth target (#261).
+                        if meta.get(k) and scope.in_scope_host(meta[k]):
                             items.append({"url": meta[k], "param": "", "vuln_class": "oauth",
                                           "source": "platform", "note": f"OAuth {k}"})
                 except Exception:
@@ -655,6 +673,8 @@ def openapi_recon(scope, log=print, *, allow_intrusive=False):
                               ("security" not in opn and glob_sec)
                     if not secured:
                         noauth += 1
+                    if not _on_base_authority(host, f"{host}{p}"):   # spec path rewrote authority (#263)
+                        continue
                     for cls in classes_for_openapi(p, m, opn, secured):
                         items.append({"url": f"{host}{p}", "param": "", "method": m.upper(),
                                       "vuln_class": cls, "source": "openapi",

@@ -6,10 +6,15 @@
 # identifier instead. The linter (scripts/lint_skills.py) normalizes every
 # 1- and 2-word shingle of each SKILL.md the same way and compares hashes.
 #
-# Normalization: lowercase, collapse internal whitespace to single spaces.
+# Normalization: lowercase, then keep only [a-z0-9] runs as words joined by single
+# spaces (matches the scanner's shingles — punctuation like `Example-Corp`/`example.io`
+# becomes `example corp`/`example io`). A name is at most TWO words after this; the
+# scanner only emits 1- and 2-word shingles, so a 3+ word name cannot be matched.
 #
 # To add a NEW identifier without leaking it, either:
-#   (a) add its SHA-256 here:  printf '%s' "the name" | tr '[:upper:]' '[:lower:]' | shasum -a 256
+#   (a) add its SHA-256 here (tokenize exactly as the scanner does):
+#       printf '%s' "Example-Corp" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' ' ' \
+#         | sed 's/^ *//;s/ *$//' | shasum -a 256
 #   (b) drop it in scripts/.identifier-denylist.local (one per line, gitignored) —
 #       the linter hashes that file at runtime so you never commit the plaintext.
 #

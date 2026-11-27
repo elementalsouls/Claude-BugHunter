@@ -77,10 +77,14 @@ git config core.hooksPath .githooks
 To ban a **new** identifier without committing the plaintext name, either add its hash to `scripts/.identifier-denylist.sha256`:
 
 ```bash
-printf '%s' "the name" | tr '[:upper:]' '[:lower:]' | shasum -a 256   # paste the hash
+# Tokenize the same way the scanner shingles text: lowercase, keep [a-z0-9] runs
+# as words joined by single spaces (so `Example-Corp` → `example corp`). At most
+# two words — the scanner only emits 1- and 2-word shingles.
+printf '%s' "the name" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' ' ' \
+  | sed 's/^ *//;s/ *$//' | shasum -a 256   # paste the hash
 ```
 
-or drop the plaintext (one per line) in `scripts/.identifier-denylist.local` — it's gitignored and hashed at runtime, so the name never enters the repo.
+or drop the plaintext (one per line) in `scripts/.identifier-denylist.local` — it's gitignored and tokenized the same way at runtime, so the name never enters the repo. A name longer than two words (after tokenizing) can't be matched and fails the guard closed; split it or hash its 2-word parts.
 
 ## Code of conduct
 

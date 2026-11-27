@@ -207,6 +207,14 @@ def _ip_rules(token):
     return [str(n) for n in ipaddress.summarize_address_range(a, b)]
 
 
+def _whole_host(path):
+    """True when a path excludes/covers the whole host, not a sub-path. Any path
+    made only of `*` and `/` (``, `*`, `*/`, `/**`, `/*/*`) means the host itself;
+    the old literal set `("", "*", "*/")` missed `/**`, so a `host/**` out-of-scope
+    asset wrote no deny rule and stayed testable (#265)."""
+    return path.strip("*/ ") == ""
+
+
 def _parse_token(token, side):
     """One identifier with no spaces -> (rules, note) or (None, reason).
 
@@ -237,10 +245,10 @@ def _parse_token(token, side):
     path = path.strip()
     ips = _ip_rules(host)                                      # 203.0.113.7:8443/x
     if ips:
-        if path not in ("", "*", "*/"):
+        if not _whole_host(path):
             return [], "path:/" + path + "|" + ips[0]
         return ips, note
-    path_limited = path not in ("", "*", "*/")
+    path_limited = not _whole_host(path)
     if host.startswith("*.") and "*" not in host[2:]:
         base = host[2:]
         if not _valid_host(base):

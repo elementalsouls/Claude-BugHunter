@@ -51,6 +51,35 @@ class LintDenylistValidationTests(unittest.TestCase):
             self.assertIn(":3", err.getvalue())
             self.assertNotIn("not-a-digest", err.getvalue())
 
+    def _local_hashes(self, tmp, local_body):
+        import hashlib
+        scripts = self._write_denylist(tmp, "# header\n" + "a" * 64 + "\n")
+        with open(os.path.join(scripts, ".identifier-denylist.local"), "w", encoding="utf-8") as fh:
+            fh.write(local_body)
+        orig = lint_skills.SCRIPTS_DIR
+        lint_skills.SCRIPTS_DIR = scripts
+        try:
+            return lint_skills.load_denylist()
+        finally:
+            lint_skills.SCRIPTS_DIR = orig
+
+    def test_local_entry_tokenized_like_scanner(self):
+        # #267: `Example-Corp` must hash to the shingle `example corp`, which the
+        # scanner emits from `Example-Corp` in text.
+        import hashlib
+        with __import__("tempfile").TemporaryDirectory() as tmp:
+            got = self._local_hashes(tmp, "Example-Corp\nexample.io\n")
+            self.assertIn(hashlib.sha256(b"example corp").hexdigest(), got)
+            self.assertIn(hashlib.sha256(b"example io").hexdigest(), got)
+
+    def test_local_three_word_entry_fails_closed(self):
+        with __import__("tempfile").TemporaryDirectory() as tmp:
+            err = io.StringIO()
+            with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(err):
+                self._local_hashes(tmp, "Big Example Bank\n")
+            self.assertEqual(cm.exception.code, 2)
+            self.assertNotIn("Big Example Bank", err.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

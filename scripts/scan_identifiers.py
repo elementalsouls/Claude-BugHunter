@@ -71,10 +71,28 @@ def load_denylist():
     local = os.path.join(SCRIPTS_DIR, ".identifier-denylist.local")
     if os.path.exists(local):
         with open(local, encoding="utf-8") as fh:
-            for line in fh:
-                name = " ".join(line.strip().lower().split())
-                if name and not name.startswith("#"):
-                    hashes.add(hashlib.sha256(name.encode()).hexdigest())
+            for line_no, line in enumerate(fh, 1):
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                # Tokenize the entry exactly as the scanner shingles text (WORD_RE),
+                # so a name with punctuation (`Example-Corp`, `example.io`) hashes to
+                # a shingle the scan can actually produce (#267). A plain lowercase
+                # kept the punctuation and could never match a `[a-z0-9]+` shingle.
+                words = WORD_RE.findall(stripped.lower())
+                if not words:
+                    continue
+                if len(words) > 2:
+                    # The scanner only emits 1- and 2-word shingles, so a 3+ word
+                    # entry can never match as a unit — fail CLOSED, never silently
+                    # pass. Split it into ≤2-word names or add a .sha256 digest.
+                    msg = (f"scan_identifiers: FAIL-CLOSED — denylist entry at "
+                           f"{local}:{line_no} has more than two words; a 3+ word "
+                           f"name cannot be matched. Split it or add its sha256.")
+                    print(f"::error:: {msg}" if os.environ.get("GITHUB_ACTIONS")
+                          else f"ERROR {msg}", file=sys.stderr)
+                    raise SystemExit(2)
+                hashes.add(hashlib.sha256(" ".join(words).encode()).hexdigest())
     return hashes
 
 

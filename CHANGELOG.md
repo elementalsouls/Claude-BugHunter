@@ -22,6 +22,35 @@ versioning is loosely [SemVer](https://semver.org/) at the bundle level.
   `recon/<target>/REGRESSION.md` and advances the snapshot baseline.
 
 ### Security
+- **Scope / off-scope-request hardening cluster — fixed (reported by @chaitanya0305).**
+  A follow-on audit of the scope gate and its producers, in the same parser-differential
+  class as the backslash bypass below, surfaced five fail-open holes; all are fixed with
+  regression tests:
+  - **IPv6 out-of-scope bypass by non-canonical spelling** (`engine/scope.py`). Deny
+    rules are canonicalized at load, but `_host_of` returned the target host as written,
+    so `[2001:0db8::1]` / `[2001:db8:0:0::1]` / `[2001:DB8::0001]` dodged a
+    `2001:db8::1` deny rule while the CIDR allow still admitted them. `_host_of` now
+    canonicalizes an IP literal identically to the rules (one chokepoint).
+  - **OpenAPI auth sweep / `openapi_recon` sent requests to off-scope hosts**
+    (`engine/recon.py`). The URL was built `base + path` from a target-served spec key;
+    a key without a leading `/` (`users/{id}`) or starting `.`/`@` rewrote the URL's
+    authority (`app.example.com@other.example`), so unauthenticated GETs (and intrusive
+    verbs) reached a host that was never scope-checked. Every base+path join now verifies
+    the authority is unchanged before the request or surface item is emitted.
+  - **`platform_recon` added third-party OIDC endpoints to the surface** (`engine/recon.py`).
+    `authorization_endpoint`/`token_endpoint`/`registration_endpoint` from a discovery
+    document were appended with no scope check, listing an external IdP as a ready-to-run
+    `oauth` target; they are now filtered through the scope gate.
+  - **`cbh scope import` dropped `host/**` out-of-scope exclusions** (`cbh/scope_import.py`).
+    A path of only `*` and `/` (`/**`, `/*/*`) was filed as a path-level exclusion with no
+    deny rule, leaving the host testable under an in-scope wildcard; any such path is now
+    treated as whole-host.
+  - **Leak guard silently passed denylist names with punctuation or 3+ words**
+    (`scripts/scan_identifiers.py`, `scripts/lint_skills.py`). A `.identifier-denylist.local`
+    entry was hashed after only lowercasing, but scanned text is tokenized to `[a-z0-9]+`
+    shingles, so `Example-Corp` / `example.io` could never match and a 3+ word name could
+    never match as a unit. Entries are now tokenized exactly as the scanner shingles text,
+    and a 3+ word entry fails closed; the documented `.sha256` recipe is corrected to match.
 - **Scope bypass via a backslash in the URL authority — fixed (privately reported).** The
   deterministic scope gate parsed hosts with `urlparse`, which treats `\` as a normal
   character, while `requests`/`urllib3` (and browsers) treat it as `/` in the authority. So

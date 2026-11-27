@@ -62,6 +62,15 @@ def _host_of(target):
         host = (parsed.hostname or "").lower().rstrip(".")
     except ValueError:
         return ""
+    # Canonicalize an IP literal exactly as _normalize_rule does for rules, so an
+    # alternate spelling of an out-of-scope address (2001:0db8::1 vs 2001:db8::1,
+    # [2001:DB8::0001]) can't dodge deny-wins while the CIDR allow still admits it
+    # (#259 — same fail-open asymmetry as #247). urlparse already strips the
+    # brackets off an IPv6 literal; drop any %zone before parsing.
+    try:
+        return str(ipaddress.ip_address(host.split("%")[0]))
+    except ValueError:
+        pass
     # Fail closed: an un-encodable IDN host is dropped so it matches nothing and
     # default-deny keeps it out of scope.
     return _to_alabel(host) or ""
