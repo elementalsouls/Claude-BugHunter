@@ -39,15 +39,21 @@ class Engagement:
 
     def _load(self):
         if os.path.isfile(self.state_path):
-            s = json.load(open(self.state_path, encoding="utf-8"))
+            with open(self.state_path, encoding="utf-8") as f:
+                s = json.load(f)
             for k, v in self._fresh_defaults().items():   # forward-compat with pre-ledger engagements
                 s.setdefault(k, v)
             return s
         return {"name": self.name, "created": _now(), "phase": "init", **self._fresh_defaults()}
 
     def save(self):
+        # Resume trusts this file: close and fsync the tmp before the rename, so a crash
+        # can't leave a renamed-but-empty state.json (or rely on GC to flush the handle).
         tmp = self.state_path + ".tmp"
-        json.dump(self.state, open(tmp, "w", encoding="utf-8"), indent=2)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self.state, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(tmp, self.state_path)
 
     def log(self, msg):

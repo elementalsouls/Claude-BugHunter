@@ -89,7 +89,8 @@ def _load(path):
     if not os.path.exists(path):
         return {}
     try:
-        d = json.load(open(path, encoding="utf-8"))
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
         return d if isinstance(d, dict) else {}
     except Exception:
         return {}

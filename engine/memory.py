@@ -168,7 +168,8 @@ def _write_rollup(host, tech_stack, tested, confirmed):
     prev = {}
     if os.path.exists(p):
         try:
-            prev = json.load(open(p, encoding="utf-8"))
+            with open(p, encoding="utf-8") as f:
+                prev = json.load(f)
         except Exception:
             prev = {}
     hc_conf = [f for f in confirmed if _host(f.get("url", "")) == host]
@@ -182,7 +183,10 @@ def _write_rollup(host, tech_stack, tested, confirmed):
                       for f in hc_conf],
     }
     tmp = p + ".tmp"
-    json.dump(doc, open(tmp, "w", encoding="utf-8"), indent=2)
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(doc, f, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
     os.replace(tmp, p)
 
 
@@ -235,7 +239,10 @@ def skip_decision(host, tech_stack, item):
 
 def rollup(host):
     p = os.path.join(_root(), "targets", f"{host}.json")
-    return json.load(open(p, encoding="utf-8")) if os.path.exists(p) else None
+    if not os.path.exists(p):
+        return None
+    with open(p, encoding="utf-8") as f:
+        return json.load(f)
 
 
 def gc(action="report", max_mb=10, keep=KEEP, root=None):
