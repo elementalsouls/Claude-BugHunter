@@ -154,6 +154,13 @@ def _normalize_rule(rule):
 
 class Scope:
     def __init__(self, in_scope, out_of_scope=None, seeds=None, name="engagement"):
+        for field, value in (("in_scope", in_scope), ("out_of_scope", out_of_scope), ("seeds", seeds)):
+            # Fail closed: a bare str would be iterated char by char and the deny list would fail open.
+            if value is not None and not isinstance(value, (list, tuple)):
+                raise ValueError(f"scope field {field!r} must be a list of strings, got {type(value).__name__}")
+            for item in value or ():
+                if not isinstance(item, str):
+                    raise ValueError(f"scope field {field!r} must be a list of strings, got item of type {type(item).__name__}")
         self.warnings = []
         self.in_scope = [self._norm(p) for p in (in_scope or []) if p.strip()]
         self.out_of_scope = [self._validate_out_regex(self._norm(p))

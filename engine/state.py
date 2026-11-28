@@ -22,6 +22,10 @@ def _now():
 
 class Engagement:
     def __init__(self, base, name):
+        # Reject (not slug): slugging would silently move existing engagement dirs and break resume.
+        if (not isinstance(name, str) or not name.strip() or name in (".", "..")
+                or any(c in name for c in "/\\:\x00")):
+            raise ValueError(f"engagement name must be a non-empty string without path separators: {name!r}")
         self.dir = os.path.join(os.path.expanduser(base), name)
         self.name = name
         os.makedirs(os.path.join(self.dir, "evidence"), exist_ok=True)
