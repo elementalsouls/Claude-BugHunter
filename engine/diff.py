@@ -127,7 +127,11 @@ def format_diff_report(diff: dict[str, Any]) -> str:
     lines.append(f"_Baseline: {diff.get('baseline_generated_at')}  →  Current: {diff.get('current_generated_at')}_")
     lines.append("")
 
-    if not has_signal(diff):
+    # Removals alone are not new attack surface, so has_signal() stays False
+    # for them — but they are still a change: a removal-only diff must not
+    # claim the surface is identical, and the "Removed assets" section below
+    # must be reachable.
+    if not has_signal(diff) and not diff.get("removed_hosts") and not diff.get("removed_surface"):
         lines.append("No change since the last snapshot — surface is identical.")
         return "\n".join(lines)
 
