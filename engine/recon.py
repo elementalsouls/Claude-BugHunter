@@ -206,7 +206,10 @@ def spa_recon(scope, seeds=None, max_js=20, interesting_only=True, log=print):
             forms.append({"action": urljoin(base, act.group(1)) if act else seed,
                           "params": INPUT_NAME.findall(fm)})
 
-    for ju in list(js_urls)[:max_js]:
+        # Sorted, not set order: js_urls is a set, so list(js_urls)[:max_js] mined
+# a different, hash-seed-dependent subset on every run. The docstring
+# promises deterministic recon, and the coverage ledger downstream assumes it.
+  for ju in sorted(js_urls)[:max_js]:
         js, _, _ = _get(ju, allow=scope.in_scope_host)
         if js:
             js_base = f"{urlparse(ju).scheme}://{urlparse(ju).netloc}"
