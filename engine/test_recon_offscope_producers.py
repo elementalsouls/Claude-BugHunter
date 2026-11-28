@@ -116,5 +116,49 @@ class PlatformReconOidcScopeTests(unittest.TestCase):
         self.assertNotIn("https://tenant.idp-vendor.example.net/oauth/token", oauth)
 
 
+class PlatformReconPortTests(unittest.TestCase):
+    def test_non_default_port_is_preserved(self):
+        # A seed on a non-default port must be probed on that port: building
+        # the base from urlparse(...).hostname silently dropped it, so every
+        # well-known check probed port 80/443 and missed.
+        scope = Scope(["app.example.com"], seeds=["https://app.example.com:8443"])
+        robots = "User-agent: *\nDisallow: /admin\nDisallow: /private\n"
+        requested = []
+
+        def fake_probe(url, allow=None):
+            requested.append(url)
+            if url.endswith("/robots.txt"):
+                return 200, robots
+            return 0, ""
+
+        with mock.patch.object(recon, "_probe", side_effect=fake_probe):
+            items = recon.platform_recon(scope, log=lambda *a: None)
+        for url in requested:
+            self.assertTrue(url.startswith("https://app.example.com:8443/"),
+                            f"probe escaped the seed port: {url}")
+        urls = [it["url"] for it in items if it.get("source") == "robots-disallow"]
+        self.assertIn("https://app.example.com:8443/admin", urls)
+        self.assertIn("https://app.example.com:8443/private", urls)
+
+    def test_seed_without_port_is_unchanged(self):
+        scope = Scope(["app.example.com"], seeds=["https://app.example.com"])
+        robots = "User-agent: *\nDisallow: /admin\n"
+        requested = []
+
+        def fake_probe(url, allow=None):
+            requested.append(url)
+            if url.endswith("/robots.txt"):
+                return 200, robots
+            return 0, ""
+
+        with mock.patch.object(recon, "_probe", side_effect=fake_probe):
+            items = recon.platform_recon(scope, log=lambda *a: None)
+        for url in requested:
+            self.assertTrue(url.startswith("https://app.example.com/"),
+                            f"probe left the seed base: {url}")
+        urls = [it["url"] for it in items if it.get("source") == "robots-disallow"]
+        self.assertIn("https://app.example.com/admin", urls)
+
+
 if __name__ == "__main__":
     unittest.main()
