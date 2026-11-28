@@ -592,7 +592,10 @@ def platform_recon(scope, log=print):
     items, seen = [], set()
     for seed in scope.seeds:
         u = urlparse(seed if "://" in seed else "https://" + seed)
-        base = f"{u.scheme or 'https'}://{u.hostname}"
+        # netloc, not hostname: the seed's port must survive, otherwise a
+          # target on a non-default port (e.g. staging on :8443) is probed on
+          # port 80/443 and every check silently misses.
+      base = f"{u.scheme or 'https'}://{u.netloc}"
         if base in seen:
             continue
         seen.add(base)
