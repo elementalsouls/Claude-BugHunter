@@ -1,0 +1,33 @@
+{
+  "name": "claude-bughunter",
+  "version": "2.1.0",
+  "description": "84-skill bug-hunting & external red-team bundle — 58 hunt-* web/vuln-class + framework skills, enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and HackerOne MCP integration. Skills auto-load by topic; 15 slash commands included.",
+  "author": {
+    "name": "Sachin Sharma",
+    "url": "https://github.com/elementalsouls"
+  },
+  "homepage": "https://elementalsouls.github.io/Claude-BugHunter",
+  "repository": "https://github.com/elementalsouls/Claude-BugHunter",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "offensive-security",
+    "bug-bounty",
+    "red-team",
+    "pentest",
+    "recon",
+    "osint",
+    "hunt"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Claude BugHunter",
+    "shortDescription": "84-skill bug-hunting and external red-team skill bundle",
+    "longDescription": "58 hunt-* web/vuln-class + framework skills, enterprise platform attack chains (M365/Entra, Okta, SharePoint, vCenter, SSL-VPN, APK/iOS), recon/OSINT, reporting & validation gates, and HackerOne MCP integration. Skills auto-load by topic.",
+    "developerName": "Sachin Sharma",
+    "category": "Security",
+    "capabilities": ["Skills", "MCP servers"],
+    "websiteURL": "https://elementalsouls.github.io/Claude-BugHunter",
+    "logo": "./assets/logo.png"
+  }
+}

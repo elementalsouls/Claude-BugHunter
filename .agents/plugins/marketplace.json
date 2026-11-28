@@ -1,0 +1,20 @@
+{
+  "name": "claude-bughunter",
+  "interface": {
+    "displayName": "Claude BugHunter"
+  },
+  "plugins": [
+    {
+      "name": "claude-bughunter",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Security"
+    }
+  ]
+}

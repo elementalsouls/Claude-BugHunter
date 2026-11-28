@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "hackerone": {
+      "command": "python3",
+      "args": ["${PLUGIN_ROOT}/mcp/hackerone/server.py"],
+      "env": {
+        "HACKERONE_API_USERNAME": "${HACKERONE_API_USERNAME}",
+        "HACKERONE_API_TOKEN": "${HACKERONE_API_TOKEN}"
+      }
+    }
+  }
+}
