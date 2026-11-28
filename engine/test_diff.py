@@ -54,6 +54,24 @@ class DiffManifestsTests(unittest.TestCase):
         # Removed hosts alone (decommission) aren't "new attack surface" signal.
         self.assertFalse(has_signal(diff))
 
+    def test_removal_only_report_shows_removed_host(self):
+        # A removal-only diff is not new attack surface (has_signal stays
+        # False), but the report must not claim the surface is identical:
+        # the removed host is exactly what the regression diff exists to show.
+        old = _manifest()
+        new = _manifest(assets=[old["assets"][0]])  # drop www.acme.com
+        diff = diff_manifests(old, new)
+        self.assertFalse(has_signal(diff))
+        report = format_diff_report(diff)
+        self.assertIn("www.acme.com", report)
+        self.assertIn("Removed assets", report)
+        self.assertNotIn("surface is identical", report)
+
+    def test_identical_manifests_report_says_no_change(self):
+        m = _manifest()
+        report = format_diff_report(diff_manifests(m, m))
+        self.assertIn("surface is identical", report)
+
     def test_tech_change_detected(self):
         old = _manifest()
         new_assets = [dict(old["assets"][0], tech=["nginx", "php"]), old["assets"][1]]
