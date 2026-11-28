@@ -152,11 +152,27 @@ def _normalize_rule(rule):
     return ("*." + host) if wild else host
 
 
+def _wildcard_deny(rule):
+    """Write a deny rule with a `*` inside the host as an anchored regex.
+
+    `_match` only knows a leading `*.`, so `staging-*.example.com` or
+    `www.*.example.com` matched no host and the excluded hosts stayed in scope
+    under an in-scope wildcard. `cbh scope import` already writes these as a
+    regex; do the same for scope.md, scope.json and CLI rules. A wider deny is
+    safe, so each `*` may span labels.
+    """
+    if rule[:3].lower() == "re:" or _is_cidr(rule):
+        return rule
+    if "*" not in (rule[2:] if rule.startswith("*.") else rule):
+        return rule
+    return "re:^" + "[a-z0-9.-]*".join(re.escape(p) for p in rule.split("*")) + "$"
+
+
 class Scope:
     def __init__(self, in_scope, out_of_scope=None, seeds=None, name="engagement"):
         self.warnings = []
         self.in_scope = [self._norm(p) for p in (in_scope or []) if p.strip()]
-        self.out_of_scope = [self._validate_out_regex(self._norm(p))
+        self.out_of_scope = [self._validate_out_regex(_wildcard_deny(self._norm(p)))
                              for p in (out_of_scope or []) if p.strip()]
         self.seeds = seeds or []
         self.name = name
