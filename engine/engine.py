@@ -22,7 +22,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from scope import Scope            # noqa: E402
+from scope import Scope, _host_of  # noqa: E402
 from state import Engagement       # noqa: E402
 import agent as A                  # noqa: E402
 import memory                     # noqa: E402  (autopilot ledger; import-isolated)
@@ -102,8 +102,16 @@ class Engine:
         """Deterministic safety net: which out-of-scope hosts did the agent's PoC touch?"""
         blob = " ".join([str(f.get("request", "")), str(f.get("evidence", "")),
                          " ".join(f.get("hosts_contacted") or [])])
-        hosts = set(re.findall(r'https?://([A-Za-z0-9.\-]+)', blob)) | set(f.get("hosts_contacted") or [])
-        return sorted({h for h in hosts if h and not self.scope.in_scope_host(h)})
+        # Capture the full authority up to /, ?, #, whitespace, or punctuation so
+        # userinfo (`https://inscope@evil.com`), backslash differentials, and bracketed IPv6
+        # literals are evaluated fail-closed by Scope rather than truncated at `@` or `\`.
+        candidates = set(re.findall(r'https?://([^\s/?#"\'<>`(),;]+)', blob))
+        candidates |= {str(h).strip() for h in (f.get("hosts_contacted") or []) if str(h).strip()}
+        oos = set()
+        for cand in candidates:
+            if not self.scope.in_scope_host(cand):
+                oos.add(_host_of(cand) or cand)
+        return sorted(oos)
 
     # ---------------- osint (deterministic scope expansion) ----------------
     def osint(self):

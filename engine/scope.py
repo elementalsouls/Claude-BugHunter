@@ -130,12 +130,17 @@ def _normalize_rule(rule):
     low = r.lower()
     if "://" in low:
         low = low.split("://", 1)[1]
-    low = low.split("@")[-1]                       # drop userinfo
     tok = low.split()[0] if low.split() else low   # a trailing note ('(corp range)') is not the rule
+    # Strip userinfo only within the authority before `/` or `?`, so `@` in a
+    # URL path/query (`https://admin.example.com/@internal`) does not drop the host.
+    auth_end = min((idx for idx in (tok.find("/"), tok.find("?")) if idx != -1), default=len(tok))
+    auth = tok[:auth_end]
+    if "@" in auth:
+        tok = auth.rsplit("@", 1)[1] + tok[auth_end:]
     if _is_cidr(tok):
         return tok
-    wild = low.startswith("*.")
-    core = low[2:] if wild else low
+    wild = tok.startswith("*.")
+    core = tok[2:] if wild else tok
     bare = core.strip("[]").split("%")[0]          # IPv6 may be bracketed or %zone-scoped
     try:
         return str(ipaddress.ip_address(bare))     # literal IP (incl. unbracketed IPv6)
