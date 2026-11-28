@@ -53,7 +53,24 @@ classification and report pointers.
 
 ## Testing changes
 
-There's no automated test suite. Manual smoke tests:
+### Automated checks
+
+Run these from the repo root before opening a PR. They are stdlib-only, so no
+`pip install` is needed:
+
+```bash
+python3 scripts/lint_skills.py
+PYTHONPATH=".:engine" python3 -m unittest discover -s engine
+PYTHONPATH=".:engine" python3 -m unittest discover -s tests
+```
+
+`PYTHONPATH` must include both the repo root and `engine/`, as in the
+`runtime-tests` CI workflow. Without it, the tests that import the engine fail
+with `ModuleNotFoundError: No module named 'scope'`.
+
+### Manual smoke tests
+
+For skill changes, also check that the skill triggers:
 
 1. Install the skill locally (copy to `~/.claude/skills/`)
 2. Open a fresh `claude` session
